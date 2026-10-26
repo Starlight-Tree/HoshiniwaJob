@@ -38,3 +38,7 @@ cd frontend && npm install && npm test && npm run build && npm run typecheck   #
 ## これから
 
 園のログイン、パスワード再設定、応募、園の管理画面、CSV・PDF 出力、メール送信、画像、お知らせ記事。
+
+## ライセンス
+
+[LICENSE](LICENSE) を参照してください。
