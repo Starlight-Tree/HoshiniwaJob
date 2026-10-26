@@ -1,0 +1,114 @@
+# hoshiniwa-job のローカル開発用（Postgres 17 + FastAPI + Next.js）。
+#   docker compose up --build        # 初回。2 回目からは docker compose up
+#   http://localhost:3200            # 画面（求人検索）
+#   http://localhost:8200/docs       # API の仕様（FastAPI の自動文書）
+# 他のローカルのサービスと同時に動かせるよう、ポートは 3200 / 8200 にしてある。
+name: hoshiniwa-job
+
+services:
+  # 求人のデータ。ホストにポートを公開せず、internal の backend-net（外へも出られない）にだけ置く。
+  # 空のボリュームで初めて起動したときだけ、db/ の SQL（テーブルとマスタ）を流し込む。
+  db:
+    image: postgres:17
+    container_name: hoshiniwa-job-db
+    environment:
+      POSTGRES_DB: hoshiniwa
+      POSTGRES_USER: hoshiniwa
+      POSTGRES_PASSWORD: "${LOCAL_DB_PASSWORD:-hoshiniwa-local}"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/seed_codes.sql:/docker-entrypoint-initdb.d/02-seed-codes.sql:ro
+    networks:
+      - backend-net
+    healthcheck:
+      # -h 127.0.0.1: 初回の初期化中の一時サーバー（ソケットだけ待ち受ける）を、起動済みと見なさないため
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U hoshiniwa -d hoshiniwa"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # ダミーの求人・アカウントを入れる（すでにデータがあれば何もしない。入れ直すときは README の「データのリセット」）
+  seed:
+    build: ./backend
+    container_name: hoshiniwa-job-seed
+    command: ["python", "-m", "app.seed_demo"]
+    environment:
+      DATABASE_URL: &database_url "postgresql://hoshiniwa:${LOCAL_DB_PASSWORD:-hoshiniwa-local}@db:5432/hoshiniwa"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend-net
+    restart: "no"
+
+  api:
+    build: ./backend
+    container_name: hoshiniwa-job-api
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/code/app"]
+    environment:
+      DATABASE_URL: *database_url
+      CORS_ORIGINS: "http://localhost:3200"
+      # ホスト↔コンテナ間のボリュームでファイル変更通知が届かない環境（Docker Desktop 等）向け
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend/app:/code/app
+    ports:
+      - "127.0.0.1:8200:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - frontend-net
+      - backend-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # 画面の開発サーバー（frontend/ の next dev）。API はサーバー側（Next.js）から呼ぶので、ブラウザーは API を直接呼ばない。
+  frontend:
+    image: node:24-slim
+    container_name: hoshiniwa-job-frontend
+    working_dir: /app
+    environment:
+      API_BASE_URL: "http://api:8000"
+    volumes:
+      - ./frontend:/app
+      # node_modules と .next は、ホストのものと分ける（ネイティブの依存が OS ごとに違うため）
+      - frontend_node_modules:/app/node_modules
+      - frontend_next_cache:/app/.next
+    ports:
+      - "127.0.0.1:3200:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    networks:
+      - frontend-net
+    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --hostname 0.0.0.0 --port 3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+# frontend-net: frontend と api（frontend は npm install で外へ出る）。
+# backend-net: api・seed・db だけ。internal なので、db は外へ出られず、ホストからも届かない。
+networks:
+  frontend-net:
+  backend-net:
+    internal: true
+
+volumes:
+  pg-data:
+  frontend_node_modules:
+  frontend_next_cache:

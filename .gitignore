@@ -1,0 +1,19 @@
+# 依存・ビルド生成物
+node_modules/
+.next/
+tsconfig.tsbuildinfo
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# 認証情報・環境変数
+.env
+.env.*
+!.env.example
+
+# 動作確認のスクリーンショットなど（拡張子では無視しない）
+.playwright-mcp/
+
+# OS
+.DS_Store

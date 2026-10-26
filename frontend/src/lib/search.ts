@@ -1,0 +1,70 @@
+import type { Master } from './types';
+
+// 条件の種類。クエリの名前は、バックエンドの /api/recruits と同じ
+export const KINDS = ['employment', 'area', 'station', 'occupation'] as const;
+export type Kind = (typeof KINDS)[number];
+
+export type Selection = Record<Kind, number[]> & { page: number };
+
+type RawParams = Record<string, string | string[] | undefined>;
+
+function toInts(value: string | string[] | undefined): number[] {
+  const list = Array.isArray(value) ? value : value === undefined ? [] : [value];
+  const codes = list.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0);
+  return [...new Set(codes)].sort((a, b) => a - b);
+}
+
+/** URL のクエリを、検索の条件にする。数字でない値・重複は捨てる（API へ 422 になる値を渡さない）。 */
+export function parseSelection(params: RawParams): Selection {
+  const page = Number(Array.isArray(params.page) ? params.page[0] : params.page);
+  return {
+    employment: toInts(params.employment),
+    area: toInts(params.area),
+    station: toInts(params.station),
+    occupation: toInts(params.occupation),
+    page: Number.isInteger(page) && page > 1 ? page : 1,
+  };
+}
+
+/** 条件を、クエリ文字列（先頭の ? なし）にする。ページは 2 以上のときだけ入れる。 */
+export function toQuery(sel: Selection): string {
+  const q = new URLSearchParams();
+  for (const kind of KINDS) for (const code of sel[kind]) q.append(kind, String(code));
+  if (sel.page > 1) q.set('page', String(sel.page));
+  return q.toString();
+}
+
+export function hrefFor(sel: Selection): string {
+  const q = toQuery(sel);
+  return q ? `/?${q}` : '/';
+}
+
+export function hasConditions(sel: Selection): boolean {
+  return KINDS.some((kind) => sel[kind].length > 0);
+}
+
+export type Chip = { kind: Kind; code: number; label: string; removeHref: string };
+
+/** 選んだ条件を、1 つずつ外せるチップにする。外すとページは 1 に戻る。 */
+export function chipsFor(sel: Selection, master: Master): Chip[] {
+  const names: Record<Kind, Map<number, string>> = {
+    employment: new Map(master.employments.map((c) => [c.code, c.name])),
+    area: new Map(master.areas.map((c) => [c.code, c.name])),
+    station: new Map(master.stations.map((c) => [c.code, c.name])),
+    occupation: new Map(master.occupations.flatMap((g) => g.items.map((c) => [c.code, c.name] as const))),
+  };
+  const chips: Chip[] = [];
+  for (const kind of KINDS) {
+    for (const code of sel[kind]) {
+      const label = names[kind].get(code);
+      if (!label) continue; // マスタに無い（削除済みの）番号は出さない
+      chips.push({
+        kind,
+        code,
+        label,
+        removeHref: hrefFor({ ...sel, [kind]: sel[kind].filter((c) => c !== code), page: 1 }),
+      });
+    }
+  }
+  return chips;
+}
