@@ -3,7 +3,8 @@
     python -m app.seed_demo          # 求人・利用者・園アカウントが空のときだけ入れる
     python -m app.seed_demo --reset  # 求人・応募・アカウントを消して入れ直す（マスタは触らない）
 
-ログイン確認用: 利用者 hoshiniwa-user@example.com / 園 hoshiniwa-garden@example.com、パスワードはどちらも README に書いたダミー（ローカル専用）。
+ログイン確認用: 利用者 hoshiniwa-user@example.com / 園 hoshiniwa-garden@example.com と hoshiniwa-garden2@example.com、
+パスワードはどれも README に書いたダミー（ローカル専用）。
 """
 
 import sys
@@ -34,22 +35,40 @@ RECRUITS = [
 ]
 
 
+# 園のアカウント（メール, 法人名）。求人は、法人名が同じ園のアカウントに紐づける（どの園にも紐づかない求人もある）。
+GARDENS = [
+    ("hoshiniwa-garden@example.com", "環軌道植物公社"),
+    ("hoshiniwa-garden2@example.com", "ミルフェン月面植物園"),
+]
+# 「非表示のテスト求人」は、1 つ目の園の非表示の求人として使う
+GARDEN_OF_CORPORATE = {"環軌道植物公社": 0, "非表示のテスト求人": 0, "ミルフェン月面植物園": 1}
+
+
 def main(reset: bool) -> None:
     hasher = PasswordHasher()
     pw_hash = hasher.hash(DEMO_PASSWORD)
     with psycopg.connect(database_url()) as conn:
         if reset:
-            conn.execute("TRUNCATE entries, password_resets, recruits, users, garden_accounts RESTART IDENTITY CASCADE")
+            conn.execute(
+                "TRUNCATE entries, password_resets, recruits, users, user_sessions, garden_accounts, garden_sessions RESTART IDENTITY CASCADE"
+            )
         elif conn.execute("SELECT (SELECT count(*) FROM recruits) + (SELECT count(*) FROM users)").fetchone()[0]:
             print("すでにデータがあります。入れ直すなら --reset を付けてください。")
             return
+        garden_ids = [
+            conn.execute(
+                "INSERT INTO garden_accounts (corporate, email, password_hash) VALUES (%s, %s, %s) RETURNING id", (corporate, email, pw_hash)
+            ).fetchone()[0]
+            for email, corporate in GARDENS
+        ]
         for corporate, category, employ, pay_min, pay_max, areas, stations, occupations, shown in RECRUITS:
             rid = conn.execute(
-                "INSERT INTO recruits (employ, category, corporate, profile, place, salary, pay_min, pay_max, comment1, note1,"
+                "INSERT INTO recruits (garden_account_id, employ, category, corporate, profile, place, salary, pay_min, pay_max, comment1, note1,"
                 " start_hour, start_minute, end_hour, end_minute, workday, insurance, is_displayed)"
-                " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, '09', '00', '18', '00', '月〜金', '連邦保険・園共済', %s)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, '09', '00', '18', '00', '月〜金', '連邦保険・園共済', %s)"
                 " RETURNING id",
                 (
+                    garden_ids[GARDEN_OF_CORPORATE[corporate]] if corporate in GARDEN_OF_CORPORATE else None,
                     employ, category, corporate, f"{corporate}は、これは練習用の架空の法人です。", "翠環連邦内（架空の住所）",
                     2 if employ == 1 else 4, pay_min, pay_max, f"{category}の業務です（ダミー）。", "ダミーの備考です。", shown,
                 ),
@@ -65,11 +84,7 @@ def main(reset: bool) -> None:
             "INSERT INTO users (last_name, first_name, email, password_hash) VALUES ('苔野', 'ひかり', 'hoshiniwa-user@example.com', %s)",
             (pw_hash,),
         )
-        conn.execute(
-            "INSERT INTO garden_accounts (corporate, email, password_hash) VALUES ('環軌道植物公社', 'hoshiniwa-garden@example.com', %s)",
-            (pw_hash,),
-        )
-    print(f"求人 {len(RECRUITS)} 件、利用者 1 人、園アカウント 1 件を入れました。")
+    print(f"求人 {len(RECRUITS)} 件、利用者 1 人、園アカウント {len(GARDENS)} 件を入れました。")
 
 
 if __name__ == "__main__":

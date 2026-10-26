@@ -63,6 +63,14 @@ CREATE TABLE garden_accounts (                -- 園・法人の管理者
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE garden_sessions (                -- 園のログイン中の印（利用者の user_sessions とは別。トークンはハッシュだけ持つ）
+  token_hash         text PRIMARY KEY,
+  garden_account_id  integer NOT NULL REFERENCES garden_accounts(id) ON DELETE CASCADE,
+  expires_at         timestamptz NOT NULL,
+  created_at         timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX garden_sessions_garden ON garden_sessions (garden_account_id);
+
 CREATE TABLE password_resets (                -- メールで送る確認コード（ハッシュで保存し、期限を付ける）
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   account_kind text NOT NULL CHECK (account_kind IN ('user', 'garden')),
@@ -77,6 +85,7 @@ CREATE INDEX password_resets_account ON password_resets (account_kind, account_i
 -- ===== 求人 =====
 CREATE TABLE recruits (                       -- 求人
   id            integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  garden_account_id integer REFERENCES garden_accounts(id) ON DELETE SET NULL,  -- 掲載している園のアカウント（園は自分の分だけ見られる）
   employ        smallint,                    -- 雇用形態
   job1          smallint, job2 smallint, job3 smallint, job4 smallint, job5 smallint,  -- 職種区分 1〜5（意味は入力画面の選択肢）
   category      text,                        -- 職種名
@@ -106,6 +115,8 @@ CREATE TABLE recruits (                       -- 求人
   created_at    timestamptz NOT NULL DEFAULT now(),
   is_displayed  boolean NOT NULL DEFAULT false   -- サイトに表示するか
 );
+
+CREATE INDEX recruits_garden ON recruits (garden_account_id);
 
 CREATE TABLE recruit_areas (
   recruit_id  integer NOT NULL REFERENCES recruits(id) ON DELETE CASCADE,

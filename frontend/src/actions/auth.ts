@@ -2,22 +2,13 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ApiError, loginRequest, logoutRequest, registerRequest } from '../lib/api';
+import { loginRequest, logoutRequest, registerRequest } from '../lib/api';
+import { messageFor } from '../lib/error-message';
 import type { FormState } from '../lib/form-state';
 import { SESSION_COOKIE, setRegisteredFlag, setSessionCookie } from '../lib/session';
 import { validateLogin, validateRegister } from '../lib/validation';
 
 const text = (data: FormData, key: string) => String(data.get(key) ?? '');
-
-// API の応答は、ここで固定の文に直す（API の本文や例外の文字列は画面に出さない）
-function messageFor(e: unknown): string {
-  if (e instanceof ApiError) {
-    if (e.status === 401) return 'メールアドレスまたはパスワードが違います';
-    if (e.status === 409) return 'このメールアドレスは登録できません';
-    if (e.status === 422) return '入力内容を確認してください';
-  }
-  return 'ただいま利用できません。しばらくしてから、もう一度お試しください';
-}
 
 export async function loginAction(_prev: FormState, data: FormData): Promise<FormState> {
   const email = text(data, 'email').trim();

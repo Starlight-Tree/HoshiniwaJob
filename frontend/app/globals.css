@@ -49,6 +49,18 @@ h1, h2 { line-height: 1.4; }
 .logout-button { width: 100%; min-height: 40px; border: 1.5px solid var(--primary); border-radius: 8px; background: var(--surface); color: var(--primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .logout-button:hover { background: var(--tag-bg); }
 
+.logo-sub { margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); font-size: 14px; font-weight: 700; color: var(--muted); }
+
+/* 園の管理 */
+.garden-title { margin: 0; font-size: 26px; }
+.garden-email { margin: 0 0 32px; font-size: 14px; color: var(--muted); }
+.garden-heading { margin: 0 0 12px; font-size: 18px; }
+.garden-stats { display: flex; flex-wrap: wrap; gap: 16px; margin: 0; }
+.garden-stats div { flex: 0 1 200px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 24px; }
+.garden-stats dt { font-size: 13px; color: var(--muted); }
+.garden-stats dd { margin: 0; font-size: 14px; }
+.garden-stats strong { font-size: 36px; line-height: 1.2; color: var(--primary); }
+
 /* 登録直後の完了メッセージ */
 .flash { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 24px; padding: 10px 16px 10px 20px; background: var(--tag-bg); border: 1px solid var(--primary); border-radius: var(--radius); color: var(--tag-text); font-weight: 700; }
 .flash p { margin: 0; }

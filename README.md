@@ -16,13 +16,14 @@ docker compose up --build   # 初回。2 回目からは docker compose up
 - API の文書: <http://localhost:8200/docs>
 - 止める: `docker compose down`。DB ごと消すなら `docker compose down -v`
 
-ダミーのアカウント（ローカル専用）: 利用者 `hoshiniwa-user@example.com`、園 `hoshiniwa-garden@example.com`、パスワードは `star-garden-demo`。
+ダミーのアカウント（ローカル専用）: 利用者 `hoshiniwa-user@example.com`、園 `hoshiniwa-garden@example.com` と `hoshiniwa-garden2@example.com`、パスワードは `star-garden-demo`。
 ダミーデータだけ入れ直す: `docker compose run --rm seed python -m app.seed_demo --reset`
 
 ## 機能
 
 - **求人検索**: 条件（雇用形態・エリア・乗り場・職種）は URL に持つ。同じ種類の中は OR、種類の間は AND。条件ごとの件数、チップでの解除。
 - **利用者の会員登録・ログイン・ログアウト**（`/register`、`/login`）: パスワードは argon2。ログインの印は HttpOnly の Cookie（`hj_session`）。https で公開するときは `SESSION_COOKIE_SECURE=true`。
+- **園のログイン・ログアウト**（<http://localhost:3200/garden/login>）: 利用者とは別のアカウント・別のセッション・別の Cookie（`hj_garden_session`）。ダッシュボード（`/garden`）には、自分の法人の求人の件数だけが出る。園の会員登録の画面・API は無く、アカウントは `seed` で作る。
 
 ## 開発とテスト
 
@@ -37,7 +38,7 @@ cd frontend && npm install && npm test && npm run build && npm run typecheck   #
 
 ## これから
 
-園のログイン、パスワード再設定、応募、園の管理画面、CSV・PDF 出力、メール送信、画像、お知らせ記事。
+パスワード再設定、応募、園の管理画面、CSV・PDF 出力、メール送信、画像、お知らせ記事。
 
 ## ライセンス
 

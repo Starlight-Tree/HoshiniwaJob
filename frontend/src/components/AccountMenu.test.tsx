@@ -31,4 +31,11 @@ describe('AccountMenu', () => {
     await userEvent.click(document.body);
     expect(button).toHaveAttribute('aria-expanded', 'false');
   });
+
+  it('敬称を変えられる（園は「御中」）', async () => {
+    render(<AccountMenu name="環軌道植物公社" email="garden@example.com" honorific="御中" logout={vi.fn(async () => {})} />);
+    await userEvent.click(screen.getByRole('button', { name: /環軌道植物公社/ }));
+    expect(screen.getByText('環軌道植物公社 御中')).toBeInTheDocument();
+    expect(screen.queryByText(/さん/)).not.toBeInTheDocument();
+  });
 });

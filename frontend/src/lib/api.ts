@@ -1,4 +1,4 @@
-import type { Facets, Master, RecruitDetail, RecruitPage, Session, User } from './types';
+import type { Facets, Garden, GardenSession, GardenSummary, Master, RecruitDetail, RecruitPage, Session, User } from './types';
 import { KINDS, type Selection } from './search';
 
 // 画面のサーバー側（Next.js）から API を呼ぶ。ブラウザーは API を直接呼ばないので、CORS は要らない。
@@ -75,5 +75,19 @@ export const fetchMe = (token: string) => get<User>('/api/auth/me', token);
 
 export async function logoutRequest(token: string): Promise<void> {
   const res = await call('/api/auth/logout', { method: 'POST', token });
+  if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
+}
+
+// 園の認証。利用者とは別の API・別のトークン（Cookie に入れるのは session.ts）。
+export async function gardenLoginRequest(email: string, password: string): Promise<GardenSession> {
+  return json<GardenSession>(await call('/api/garden/auth/login', { method: 'POST', body: { email, password } }));
+}
+
+export const fetchGardenMe = (token: string) => get<Garden>('/api/garden/auth/me', token);
+
+export const fetchGardenSummary = (token: string) => get<GardenSummary>('/api/garden/summary', token);
+
+export async function gardenLogoutRequest(token: string): Promise<void> {
+  const res = await call('/api/garden/auth/logout', { method: 'POST', token });
   if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
 }

@@ -98,3 +98,23 @@ class RegisterRequest(BaseModel):
     first_name: Annotated[str, Field(min_length=1, max_length=50)]
     email: Annotated[EmailStr, AfterValidator(_normalized_email)]
     password: Annotated[str, Field(min_length=8, max_length=128)]
+
+
+class Garden(BaseModel):
+    id: int
+    email: str
+    corporate: str
+
+
+class GardenSession(BaseModel):
+    token: str
+    garden: Garden
+
+
+class GardenSummary(BaseModel):
+    """園が見られる、自分の分の求人の件数。"""
+
+    corporate: str
+    email: str
+    displayed: int
+    hidden: int

@@ -2,10 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 
-type Props = { name: string; email: string; logout: () => Promise<void> };
+type Props = { name: string; email: string; logout: () => Promise<void>; honorific?: string };
 
-/** ヘッダーのアカウントのメニュー。名前・メールアドレス・ログアウト。外を押す・Esc で閉じる。 */
-export function AccountMenu({ name, email, logout }: Props) {
+/** ヘッダーのアカウントのメニュー。名前・メールアドレス・ログアウト。外を押す・Esc で閉じる。敬称は、利用者は「さん」、園は「御中」。 */
+export function AccountMenu({ name, email, logout, honorific = 'さん' }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -37,7 +37,9 @@ export function AccountMenu({ name, email, logout }: Props) {
       </button>
       {open ? (
         <div id={menuId} className="account-menu">
-          <p className="account-name">{name} さん</p>
+          <p className="account-name">
+            {name} {honorific}
+          </p>
           <p className="account-email">{email}</p>
           <form action={logout}>
             <button type="submit" className="logout-button">

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
 from app.auth import router as auth_router
+from app.garden import router as garden_router
 from app.recruits import router as recruits_router
 from app.settings import cors_origins
 
@@ -22,6 +23,7 @@ app = FastAPI(title="星庭ジョブ API", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_methods=["GET", "POST"], allow_headers=["*"])
 app.include_router(recruits_router)
 app.include_router(auth_router)
+app.include_router(garden_router)
 
 
 @app.get("/health")
