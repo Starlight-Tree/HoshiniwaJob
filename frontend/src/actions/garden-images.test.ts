@@ -59,7 +59,7 @@ describe('uploadImageAction', () => {
   it('成功したら、画像そのものを Content-Type 付きで API へ送る（トークンは Authorization だけ）', async () => {
     const fetchMock = reply(201, {});
     const state = await uploadImageAction({}, form({ recruit_id: '7', alt: '温室の画像', file: jpeg(32) }));
-    expect(state.ok).toContain('承認');
+    expect(state.ok).toBe('画像を公開しました。');
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain('/api/garden/recruits/7/images?alt=' + encodeURIComponent('温室の画像'));
     expect(init?.method).toBe('POST');
@@ -96,7 +96,7 @@ describe('moveImageAction', () => {
 });
 
 describe('setHeroAction / removeImageAction', () => {
-  it('ヒーローの指定と削除要求を API へ送る（所有権の判断は API）', async () => {
+  it('ヒーローの指定と削除を API へ送る（所有権の判断は API）', async () => {
     const fetchMock = reply(200, {});
     await expect(setHeroAction(form({ recruit_id: '2', image_id: A }))).rejects.toMatchObject({ to: '/garden/recruits/2/images' });
     expect(fetchMock.mock.calls[0]![1]?.method).toBe('PUT');

@@ -45,7 +45,7 @@ class RecruitPage(BaseModel):
 
 
 class ImageInfo(BaseModel):
-    """公開してよい（承認済みの）画像。url は保存キーから組み立てた公開 URL（署名付きではない）。"""
+    """公開中の画像。url は保存キーから組み立てた公開 URL（署名付きではない）。"""
 
     id: str
     url: str
@@ -56,8 +56,8 @@ class ImageInfo(BaseModel):
 
 
 class RecruitDetail(RecruitSummary):
-    hero_image: ImageInfo | None  # ヒーローに指定された承認済みの画像。無ければ表示順で先頭の承認済みの画像。画像が 1 枚も無ければ None
-    images: list[ImageInfo]  # 承認済みの画像を、表示順に
+    hero_image: ImageInfo | None  # ヒーローに指定された公開中の画像。無ければ表示順で先頭の公開中の画像。画像が 1 枚も無ければ None
+    images: list[ImageInfo]  # 公開中の画像を、表示順に
     profile: str | None
     place: str | None
     note2: str | None
@@ -134,7 +134,7 @@ class GardenSummary(BaseModel):
 
 
 class ImageBody(BaseModel):
-    """園が自分の求人・法人の画像として見る 1 枚。status が approved でない画像は、公開されていない。"""
+    """園が自分の求人・法人の画像として見る 1 枚。status が approved（公開中）でない画像（取り下げられたもの）は、公開されていない。"""
 
     id: str
     alt: str
@@ -142,12 +142,11 @@ class ImageBody(BaseModel):
     height: int
     mime_type: str
     origin: str
-    status: str  # pending（承認待ち）/ approved（公開中）/ rejected（却下）
+    status: str  # approved（公開中）/ rejected（運営が取り下げた）
     position: int
     is_hero: bool
     role: str | None = None  # 法人の画像のとき: logo / banner
-    url: str | None  # approved のときだけ公開 URL。それ以外は None（プレビューは認証付きの preview_path で）
-    preview_path: str
+    url: str | None  # approved（公開中）のときだけ公開 URL。それ以外は None
 
 
 class GardenRecruitImages(BaseModel):
@@ -163,7 +162,7 @@ class GardenRecruitItem(BaseModel):
     category: str | None
     is_displayed: bool
     image_count: int
-    approved_count: int
+    published_count: int
 
 
 class ImageOrder(BaseModel):

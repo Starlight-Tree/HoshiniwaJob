@@ -62,7 +62,7 @@ export default async function GardenDashboardPage() {
               </Link>
               <span className="garden-email">
                 {' '}
-                {r.is_displayed ? '表示中' : '非表示'}・画像 {r.image_count} 枚（公開中 {r.approved_count} 枚）
+                {r.is_displayed ? '表示中' : '非表示'}・画像 {r.image_count} 枚（公開中 {r.published_count} 枚）
               </span>
             </li>
           ))}

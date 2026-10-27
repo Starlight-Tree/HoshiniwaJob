@@ -1,4 +1,4 @@
-"""ダミーの求人の画像を、通常の登録・承認の流れ（検証 → 非公開側へ保存 → 承認 → 公開側へ複製）で入れる。
+"""ダミーの求人の画像を、通常の登録の流れ（検証 → 保存 → 公開中）で入れる。
 マニフェスト（demo_images.json）の demo_key で、画像と求人を結ぶ。何度実行しても、画像も関連も増えない。
 
     python -m app.seed_images --source-dir <画像のフォルダー>      # 画像のファイルがあるフォルダーから
@@ -19,7 +19,7 @@ import psycopg
 from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 
-from app.image_service import approve_image, process_image, register_image
+from app.image_service import complete_upload, process_image, register_image
 from app.settings import database_url, require_demo_data_allowed
 from app.storage import Storage, get_storage
 
@@ -44,7 +44,7 @@ def _read_source(entry: dict, source_dir: Path | None, source_url: str | None) -
 
 def seed(conn, storage: Storage, *, source_dir: Path | None, source_url: str | None, out=print) -> dict[str, int]:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    stats = {"registered": 0, "approved": 0, "linked": 0, "kept": 0, "no_recruit": 0}
+    stats = {"registered": 0, "linked": 0, "kept": 0, "no_recruit": 0}
     for entry in manifest["images"]:
         image = conn.execute("SELECT id, status FROM images WHERE demo_key = %s", (entry["demo_key"],)).fetchone()
         if image is None:
@@ -56,17 +56,17 @@ def seed(conn, storage: Storage, *, source_dir: Path | None, source_url: str | N
             except UniqueViolation:  # 同時に動いた別の実行が先に登録した
                 conn.rollback()
                 image = conn.execute("SELECT id, status FROM images WHERE demo_key = %s", (entry["demo_key"],)).fetchone()
-                image_id = image["id"]
-            status = "pending"
+                image_id, status = image["id"], image["status"]
+            else:
+                status = "approved"
         else:
             image_id, status = image["id"], image["status"]
-        if status in ("pending", "publishing", "uploading"):
-            if status == "uploading":
-                out(f"登録の途中の画像があります（{entry['demo_key']}）。python -m app.images_cli reconcile --apply で整えてから、もう一度実行してください")
+        if status == "uploading":  # 前の実行が登録の途中で止まった。実体が揃っていれば公開中にし、無ければ消してやり直す
+            status = complete_upload(conn, storage, image_id)
+            if status == "deleted":
+                out(f"登録の途中で止まっていた画像を片付けました（{entry['demo_key']}）。もう一度実行してください")
                 continue
-            approve_image(conn, storage, image_id)
-            stats["approved"] += 1
-        elif status != "approved":
+        if status != "approved":
             out(f"状態 {status} の画像です（{entry['demo_key']}）。触りません")
             continue
         recruit = conn.execute("SELECT id FROM recruits WHERE demo_key = %s", (entry["recruit_demo_key"],)).fetchone()

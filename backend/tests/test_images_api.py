@@ -39,14 +39,14 @@ def upload(client, token, recruit_id=MINE, *, data=None, ctype="image/jpeg", alt
     )
 
 
-def approve(image_id):
-    """運営の承認（CLI と同じ関数）。園の API からは呼べない。"""
+def take_down(image_id):
+    """運営の取り下げ（CLI と同じ関数）。園の API からは呼べない。"""
     from psycopg.rows import dict_row
 
     from app.settings import database_url
 
     with psycopg.connect(database_url(), row_factory=dict_row) as conn:
-        svc.approve_image(conn, get_storage(), image_id)
+        svc.reject_image(conn, get_storage(), image_id)
 
 
 def listing(client, token, recruit_id=MINE):
@@ -55,26 +55,21 @@ def listing(client, token, recruit_id=MINE):
     return res.json()["images"]
 
 
-def test_upload_then_pending_is_private_then_approved_is_public(client, tok1):
+def test_upload_is_public_immediately_without_any_approval(client, tok1):
     res = upload(client, tok1)
     assert res.status_code == 201
     body = res.json()
-    assert body["status"] == "pending" and body["url"] is None and body["position"] == 0 and body["is_hero"] is False
-    # 承認前: 公開の求人詳細にも、/media にも出ない
+    assert body["status"] == "approved" and body["url"] == f"/media/images/{body['id']}.jpg" and body["position"] == 0 and body["is_hero"] is False
+    assert "preview_path" not in body
+    # 保存した時点で、公開の求人詳細にも、/media にも出る
     detail = client.get(f"/api/recruits/{MINE}").json()
-    assert detail["hero_image"] is None and detail["images"] == []
-    assert client.get(f"/media/images/{body['id']}.jpg").status_code == 404
-    # 園には、認証付きのプレビューで見える
-    pre = client.get(body["preview_path"], headers=bearer(tok1))
-    assert pre.status_code == 200 and pre.headers["content-type"] == "image/jpeg" and pre.headers["cache-control"] == "private, no-store"
-    Image.open(io.BytesIO(pre.content)).verify()
-    # 承認（運営）
-    approve(body["id"])
-    detail = client.get(f"/api/recruits/{MINE}").json()
-    assert detail["hero_image"]["id"] == body["id"] and detail["images"][0]["url"] == f"/media/images/{body['id']}.jpg"  # ヒーロー未指定なら先頭
+    assert detail["hero_image"]["id"] == body["id"] and detail["images"][0]["url"] == body["url"]  # ヒーロー未指定なら先頭
     assert detail["hero_image"]["alt"] == "テスト画像" and detail["hero_image"]["width"] == 640
-    media = client.get(detail["hero_image"]["url"])
+    media = client.get(body["url"])
     assert media.status_code == 200 and media.headers["content-type"] == "image/jpeg" and "immutable" in media.headers["cache-control"]
+    Image.open(io.BytesIO(media.content)).verify()
+    # 承認前のプレビュー用の道は、もう無い
+    assert client.get(f"/api/garden/images/{body['id']}/preview", headers=bearer(tok1)).status_code in (404, 405)
 
 
 def test_authentication_is_required_everywhere(client, tok1):
@@ -86,7 +81,6 @@ def test_authentication_is_required_everywhere(client, tok1):
         ("put", f"/api/garden/recruits/{MINE}/images/order"),
         ("put", f"/api/garden/recruits/{MINE}/images/hero"),
         ("delete", f"/api/garden/recruits/{MINE}/images/{r['id']}"),
-        ("get", r["preview_path"]),
         ("get", "/api/garden/recruits"),
         ("get", "/api/garden/profile-images"),
     ]
@@ -97,13 +91,11 @@ def test_authentication_is_required_everywhere(client, tok1):
 
 def test_other_garden_cannot_see_or_change_my_recruit_images(client, tok1, tok2):
     mine = upload(client, tok1).json()
-    approve(mine["id"])
     assert client.get(f"/api/garden/recruits/{MINE}/images", headers=bearer(tok2)).status_code == 404
     assert upload(client, tok2, MINE).status_code == 404
     assert client.put(f"/api/garden/recruits/{MINE}/images/order", json={"image_ids": [mine["id"]]}, headers=bearer(tok2)).status_code == 404
     assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": mine["id"]}, headers=bearer(tok2)).status_code == 404
     assert client.delete(f"/api/garden/recruits/{MINE}/images/{mine['id']}", headers=bearer(tok2)).status_code == 404
-    assert client.get(mine["preview_path"], headers=bearer(tok2)).status_code == 404  # 承認済みでも、他の園のプレビューは通らない
     # 自分の求人の URL のまま、他の園の画像 ID を指しても効かない
     theirs = upload(client, tok2, OTHERS).json()
     assert client.delete(f"/api/garden/recruits/{OTHERS}/images/{mine['id']}", headers=bearer(tok2)).status_code == 404
@@ -145,8 +137,6 @@ def test_upload_over_limit_is_rejected_by_header_and_by_stream(client, tok1, mon
 def test_multiple_images_order_hero_and_delete(client, tok1):
     ids = [upload(client, tok1, data=make_image(seed=i), alt=f"画像{i}").json()["id"] for i in range(1, 4)]
     assert [i["position"] for i in listing(client, tok1)] == [0, 1, 2]
-    for i in ids:
-        approve(i)
     # 並べ替え
     res = client.put(f"/api/garden/recruits/{MINE}/images/order", json={"image_ids": [ids[2], ids[0], ids[1]]}, headers=bearer(tok1))
     assert res.status_code == 200 and [i["id"] for i in res.json()["images"]] == [ids[2], ids[0], ids[1]]
@@ -155,50 +145,75 @@ def test_multiple_images_order_hero_and_delete(client, tok1):
     # 一覧と一致しない並べ替えは拒否
     for bad in ([ids[0]], [ids[0], ids[0], ids[1]], ids + [ids[0]], ["not-a-uuid"]):
         assert client.put(f"/api/garden/recruits/{MINE}/images/order", json={"image_ids": bad}, headers=bearer(tok1)).status_code == 422
-    # ヒーローを変える
+    # ヒーローを変える（アップロードした直後の画像にできる）
     res = client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": ids[1]}, headers=bearer(tok1))
     assert res.status_code == 200 and [i["is_hero"] for i in res.json()["images"]] == [False, False, True]
     assert client.get(f"/api/recruits/{MINE}").json()["hero_image"]["id"] == ids[1]
-    # 削除要求: 求人から外れ、画像の実体はすぐには消えない
+    # 削除: 求人から外れ、画像はその場で消える（猶予はない）
+    key = f"images/{ids[1]}.jpg"
+    assert get_storage().exists(key)
     assert client.delete(f"/api/garden/recruits/{MINE}/images/{ids[1]}", headers=bearer(tok1)).status_code == 204
     after = listing(client, tok1)
     assert [i["id"] for i in after] == [ids[2], ids[0]] and [i["position"] for i in after] == [0, 1]
     assert client.get(f"/api/recruits/{MINE}").json()["hero_image"]["id"] == ids[2]  # ヒーローが無くなったら先頭へ
-    row = db_exec("SELECT status, deletion_requested_at IS NOT NULL FROM images WHERE id = %s", (ids[1],))[0]
-    assert row == ("approved", True)
-    assert get_storage().exists(f"images/{ids[1]}.jpg", public=True)  # 即時に物理削除しない
+    row = db_exec("SELECT status, deleted_at IS NOT NULL FROM images WHERE id = %s", (ids[1],))[0]
+    assert row == ("deleted", True)
+    assert not get_storage().exists(key)  # 実体もその場で消える
+    assert client.get(f"/media/{key}").status_code == 404
     assert client.delete(f"/api/garden/recruits/{MINE}/images/{ids[1]}", headers=bearer(tok1)).status_code == 404
+    # 残りの画像は無事
+    assert all(get_storage().exists(f"images/{i}.jpg") for i in (ids[0], ids[2]))
 
 
-def test_hero_must_be_approved_and_linked(client, tok1):
-    pending = upload(client, tok1).json()["id"]
-    res = client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": pending}, headers=bearer(tok1))
-    assert res.status_code == 409
+def test_replacing_an_image_uses_a_new_key_and_never_touches_the_old_one(client, tok1):
+    old = upload(client, tok1, data=make_image(seed=1)).json()
+    new = upload(client, tok1, data=make_image(seed=1)).json()  # 同じ内容でも、別の画像として登録される
+    assert new["id"] != old["id"] and new["url"] != old["url"]
+    assert client.delete(f"/api/garden/recruits/{MINE}/images/{old['id']}", headers=bearer(tok1)).status_code == 204
+    assert client.get(old["url"]).status_code == 404 and client.get(new["url"]).status_code == 200
+    assert [i["id"] for i in listing(client, tok1)] == [new["id"]]
+
+
+def test_a_failed_storage_delete_does_not_fail_the_user_and_is_left_for_reconcile(client, tok1, monkeypatch):
+    image = upload(client, tok1).json()
+    from app.storage import StorageError
+
+    def broken(self, key):
+        raise StorageError("down")
+
+    monkeypatch.setattr(type(get_storage()), "delete", broken)
+    assert client.delete(f"/api/garden/recruits/{MINE}/images/{image['id']}", headers=bearer(tok1)).status_code == 204
+    monkeypatch.undo()
+    assert db_exec("SELECT status FROM images WHERE id = %s", (image["id"],))[0][0] == "deleted"
+    assert listing(client, tok1) == [] and client.get(f"/api/recruits/{MINE}").json()["images"] == []  # DB が先に確定しているので、公開には出ない
+
+
+def test_hero_must_be_my_linked_published_image(client, tok1):
+    mine = upload(client, tok1).json()["id"]
+    assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": mine}, headers=bearer(tok1)).status_code == 200  # 承認を待たずに指定できる
     assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": "00000000-0000-0000-0000-000000000000"}, headers=bearer(tok1)).status_code == 404
     other = upload(client, tok1, 2).json()["id"]  # 同じ園の別の求人の画像は、この求人のヒーローにできない
-    approve(other)
     assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": other}, headers=bearer(tok1)).status_code == 404
 
 
-def test_rejected_image_is_not_public_and_cannot_be_hero(client, tok1):
-    from psycopg.rows import dict_row
-
-    from app.settings import database_url
-
-    image = upload(client, tok1).json()["id"]
-    approve(image)
-    assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": image}, headers=bearer(tok1)).status_code == 200
-    with psycopg.connect(database_url(), row_factory=dict_row) as conn:
-        svc.reject_image(conn, get_storage(), image)
+def test_taken_down_image_is_gone_from_public_and_cannot_be_hero(client, tok1):
+    image = upload(client, tok1).json()
+    other = upload(client, tok1, data=make_image(seed=2)).json()
+    assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": image["id"]}, headers=bearer(tok1)).status_code == 200
+    take_down(image["id"])
     public = client.get(f"/api/recruits/{MINE}").json()
-    assert public["hero_image"] is None and public["images"] == []
-    assert client.get(f"/media/images/{image}.jpg").status_code == 404
-    assert listing(client, tok1)[0]["status"] == "rejected" and listing(client, tok1)[0]["is_hero"] is False
+    assert [i["id"] for i in public["images"]] == [other["id"]] and public["hero_image"]["id"] == other["id"]
+    assert client.get(image["url"]).status_code == 404  # 実体も消えている
+    mine = {i["id"]: i for i in listing(client, tok1)}
+    assert mine[image["id"]]["status"] == "rejected" and mine[image["id"]]["url"] is None and mine[image["id"]]["is_hero"] is False
+    assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": image["id"]}, headers=bearer(tok1)).status_code == 409
+    # 園は、取り下げられた画像を、自分の一覧から消せる
+    assert client.delete(f"/api/garden/recruits/{MINE}/images/{image['id']}", headers=bearer(tok1)).status_code == 204
+    assert [i["id"] for i in listing(client, tok1)] == [other["id"]]
 
 
 def test_hidden_recruit_images_are_not_public(client, tok1):
-    image = upload(client, tok1, 12).json()["id"]  # ID 12 は非表示の求人
-    approve(image)
+    upload(client, tok1, 12)  # ID 12 は非表示の求人
     assert client.get("/api/recruits/12").status_code == 404
 
 
@@ -210,30 +225,39 @@ def test_image_count_limit(client, tok1):
 
 
 def test_my_recruits_lists_only_my_recruits_with_counts(client, tok1, tok2):
-    approve(upload(client, tok1).json()["id"])
-    upload(client, tok1, data=make_image(seed=9))
+    upload(client, tok1)
+    taken = upload(client, tok1, data=make_image(seed=9)).json()["id"]
+    take_down(taken)
     items = {i["id"]: i for i in client.get("/api/garden/recruits", headers=bearer(tok1)).json()}
-    assert set(items) == {1, 2, 12} and items[1]["image_count"] == 2 and items[1]["approved_count"] == 1
+    assert set(items) == {1, 2, 12} and items[1]["image_count"] == 2 and items[1]["published_count"] == 1
     assert set(i["id"] for i in client.get("/api/garden/recruits", headers=bearer(tok2)).json()) == {3, 4}
 
 
 def test_profile_images_share_the_same_foundation(client, tok1, tok2):
     res = client.post("/api/garden/profile-images", params={"alt": "ロゴ", "role": "logo"}, content=make_image(), headers={**bearer(tok1), "Content-Type": "image/jpeg"})
-    assert res.status_code == 201 and res.json()["role"] == "logo" and res.json()["status"] == "pending"
+    assert res.status_code == 201 and res.json()["role"] == "logo" and res.json()["status"] == "approved"
+    image = res.json()
+    assert client.get(image["url"]).status_code == 200
     assert len(client.get("/api/garden/profile-images", headers=bearer(tok1)).json()) == 1
     assert client.get("/api/garden/profile-images", headers=bearer(tok2)).json() == []
-    assert client.get(res.json()["preview_path"], headers=bearer(tok2)).status_code == 404
     assert client.post("/api/garden/profile-images", params={"alt": "x", "role": "evil"}, content=make_image(), headers={**bearer(tok1), "Content-Type": "image/jpeg"}).status_code == 422
-    assert client.delete(f"/api/garden/profile-images/{res.json()['id']}", headers=bearer(tok2)).status_code == 404
-    assert client.delete(f"/api/garden/profile-images/{res.json()['id']}", headers=bearer(tok1)).status_code == 204
-    assert db_exec("SELECT deletion_requested_at IS NOT NULL FROM images")[0][0] is True
+    assert client.delete(f"/api/garden/profile-images/{image['id']}", headers=bearer(tok2)).status_code == 404  # 他の園は消せない
+    assert get_storage().exists(f"images/{image['id']}.jpg")
+    assert client.delete(f"/api/garden/profile-images/{image['id']}", headers=bearer(tok1)).status_code == 204
+    assert db_exec("SELECT status FROM images")[0][0] == "deleted" and client.get(image["url"]).status_code == 404  # その場で消える
 
 
-def test_media_route_serves_only_existing_public_objects_and_blocks_traversal(client, tok1):
-    image = upload(client, tok1).json()["id"]
-    assert client.get(f"/media/images/{image}.jpg").status_code == 404  # 非公開のまま
+def test_media_route_serves_only_existing_objects_and_blocks_traversal(client, tok1):
+    image = upload(client, tok1).json()
+    assert client.get(f"/media/images/{image['id']}.jpg").status_code == 200
+    assert client.get(f"/media/images/{'0' * 8}-0000-0000-0000-{'0' * 12}.jpg").status_code == 404  # 無い画像
     for bad in ("../private/x.jpg", "images/../../etc/passwd", "images/x.svg", "images/x"):
         assert client.get(f"/media/{bad}").status_code == 404
+
+
+def test_the_api_has_no_approval_or_preview_route(client):
+    paths = set(client.get("/openapi.json").json()["paths"])
+    assert not [p for p in paths if "preview" in p or "approve" in p]
 
 
 def test_error_bodies_contain_no_paths_or_keys(client, tok1):

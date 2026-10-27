@@ -30,12 +30,11 @@ def body_of(row: dict, storage: Storage) -> ImageBody:
         is_hero=row.get("is_hero", False),
         role=row.get("role"),
         url=storage.public_url(row["storage_key"]) if row["status"] == "approved" else None,
-        preview_path=f"/api/garden/images/{row['id']}/preview",
     )
 
 
 def recruit_images_for_garden(conn, recruit_id: int, storage: Storage) -> list[ImageBody]:
-    """園が見る、求人の画像（承認待ち・却下を含む。削除済みは除く）。"""
+    """園が見る、求人の画像（取り下げられたものを含む。削除済みは除く）。"""
     rows = conn.execute(
         "SELECT i.id, i.storage_key, i.alt, i.width, i.height, i.mime_type, i.origin, i.status, ri.position, ri.is_hero FROM recruit_images ri "
         "JOIN images i ON i.id = ri.image_id WHERE ri.recruit_id = %s AND i.status <> 'deleted' ORDER BY ri.position",

@@ -4,48 +4,58 @@
 
 ```text
 ブラウザー ── 画面（Next.js）── API（FastAPI）── DB（images / recruit_images / garden_images）
-                 │                    └── 保存先（公開側 / 非公開側）
+                 │                    └── 保存先（1 か所。S3 では 1 バケット）
                  └── next/image ── 公開 URL（CDN の独自ドメイン。ローカル開発は /media）
 ```
 
 ## 仕組み
 
-- **画像の状態**（`images.status`）: `uploading`（登録の途中）→ `pending`（検証済み・**非公開側だけ**にある）→ `publishing` → `approved`（公開側へ複製済み・公開してよい）。ほかに `rejected`（却下）、`deleted`（実体を消した記録）。
-- **公開側に置くのは、承認済みの画像だけ。** 公開 API が返すのも `approved` だけ。承認（公開）と却下は運営だけ（`python -m app.images_cli`）。園の API からは呼べない。
-- **登録は 1 つの関数を通る**（`app/image_service.py`）: 園のアップロード、運営の CLI、ダミー画像の seed が同じ検証・登録・承認を使う。
+- **園がアップロードした画像は、検証に通れば、保存した時点でそのまま公開される。** 承認の段階は無い。
+- **画像の状態**（`images.status`）: `uploading`（登録の途中）→ `approved`（公開中）。ほかに `rejected`（運営が取り下げた）、`deleted`（消した。行は記録として残す）。
+  `approved` という名前は DB の制約に合わせて残してあり、意味は「公開中」。旧い値の `pending` / `publishing` は、今は作られない。
+- **公開 API が返すのは `approved` だけ。**
+- **運営ができるのは、公開後の取り下げだけ**（`python -m app.images_cli reject`）。DB を `rejected` にして実体を消す。園の API からは呼べない。
+- **登録は 1 つの関数を通る**（`app/image_service.py`）: 園のアップロード、運営の CLI、ダミー画像の seed が同じ検証・登録を使う。
   検証は、形式（JPEG・PNG・WebP のみ。SVG・GIF・アニメーションは不可）、容量（既定 5MB）、寸法（短辺 200px 以上、4000 万画素まで）、実データ（Pillow で読み込めること）。
-  配信用には、EXIF・GPS・ICC・テキストを除いて再エンコードしたものを保存する（向きは画素に反映する。長辺は 2400px まで）。
-- **保存キーは `images/<uuid>.<拡張子>`。** 画像の更新は、同じキーに上書きせず、新しい画像として登録して DB の参照を切り替える（保存部品は、同じキーへの別の内容の書き込みを拒否する）。署名付き URL は作らず、DB にも持たない（公開 URL は保存キーから組み立てる）。
-- **求人の画像**は `recruit_images`（表示順 `position`、ヒーロー `is_hero`）。ヒーローは求人ごとに 1 枚まで（DB の一意索引）で、承認済みの画像だけ（DB のトリガー）。指定が無ければ、公開 API は表示順で先頭の承認済みの画像を `hero_image` にする。画像が 1 枚も無ければ、画面は共通の代替画像（`public/images/generated/job-detail-sample.jpg`。Git 管理）を出す。
-- **法人の画像**は `garden_images`（`logo` / `banner`）。同じ `images` を使う。API（`/api/garden/profile-images`）と DB はあるが、**画面と公開側の表示は未実装**（法人の紹介ページができてから）。
-- **権限**: 園が操作できるのは、自分に紐づく求人（`recruits.garden_account_id`）と自分の画像だけ。確認は API が毎回 SQL の条件で行い、他の園のものは 404（存在も分からない）。承認前の画像のプレビューも、認証と所有権の確認を通った場合だけ（`/api/garden/images/{id}/preview`。画面は `/garden/images/{id}/preview` で中継）。
+  配信用には、EXIF・GPS・ICC・テキストを除いて再エンコードしたものを保存する（向きは画素に反映する。長辺は 2400px まで）。元の画像は残さない。
+  **アップロードは API を通す**（ブラウザーから保存先へ直接は送らない）。署名付き URL は使わない。
+- **保存キーは `images/<uuid>.<拡張子>`。** 画像の更新は、同じキーに上書きせず、新しい画像として登録して DB の参照を切り替える（保存部品は、同じキーへの別の内容の書き込みを拒否する）。
+  公開 URL は保存キーから組み立てる（DB には持たない）。
+- **削除はその場で行う。** 園が求人から外した画像は、どこからも使われなければ、その場で `deleted` にして実体を消す（猶予は無い）。元に戻せない。
+  公開 URL は `Cache-Control: immutable`（1 年）で配るので、削除後も、ブラウザーなどのキャッシュには、しばらく残りうる。
+- **求人の画像**は `recruit_images`（表示順 `position`、ヒーロー `is_hero`）。ヒーローは求人ごとに 1 枚まで（DB の一意索引）で、公開中の画像だけ（DB のトリガー）。
+  指定が無ければ、公開 API は表示順で先頭の公開中の画像を `hero_image` にする。画像が 1 枚も無ければ、画面は共通の代替画像（`public/images/generated/job-detail-sample.jpg`。Git 管理）を出す。
+- **法人の画像**は `garden_images`（`logo` / `banner`）。同じ `images` を使う。API（`/api/garden/profile-images`）と DB はあるが、**画面と公開ページでの表示は未実装**（法人の紹介ページができてから）。
+- **権限**: 園が操作できるのは、自分に紐づく求人（`recruits.garden_account_id`）と自分の画像だけ。確認は API が毎回 SQL の条件で行い、他の園のものは 404（存在も分からない）。
+- **画面（`/garden/recruits/<id>/images`）**: 上にドラッグ＆ドロップの領域。ファイルを選ぶ（またはドロップする）と、手元のファイルから保存前のプレビューを出し、代替テキストを入れて「公開する」を押すと API へ送る。
+  プレビューのための API は無い（ブラウザーが手元のファイルを表示するだけ）。
 
 ## 設定（環境変数）
 
 | 名前 | 意味 |
 |---|---|
 | `STORAGE_BACKEND` | `local`（既定。フォルダー。開発・テスト用）/ `s3`（S3 互換。Cloudflare R2 など） |
-| `STORAGE_LOCAL_DIR` | local の保存先（既定 `/data/media`。Compose では名前付きボリューム `dev-media`） |
+| `STORAGE_LOCAL_DIR` | local の保存先（既定 `/data/media`。Compose では名前付きボリューム `dev-media`。実際の置き場は、その下の `public/`） |
 | `IMAGE_PUBLIC_BASE_URL` | 公開画像の URL の頭。s3 では CDN の独自ドメイン（例 `https://img.example.com`）。local は `/media`。**画面（Next.js）にも同じ値を渡す** |
 | `STORAGE_S3_ENDPOINT_URL` | S3 互換のエンドポイント。R2 は `https://<アカウント ID>.r2.cloudflarestorage.com`（地域指定のバケットは別の形。後述の出典） |
-| `STORAGE_S3_PUBLIC_BUCKET` / `STORAGE_S3_PRIVATE_BUCKET` | 公開用 / 非公開用のバケット名。**別にする**（同じ名前は起動時に拒否） |
+| `STORAGE_S3_BUCKET` | バケット名（1 つ。置いた画像が、公開 URL から読めるようにしておく） |
 | `STORAGE_S3_ACCESS_KEY_ID` / `STORAGE_S3_SECRET_ACCESS_KEY` | 保存先の認証情報。環境変数かシークレット管理でだけ渡す。ログ・Git・画面に出さない |
 | `IMAGE_MAX_UPLOAD_BYTES` | アップロードの上限（既定 5MB） |
 
-s3 で必要な設定が 1 つでも欠けると、API は起動に失敗する（local に切り替えない）。開発用と本番用は、**バケットも認証情報も別**にする。
+s3 で必要な設定が 1 つでも欠けると、API は起動に失敗する（local に切り替えない）。開発用と本番用は、**バケットも認証情報も別**にする（本番の名前と分離の方針は未決）。
 
 ## 使い方
 
-**園（画面）**: <http://localhost:3200/garden> にログイン →「求人の画像」から求人を選び、画像の追加・並べ替え・ヒーローにする・削除の依頼ができる。登録した画像は「承認待ち」で、運営が承認するまで公開されない。削除の依頼は求人から外すだけで、実体は猶予のあとの掃除で消える。
+**園（画面）**: <http://localhost:3200/garden> にログイン →「求人の画像」から求人を選び、画像をドロップ（または「ファイルを選ぶ」）→ プレビューを確認 →「公開する」。
+並べ替え・ヒーローにする・削除もここでできる。削除は、その場で消え、元に戻せない。
 
-**運営（CLI。DB と保存先の認証情報を持つ人だけ）**: コンテナの中で実行する（例: `docker compose run --rm api python -m app.images_cli list --status pending`）。
+**運営（CLI。DB と保存先の認証情報を持つ人だけ）**: コンテナの中で実行する（例: `docker compose run --rm api python -m app.images_cli list`）。
 
 ```bash
-python -m app.images_cli list [--status pending]
-python -m app.images_cli approve <画像ID>      # 公開側へ複製して公開
-python -m app.images_cli reject <画像ID>       # 却下・公開の取り消し（公開側の実体も消す）
-python -m app.images_cli register FILE --alt "説明" --recruit-id 5 [--approve --hero]
-python -m app.images_cli reconcile [--apply] [--grace-days 30] [--stuck-hours 1]
+python -m app.images_cli list [--status rejected]
+python -m app.images_cli register FILE --alt "説明" --recruit-id 5 [--hero]   # 登録した時点で公開される
+python -m app.images_cli reject <画像ID>       # 公開後の取り下げ（実体も消す）。承認の操作ではない
+python -m app.images_cli reconcile [--stuck-hours 1]   # 食い違いの報告だけ。何も変えない
 python -m app.images_cli formfile              # recruits.formfile に値のある求人の一覧
 ```
 
@@ -53,13 +63,13 @@ python -m app.images_cli formfile              # recruits.formfile に値のあ�
 
 ## 失敗したときの整合（DB とストレージが食い違ったままにしない）
 
-先に DB へ意図（`uploading` / `publishing`）を書き、そのあとストレージを触る。どの段階で止まっても、次のようになる。
+先に DB へ意図（`uploading`）を書き、そのあとストレージを触る。削除は、先に DB を確定し、そのあとで実体を消す。どの段階で止まっても、次のようになる。
 
-- 登録の途中で失敗 → 作りかけの行と実体を消す。消せなければ `uploading` のまま残り、`reconcile` が（実体があり sha256 が一致すれば）`pending` に進める。なければ `deleted` にする。
-- 承認の途中で失敗 → 公開側の複製を消して `pending` へ戻す。戻せなければ `publishing` のまま残り、`reconcile` が承認をやり直す。承認は何度やっても同じ結果になる。
-- 却下したのに公開側に実体が残った → `reconcile` が消す（公開側にあるのは `approved` / `publishing` だけ、が不変条件）。
-- 参照されている画像（`recruit_images` / `garden_images`）は消さない（DB も `ON DELETE RESTRICT`）。外れた画像は、猶予（既定 30 日）のあとに `reconcile --apply` が物理削除する（行は `deleted` として残す）。差し替えた直後には消さない。
-- `reconcile` は既定が dry-run（一覧だけ）。`--apply` で実行する。定期的に dry-run を見て、問題なければ `--apply` する運用を想定（定期実行の仕組みは未導入）。
+- 登録の途中で失敗 → 作りかけの行と実体を消す。消せなければ `uploading` のまま残り、`reconcile` が報告する（ダミー画像の `seed-images` は、再実行で、実体が揃っていれば公開中にし、無ければ片付けてやり直す）。
+- 取り下げ・削除で、実体の削除だけ失敗 → DB は `rejected` / `deleted` で確定していて、公開 API には出ない。残った実体は `reconcile` が報告する。
+- 参照されている画像（`recruit_images` / `garden_images`）は消さない（DB も `ON DELETE RESTRICT`）。
+- **`reconcile` は報告だけで、何も変えない**（削除の実行や定期実行は無い）。報告するのは、`stuck_uploading`（登録が途中で止まった）、`orphan_objects`（DB に行の無い実体）、
+  `stray_objects`（取り下げ・削除済みなのに残っている実体）、`unreferenced`（どこからも使われていない公開中の画像）。新しいもの（10 分以内。`unreferenced` と `stuck` は 1 時間以内）は、登録の最中かもしれないので数えない。
 
 ## マイグレーション（`app/migrate.py`）
 
@@ -88,7 +98,7 @@ docker compose exec -T db psql -U hoshiniwa -d postgres -c "CREATE DATABASE hosh
 docker compose exec -T db pg_restore -U hoshiniwa --no-owner -d hoshiniwa_restore < backups/<ファイル>.dump
 ```
 
-- 画像の本体は DB のバックアップに入らない。**ストレージ側の保護**が別に要る（R2 ではバケットの保護・バージョニング相当の運用を決める。決めるまでは、`reconcile --apply` を実行しない）。
+- 画像の本体は DB のバックアップに入らない。**ストレージ側の保護**が別に要る（R2 ではバケットの保護の運用を決める）。バケットロックは、取り下げ・削除を妨げるので、開発では掛けない。
 - 画像が失われても、DB の行（`storage_key` と `sha256`）から、何が足りないかが分かる。ダミー画像は、下の手順で再生成なしに復元できる。
 
 ## 新しい環境（ダミー画像の復元）
@@ -104,17 +114,18 @@ docker compose run --rm seed-images python -m app.seed_images --source-url https
 
 ## Cloudflare R2 を使うとき
 
-**この節の操作は、まだ実行していない。** バケット作成・公開設定・DNS・API トークンの作成は、対象と設定を示して承認を取ってからにする。
+**R2 への接続は、まだ実行していない**（開発用のバケットの作成だけが済んでいる。公開設定・API トークン・接続・既存画像の複製は未実行）。公開設定・DNS・API トークンの作成は、対象と設定を示して承認を取ってからにする。
 
-- 必要なもの: Cloudflare のアカウント（R2 を有効にした状態）と、**同じアカウントに zone として登録されたドメイン**（公開バケットの独自ドメインの条件）。`r2.dev` は開発用で本番に使わない。
-- 作るもの（星庭ジョブ専用。ほかのプロジェクトのバケット・設定・認証情報は流用しない）: 公開用バケット 1 つ（独自ドメインを接続）、非公開用バケット 1 つ（公開設定にしない）、開発用に同じ組をもう 1 組。
-- API トークン: R2 の **Object Read & Write** を、**この 2 つのバケットだけ**に絞って作る（Admin 権限は使わない）。作成直後にだけ表示される Secret Access Key は、会話・Git・ログ・スクリーンショットに出さず、環境変数かシークレット管理へ直接入れる。
+- 必要なもの: Cloudflare のアカウント（R2 を有効にした状態）。独自ドメインを使うなら、**同じアカウントに zone として登録されたドメイン**（公開バケットの独自ドメインの条件）。
+  独自ドメインが無い間の開発では、バケットの Public Development URL（`r2.dev`。レート制限があり、開発用。本番に使わない）を使える。
+- 作るもの（星庭ジョブ専用。ほかのプロジェクトのバケット・設定・認証情報は流用しない）: バケット 1 つ。公開設定にして、画像を公開 URL から読めるようにする。
+- API トークン: R2 の **Object Read & Write** を、**そのバケットだけ**に絞って作る（Admin 権限は使わない）。作成直後にだけ表示される Secret Access Key は、会話・Git・ログ・スクリーンショットに出さず、環境変数かシークレット管理へ直接入れる。
 - 費用の見積もり条件（出典: Cloudflare 公式の料金ページ。等級 B）: Standard ストレージ 10 GB-月・Class A（書き込み・一覧）100 万回/月・Class B（読み取り）1000 万回/月が無料枠、超過分は $0.015/GB-月・Class A $4.50/百万回・Class B $0.36/百万回、**外向きの転送（egress）は無料**。現在の画像は約 10MB（12 枚）で、無料枠に収まる見込み。支払い方法の登録が要るかは、公式ページに記載がなく未確認。
 - 出典: <https://developers.cloudflare.com/r2/pricing/> / <https://developers.cloudflare.com/r2/buckets/public-buckets/> / <https://developers.cloudflare.com/r2/api/tokens/>
 
 ## 未実装・未確認
 
 - 実際の R2 への接続（S3 互換の部分は、モックの S3（moto）でだけ確かめた。R2 実機での動作、CDN のキャッシュ、独自ドメインの設定は未確認）。
-- 法人画像の画面と公開側の表示。園のアップロードの自動承認・審査の画面（承認は CLI のみ）。
-- 掃除（`reconcile`）の定期実行。ストレージの保護・復旧の運用（R2 側）。
-- 画像のウイルス・不適切な内容の検査（形式・寸法・実データの検証だけ）。
+- 法人画像の画面と公開ページでの表示。
+- 食い違いの報告（`reconcile`）の定期実行（今は手で実行する報告だけ）。ストレージの保護・復旧の運用（R2 側）。
+- 画像のウイルス・不適切な内容の検査（形式・寸法・実データの検証だけ）。承認が無いので、公開後の取り下げ（運営の CLI）だけが安全弁になる。

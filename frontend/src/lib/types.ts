@@ -66,7 +66,7 @@ export type Garden = { id: number; email: string; corporate: string };
 export type GardenSession = { token: string; garden: Garden };
 export type GardenSummary = { corporate: string; email: string; displayed: number; hidden: number };
 
-// 園の画像管理。status は pending（承認待ち）/ approved（公開中）/ rejected（却下）
+// 園の画像管理。status は approved（公開中）/ rejected（運営が取り下げた）。保存した画像は、承認を待たずに公開される
 export type GardenImage = {
   id: string;
   alt: string;
@@ -74,11 +74,10 @@ export type GardenImage = {
   height: number;
   mime_type: string;
   origin: string;
-  status: 'pending' | 'approved' | 'rejected' | 'publishing' | 'uploading';
+  status: 'approved' | 'rejected';
   position: number;
   is_hero: boolean;
-  url: string | null;
-  preview_path: string;
+  url: string | null; // 公開中のときだけ公開 URL
 };
 export type GardenRecruitImages = { recruit_id: number; category: string | null; is_displayed: boolean; max_images: number; images: GardenImage[] };
-export type GardenRecruitItem = { id: number; category: string | null; is_displayed: boolean; image_count: number; approved_count: number };
+export type GardenRecruitItem = { id: number; category: string | null; is_displayed: boolean; image_count: number; published_count: number };

@@ -129,13 +129,6 @@ export async function removeGardenImage(token: string, recruitId: number, imageI
   if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
 }
 
-/** 承認前の画像のプレビュー（認証と所有権の確認を通った場合だけ中身が返る）。 */
-export async function fetchGardenImagePreview(token: string, imageId: string): Promise<Response> {
-  const res = await call(`/api/garden/images/${imageId}/preview`, { token });
-  if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
-  return res;
-}
-
 // 登録の拒否理由（形式・容量・寸法）は、API の固定の説明をそのまま画面に出してよい（内部の情報を含まない）
 async function detailOf(res: Response): Promise<string> {
   try {

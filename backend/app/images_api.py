@@ -2,8 +2,8 @@
 
 権限: 園は、自分に紐づく求人（recruits.garden_account_id）と、自分の画像だけを扱える。確認は、画面ではなくここ（API）で、毎回 SQL の条件で行う。
 他の園の求人・画像は、存在しないのと同じ 404 を返す。
-園ができるのは「登録（承認待ちで非公開）・並べ替え・ヒーローの指定（承認済みの画像だけ）・外す（削除要求）」まで。
-承認（公開）と却下は、運営だけ（app/images_cli.py）。園のアップロードを、そのまま公開することはない。
+園ができるのは「登録（保存した時点で公開）・並べ替え・ヒーローの指定・外す（その場で削除）」まで。
+承認の段階は無い。公開後に問題があれば、運営だけが取り下げられる（app/images_cli.py の reject）。
 """
 
 import uuid
@@ -15,7 +15,7 @@ from fastapi.concurrency import run_in_threadpool
 from app.db import connection
 from app.garden import current_garden
 from app.image_queries import body_of, recruit_images_for_garden
-from app.image_service import FORMATS, MAX_IMAGES_PER_RECRUIT, ImageRejected, Processed, process_image, register_image, unlink_if_unused
+from app.image_service import FORMATS, MAX_IMAGES_PER_RECRUIT, ImageRejected, Processed, delete_object, process_image, register_image, unlink_if_unused
 from app.schemas import Garden, GardenRecruitImages, GardenRecruitItem, HeroChoice, ImageBody, ImageOrder
 from app.settings import max_upload_bytes
 from app.storage import StorageError, get_storage
@@ -80,7 +80,7 @@ def my_recruits(garden: Annotated[Garden, Depends(current_garden)]) -> list[Gard
     with connection() as conn:
         rows = conn.execute(
             "SELECT r.id, r.category, r.is_displayed, "
-            "count(i.id) FILTER (WHERE i.status <> 'deleted') AS image_count, count(i.id) FILTER (WHERE i.status = 'approved') AS approved_count "
+            "count(i.id) FILTER (WHERE i.status <> 'deleted') AS image_count, count(i.id) FILTER (WHERE i.status = 'approved') AS published_count "
             "FROM recruits r LEFT JOIN recruit_images ri ON ri.recruit_id = r.id LEFT JOIN images i ON i.id = ri.image_id "
             "WHERE r.garden_account_id = %s GROUP BY r.id ORDER BY r.id",
             (garden.id,),
@@ -98,7 +98,7 @@ def list_recruit_images(recruit_id: int, garden: Annotated[Garden, Depends(curre
 
 @router.post("/recruits/{recruit_id}/images", response_model=ImageBody, status_code=201)
 async def upload_recruit_image(recruit_id: int, request: Request, garden: Annotated[Garden, Depends(current_garden)], alt: Annotated[str, Query()]) -> ImageBody:
-    """本文は画像そのもの（Content-Type は image/jpeg・image/png・image/webp）。登録は承認待ちで、運営が承認するまで公開されない。"""
+    """本文は画像そのもの（Content-Type は image/jpeg・image/png・image/webp）。検証に通れば、保存した時点で公開される。"""
 
     def check() -> None:
         with connection() as conn:
@@ -117,8 +117,9 @@ async def upload_recruit_image(recruit_id: int, request: Request, garden: Annota
             _own_recruit(conn, recruit_id, garden.id, lock=True)  # 同じ求人への同時の登録で、表示順が重ならないように
             count = conn.execute("SELECT count(*) AS n FROM recruit_images WHERE recruit_id = %s", (recruit_id,)).fetchone()["n"]
             if count >= MAX_IMAGES_PER_RECRUIT:
-                unlink_if_unused(conn, image_id)  # 補償: 結べなかった画像に削除要求を付ける
+                key = unlink_if_unused(conn, image_id)  # 補償: 結べなかった画像を、その場で消す
                 conn.commit()
+                delete_object(get_storage(), key)
                 raise HTTPException(status_code=409, detail=f"1 つの求人に登録できる画像は {MAX_IMAGES_PER_RECRUIT} 枚までです")
             conn.execute(
                 "INSERT INTO recruit_images (recruit_id, image_id, position) SELECT %s, %s, COALESCE(MAX(position) + 1, 0) FROM recruit_images WHERE recruit_id = %s",
@@ -163,7 +164,7 @@ def set_hero_image(recruit_id: int, body: HeroChoice, garden: Annotated[Garden, 
         if row is None:
             raise NOT_FOUND_IMAGE
         if row["status"] != "approved":
-            raise HTTPException(status_code=409, detail="公開の承認が済んでいない画像は、ヒーローにできません")
+            raise HTTPException(status_code=409, detail="公開されていない（取り下げられた）画像は、ヒーローにできません")
         conn.execute("UPDATE recruit_images SET is_hero = false WHERE recruit_id = %s AND is_hero", (recruit_id,))
         conn.execute("UPDATE recruit_images SET is_hero = true WHERE recruit_id = %s AND image_id = %s", (recruit_id, image_id))
         conn.commit()
@@ -173,43 +174,24 @@ def set_hero_image(recruit_id: int, body: HeroChoice, garden: Annotated[Garden, 
 
 @router.delete("/recruits/{recruit_id}/images/{image_id}", status_code=204)
 def remove_recruit_image(recruit_id: int, image_id: uuid.UUID, garden: Annotated[Garden, Depends(current_garden)]) -> Response:
-    """削除の要求。求人から外し、どこからも使われなければ削除要求の時刻を付ける。実体の削除は、猶予のあとの掃除（reconcile）。"""
+    """削除。求人から外し、どこからも使われなければ、その場で画像を消す（元に戻せない）。"""
     with connection() as conn:
         _own_recruit(conn, recruit_id, garden.id, lock=True)
         gone = conn.execute("DELETE FROM recruit_images WHERE recruit_id = %s AND image_id = %s", (recruit_id, image_id))
         if gone.rowcount == 0:
             raise NOT_FOUND_IMAGE
-        unlink_if_unused(conn, image_id)
+        key = unlink_if_unused(conn, image_id)
         conn.execute(
             "UPDATE recruit_images r SET position = s.rn - 1 FROM (SELECT image_id, row_number() OVER (ORDER BY position) AS rn FROM recruit_images WHERE recruit_id = %s) s "
             "WHERE r.recruit_id = %s AND r.image_id = s.image_id",
             (recruit_id, recruit_id),
         )
         conn.commit()
+        delete_object(get_storage(), key)  # DB の確定のあとで実体を消す。失敗しても、画像は DB の上で消えている
     return Response(status_code=204)
 
 
-@router.get("/images/{image_id}/preview")
-def preview_image(image_id: uuid.UUID, garden: Annotated[Garden, Depends(current_garden)]) -> Response:
-    """承認前の画像も含めて、自分の画像のプレビュー。認証と所有権の確認を通った場合だけ、非公開側の実体を返す。"""
-    with connection() as conn:
-        row = conn.execute(
-            "SELECT i.storage_key, i.mime_type FROM images i WHERE i.id = %(id)s AND i.status <> 'deleted' AND ("
-            " i.owner_garden_account_id = %(g)s"
-            " OR EXISTS (SELECT 1 FROM recruit_images ri JOIN recruits r ON r.id = ri.recruit_id WHERE ri.image_id = i.id AND r.garden_account_id = %(g)s)"
-            " OR EXISTS (SELECT 1 FROM garden_images gi WHERE gi.image_id = i.id AND gi.garden_account_id = %(g)s))",
-            {"g": garden.id, "id": image_id},
-        ).fetchone()
-    if row is None:
-        raise NOT_FOUND_IMAGE
-    try:
-        data = get_storage().get(row["storage_key"], public=False)
-    except StorageError:
-        raise NOT_FOUND_IMAGE from None
-    return Response(content=data, media_type=row["mime_type"], headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
-
-
-# ---- 法人の画像（ロゴ・バナー）。同じ画像の基盤を使う。公開側での表示は、法人の紹介ページができてから ----
+# ---- 法人の画像（ロゴ・バナー）。同じ画像の基盤を使う。公開ページでの表示は、法人の紹介ページができてから ----
 
 
 @router.get("/profile-images", response_model=list[ImageBody])
@@ -259,12 +241,13 @@ def remove_profile_image(image_id: uuid.UUID, garden: Annotated[Garden, Depends(
         gone = conn.execute("DELETE FROM garden_images WHERE garden_account_id = %s AND image_id = %s", (garden.id, image_id))
         if gone.rowcount == 0:
             raise NOT_FOUND_IMAGE
-        unlink_if_unused(conn, image_id)
+        key = unlink_if_unused(conn, image_id)
         conn.commit()
+        delete_object(get_storage(), key)
     return Response(status_code=204)
 
 
-# ---- ローカル保存のときだけ、公開側の画像を配る（S3 / R2 では CDN が配る）。公開側に置かれるのは承認済みの画像だけ ----
+# ---- ローカル保存のときだけ、画像を配る（S3 / R2 では、公開 URL の配信元が配る） ----
 
 
 @media_router.get("/media/{key:path}", include_in_schema=False)
@@ -273,7 +256,7 @@ def media(key: str) -> Response:
     if ext not in _EXT_TYPES:
         raise NOT_FOUND_IMAGE
     try:
-        data = get_storage().get(key, public=True)
+        data = get_storage().get(key)
     except StorageError:
         raise NOT_FOUND_IMAGE from None
     return Response(

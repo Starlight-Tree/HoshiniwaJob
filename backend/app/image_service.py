@@ -1,10 +1,14 @@
-"""画像の検証・登録・承認・掃除（API・CLI・seed が同じものを使う）。
+"""画像の検証・登録・取り下げ・削除・点検（API・CLI・seed が同じものを使う）。
 
-登録（register）: 検証（process_image）→ DB に uploading で記録 → 非公開側へ保存 → pending。
-承認（approve。運営だけ）: publishing → 公開側へ複製して確認 → approved。途中で失敗したら、公開側の複製を消して pending へ戻す。
-どの途中で止まっても、状態は reconcile（掃除。既定は dry-run）が整える。DB とストレージが食い違ったままにならないための設計:
-- 先に DB へ意図（uploading / publishing）を書き、そのあとストレージを触る。ストレージの操作は何度やっても同じ結果になる。
-- 公開側にあるのは approved（または公開の途中の publishing）の画像だけ。それ以外の公開側の実体は reconcile が消す。
+登録（register_image）: 検証（process_image）→ DB に uploading で記録 → 保存 → approved（公開中）。承認の段階は無く、登録が済んだ画像はそのまま公開される。
+  （status の値は DB の制約に合わせて残してある。approved は「公開中」の意味。旧い値の pending / publishing は、今は作られない。）
+取り下げ（reject_image。運営だけ）: DB を rejected にして、実体を消す。公開後の安全弁で、承認ではない。
+削除（unlink_if_unused）: 求人などから外れて、どこからも使われなくなった画像は、その場で deleted にして実体を消す（猶予は無い）。
+点検（reconcile）: DB と保存先の食い違いを報告するだけで、何も変えない。
+どの途中で止まっても、DB とストレージが食い違ったままにならないための設計:
+- 先に DB へ意図（uploading）を書き、そのあとストレージを触る。削除は、先に DB を deleted / rejected にして確定し、そのあとで実体を消す。
+- ストレージの操作は何度やっても同じ結果になる。実体の削除に失敗しても、DB が先に確定しているので、公開 API には出ない。残った実体は reconcile が報告する。
+- 画像の更新は、同じキーに上書きせず、新しい画像（新しい uuid のキー）として登録する。
 - 参照されている画像（recruit_images / garden_images）は消さない。DB も RESTRICT で守る。
 関数は dict_row の psycopg 接続を受け取る。各段階は conn.commit() で確定する（自動コミットの接続でもそのまま動く）。
 """
@@ -35,7 +39,7 @@ class ImageRejected(ValueError):
 
 
 class ImageConflict(RuntimeError):
-    """状態が合わず、操作できない（承認済みでないものをヒーローにする、など）。メッセージは固定の説明。"""
+    """状態が合わず、操作できない（取り下げられた画像をヒーローにする、など）。メッセージは固定の説明。"""
 
 
 @dataclass(frozen=True)
@@ -103,7 +107,7 @@ def _rollback_quietly(conn) -> None:
 def register_image(
     conn, storage: Storage, processed: Processed, *, alt: str, origin: str, owner_garden_id: int | None = None, demo_key: str | None = None
 ) -> uuid.UUID:
-    """検証済みの画像を、非公開側に pending で登録する（公開はしない）。失敗したら、作りかけの行を消して例外を返す。"""
+    """検証済みの画像を保存して、公開中（approved）で登録する。失敗したら、作りかけの行と実体を消して例外を返す。"""
     alt = alt.strip()
     if not 1 <= len(alt) <= 300:
         raise ImageRejected("代替テキストは 1〜300 文字で入れてください")
@@ -116,152 +120,110 @@ def register_image(
     )
     conn.commit()
     try:
-        storage.put(key, processed.data, processed.mime_type, public=False)
-        conn.execute("UPDATE images SET status = 'pending', status_changed_at = now() WHERE id = %s AND status = 'uploading'", (image_id,))
+        storage.put(key, processed.data, processed.mime_type)
+        conn.execute("UPDATE images SET status = 'approved', approved_at = now(), status_changed_at = now() WHERE id = %s AND status = 'uploading'", (image_id,))
         conn.commit()
     except Exception:
         _rollback_quietly(conn)
-        try:  # 補償: 作りかけの行と実体を消す。消せなければ uploading のまま残り、reconcile が拾う
-            storage.delete(key, public=False)
+        try:  # 補償: 作りかけの行と実体を消す。消せなければ uploading のまま残り、reconcile が報告する
+            storage.delete(key)
             conn.execute("DELETE FROM images WHERE id = %s AND status = 'uploading'", (image_id,))
             conn.commit()
         except Exception:  # noqa: BLE001
             _rollback_quietly(conn)
-            log.warning("登録の途中で失敗し、片付けも失敗しました。reconcile が整えます image_id=%s", image_id)
+            log.warning("登録の途中で失敗し、片付けも失敗しました。reconcile が報告します image_id=%s", image_id)
         raise
     return image_id
 
 
-def approve_image(conn, storage: Storage, image_id: uuid.UUID) -> None:
-    """運営の承認。非公開側の実体を検査して公開側へ複製し、approved にする。やり直しても同じ結果になる。"""
-    row = conn.execute(
-        "UPDATE images SET status = 'publishing', status_changed_at = now() WHERE id = %s AND status IN ('pending', 'publishing') "
-        "RETURNING storage_key, mime_type, sha256",
-        (image_id,),
-    ).fetchone()
-    conn.commit()
+def complete_upload(conn, storage: Storage, image_id: uuid.UUID) -> str:
+    """登録の途中で止まった画像（uploading）を片付ける。実体があり sha256 が一致すれば公開中にし、無ければ（または違えば）deleted にして実体を消す。
+    戻り値は新しい状態（approved / deleted）。uploading でなければ何もせず、今の状態を返す。"""
+    row = conn.execute("SELECT status, storage_key, sha256 FROM images WHERE id = %s", (image_id,)).fetchone()
     if row is None:
-        raise ImageConflict("承認できる状態の画像ではありません")
+        raise ImageConflict("画像が見つかりません")
+    if row["status"] != "uploading":
+        return row["status"]
     try:
-        data = storage.get(row["storage_key"], public=False)
-        if hashlib.sha256(data).hexdigest() != row["sha256"]:
-            raise ImageConflict("保存された画像が、登録時の内容と一致しません")
-        storage.put(row["storage_key"], data, row["mime_type"], public=True)
-        if not storage.exists(row["storage_key"], public=True):
-            raise StorageError("公開側への複製を確認できません")
-        done = conn.execute(
-            "UPDATE images SET status = 'approved', approved_at = now(), status_changed_at = now() WHERE id = %s AND status = 'publishing'",
-            (image_id,),
-        )
+        ok = storage.exists(row["storage_key"]) and hashlib.sha256(storage.get(row["storage_key"])).hexdigest() == row["sha256"]
+    except StorageError:
+        ok = False
+    if ok:
+        conn.execute("UPDATE images SET status = 'approved', approved_at = now(), status_changed_at = now() WHERE id = %s AND status = 'uploading'", (image_id,))
         conn.commit()
-        if done.rowcount == 0:
-            raise ImageConflict("承認の途中で状態が変わりました")
-    except Exception:
-        _rollback_quietly(conn)
-        try:  # 補償: 公開側の複製を消して pending へ戻す。戻せなければ publishing のまま残り、reconcile が拾う
-            storage.delete(row["storage_key"], public=True)
-            conn.execute("UPDATE images SET status = 'pending', status_changed_at = now() WHERE id = %s AND status = 'publishing'", (image_id,))
-            conn.commit()
-        except Exception:  # noqa: BLE001
-            _rollback_quietly(conn)
-            log.warning("承認の途中で失敗し、戻す処理も失敗しました。reconcile が整えます image_id=%s", image_id)
-        raise
+        return "approved"
+    # demo_key は空けて、同じキーでやり直せるようにする
+    conn.execute("UPDATE images SET status = 'deleted', status_changed_at = now(), deleted_at = now(), demo_key = NULL WHERE id = %s AND status = 'uploading'", (image_id,))
+    conn.commit()
+    delete_object(storage, row["storage_key"])
+    return "deleted"
 
 
 def reject_image(conn, storage: Storage, image_id: uuid.UUID) -> None:
-    """運営の却下・公開の取り消し。DB を先に rejected にし（ヒーローの印も外れる）、公開側の実体を消す。"""
+    """運営の取り下げ（公開後の安全弁）。DB を先に rejected にし（ヒーローの印も外れる）、実体を消す。"""
     row = conn.execute(
-        "UPDATE images SET status = 'rejected', status_changed_at = now() WHERE id = %s AND status IN ('pending', 'publishing', 'approved') "
-        "RETURNING storage_key",
+        "UPDATE images SET status = 'rejected', status_changed_at = now() WHERE id = %s AND status IN ('pending', 'publishing', 'approved') RETURNING storage_key",
         (image_id,),
     ).fetchone()
     conn.commit()
     if row is None:
-        raise ImageConflict("却下できる状態の画像ではありません")
-    storage.delete(row["storage_key"], public=True)  # 失敗しても、DB は rejected。残った公開側の実体は reconcile が消す
+        raise ImageConflict("取り下げできる状態の画像ではありません")
+    storage.delete(row["storage_key"])  # 失敗しても、DB は rejected で公開されない。残った実体は reconcile が報告する
 
 
-def unlink_if_unused(conn, image_id: uuid.UUID) -> None:
-    """どこからも参照されなくなった画像に、削除要求の時刻を付ける（物理削除は猶予のあとの reconcile）。"""
-    conn.execute(
-        "UPDATE images SET deletion_requested_at = now() WHERE id = %s AND deletion_requested_at IS NULL "
-        "AND NOT EXISTS (SELECT 1 FROM recruit_images WHERE image_id = %s) AND NOT EXISTS (SELECT 1 FROM garden_images WHERE image_id = %s)",
+def unlink_if_unused(conn, image_id: uuid.UUID) -> str | None:
+    """どこからも参照されなくなった画像を deleted にして、消す実体の保存キーを返す（参照が残っていれば None）。
+    コミットはしない。呼び出し側が、求人から外す操作と一緒に commit したあとで、delete_object で実体を消す。"""
+    row = conn.execute(
+        "UPDATE images SET status = 'deleted', status_changed_at = now(), deleted_at = now(), deletion_requested_at = now() "
+        "WHERE id = %s AND status <> 'deleted' "
+        "AND NOT EXISTS (SELECT 1 FROM recruit_images WHERE image_id = %s) AND NOT EXISTS (SELECT 1 FROM garden_images WHERE image_id = %s) RETURNING storage_key",
         (image_id, image_id, image_id),
-    )
+    ).fetchone()
+    return row["storage_key"] if row else None
+
+
+def delete_object(storage: Storage, key: str | None) -> None:
+    """DB の確定のあとで実体を消す。失敗しても例外にしない（利用者の操作は成功しており、残った実体は reconcile が報告する）。"""
+    if key is None:
+        return
+    try:
+        storage.delete(key)
+    except StorageError:
+        log.warning("画像の実体を消せませんでした。reconcile が報告します key=%s", key)
 
 
 UNREFERENCED = "NOT EXISTS (SELECT 1 FROM recruit_images ri WHERE ri.image_id = i.id) AND NOT EXISTS (SELECT 1 FROM garden_images gi WHERE gi.image_id = i.id)"
 
 
-def reconcile(conn, storage: Storage, *, apply: bool, grace_days: int = 30, stuck_hours: int = 1, out=print) -> dict[str, int]:
-    """DB とストレージの食い違い・未参照の画像・未完了の登録を探す。apply=False（既定）は、何も変えずに一覧だけ出す。
-    猶予: 未参照や削除要求の画像は grace_days 日、登録・公開の途中は stuck_hours 時間たってから対象にする。参照されている画像は対象にしない。"""
+def reconcile(conn, storage: Storage, *, stuck_hours: int = 1, out=print) -> dict[str, int]:
+    """DB とストレージの食い違いを探して報告する。何も変えない（削除も、状態の変更もしない）。
+    検出するもの: stuck_uploading（登録が途中で止まっている）、orphan_objects（DB に行のない実体）、stray_objects（取り下げ・削除済みなのに残っている実体）、
+    unreferenced（どこからも使われていない公開中の画像）。登録・公開の最中かもしれないので、新しいもの（10 分以内、unreferenced と stuck は stuck_hours 以内）は数えない。"""
     now = datetime.now(UTC)
     stuck_before = now - timedelta(hours=stuck_hours)
-    grace_before = now - timedelta(days=grace_days)
-    counts = {"stuck_uploading": 0, "stuck_publishing": 0, "stray_public": 0, "orphan_objects": 0, "deletable": 0}
-    verb = "処理" if apply else "対象（dry-run）"
+    counts = {"stuck_uploading": 0, "orphan_objects": 0, "stray_objects": 0, "unreferenced": 0}
 
-    for row in conn.execute("SELECT id, storage_key, sha256 FROM images WHERE status = 'uploading' AND status_changed_at < %s", (stuck_before,)).fetchall():
+    for row in conn.execute("SELECT id FROM images WHERE status = 'uploading' AND status_changed_at < %s", (stuck_before,)).fetchall():
         counts["stuck_uploading"] += 1
-        out(f"{verb}: 登録が途中で止まっている画像 {row['id']}")
-        if apply:
-            ok = False
-            try:
-                ok = storage.exists(row["storage_key"], public=False) and hashlib.sha256(storage.get(row["storage_key"], public=False)).hexdigest() == row["sha256"]
-            except StorageError:
-                ok = False
-            conn.execute(
-                "UPDATE images SET status = %s, status_changed_at = now(), deleted_at = CASE WHEN %s THEN NULL ELSE now() END WHERE id = %s AND status = 'uploading'",
-                ("pending" if ok else "deleted", ok, row["id"]),
-            )
-            if not ok:
-                storage.delete(row["storage_key"], public=False)
-            conn.commit()
-
-    for row in conn.execute("SELECT id FROM images WHERE status = 'publishing' AND status_changed_at < %s", (stuck_before,)).fetchall():
-        counts["stuck_publishing"] += 1
-        out(f"{verb}: 公開の途中で止まっている画像 {row['id']}（承認をやり直します）")
-        if apply:
-            try:
-                approve_image(conn, storage, row["id"])
-            except (ImageConflict, StorageError):
-                out(f"  やり直せませんでした: {row['id']}（pending へ戻しました）")
+        out(f"検出: 登録が途中で止まっている画像 {row['id']}")
 
     known = {r["storage_key"]: r["status"] for r in conn.execute("SELECT storage_key, status FROM images").fetchall()}
-    for public in (True, False):
-        for key, modified in storage.list_keys("images/", public=public):
-            status = known.get(key)
-            if modified > now - timedelta(minutes=10):
-                continue  # 登録・公開の最中かもしれない
-            if status is None:
-                counts["orphan_objects"] += 1
-                out(f"{verb}: DB に行のない{'公開' if public else '非公開'}側の実体 {key}")
-                if apply and modified < grace_before:
-                    storage.delete(key, public=public)
-            elif public and status not in ("approved", "publishing"):
-                counts["stray_public"] += 1
-                out(f"{verb}: 公開側に残っている未承認の実体 {key}（状態 {status}）")
-                if apply:
-                    storage.delete(key, public=True)
+    for key, modified in storage.list_keys("images/"):
+        if modified > now - timedelta(minutes=10):
+            continue  # 登録の最中かもしれない
+        status = known.get(key)
+        if status is None:
+            counts["orphan_objects"] += 1
+            out(f"検出: DB に行のない実体 {key}")
+        elif status not in ("approved", "uploading"):
+            counts["stray_objects"] += 1
+            out(f"検出: 公開されないはずの実体が残っています {key}（状態 {status}）")
 
-    candidates = conn.execute(
-        f"SELECT i.id, i.storage_key, i.status FROM images i WHERE i.status IN ('pending', 'approved', 'rejected') AND {UNREFERENCED} "  # noqa: S608
-        "AND COALESCE(i.deletion_requested_at, i.created_at) < %s",
-        (grace_before,),
-    ).fetchall()
-    for row in candidates:
-        counts["deletable"] += 1
-        out(f"{verb}: 未参照で猶予を過ぎた画像 {row['id']}（状態 {row['status']}）")
-        if apply:
-            # 削除の直前にもう一度、参照されていないことを確かめる（その間に結ばれていたら消さない）
-            claimed = conn.execute(
-                f"UPDATE images i SET status = 'deleted', status_changed_at = now(), deleted_at = now() WHERE i.id = %s AND {UNREFERENCED} "  # noqa: S608
-                "AND i.status IN ('pending', 'approved', 'rejected')",
-                (row["id"],),
-            )
-            conn.commit()
-            if claimed.rowcount:
-                storage.delete(row["storage_key"], public=True)
-                storage.delete(row["storage_key"], public=False)
+    for row in conn.execute(
+        f"SELECT i.id FROM images i WHERE i.status = 'approved' AND {UNREFERENCED} AND i.created_at < %s",  # noqa: S608
+        (stuck_before,),
+    ).fetchall():
+        counts["unreferenced"] += 1
+        out(f"検出: どこからも使われていない公開中の画像 {row['id']}")
     return counts

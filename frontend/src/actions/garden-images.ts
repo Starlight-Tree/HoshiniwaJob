@@ -51,7 +51,7 @@ export async function uploadImageAction(_prev: ImageFormState, data: FormData): 
     return { error: messageFor(e) };
   }
   revalidatePath(back(recruitId));
-  return { ok: '画像を登録しました。運営の承認が済むと公開されます。' };
+  return { ok: '画像を公開しました。' };
 }
 
 export async function moveImageAction(data: FormData): Promise<void> {

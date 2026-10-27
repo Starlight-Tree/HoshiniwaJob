@@ -36,7 +36,7 @@ docker compose up -d --build
 - **利用者の会員登録・ログイン・ログアウト**（`/register`、`/login`）: パスワードは argon2。ログインの印は HttpOnly の Cookie（`hj_session`）。https で公開するときは `SESSION_COOKIE_SECURE=true`。
 - **園のログイン・ログアウト**（<http://localhost:3200/garden/login>）: 利用者とは別のアカウント・別のセッション・別の Cookie（`hj_garden_session`）。ダッシュボード（`/garden`）には、自分の法人の求人の件数だけが出る。園の会員登録の画面・API は無く、アカウントは `seed`（開発・テスト専用）で作る。
 
-- **求人・法人の画像**: 画像の本体はストレージ（開発は Compose のボリューム、本番は S3 互換の Cloudflare R2 を想定）、求人との対応は DB。園は `/garden` から、自分の求人の画像を追加・並べ替え・ヒーロー指定・削除の依頼ができる。公開は運営の承認が済んだ画像だけ（`python -m app.images_cli`）。設定・登録・移行・バックアップと復旧・R2 の手順は [docs/image-storage.md](docs/image-storage.md)。
+- **求人・法人の画像**: 画像の本体はストレージ（開発は Compose のボリューム、本番は S3 互換の Cloudflare R2 を想定。バケットは 1 つ）、求人との対応は DB。園は `/garden` から、自分の求人の画像をドラッグ＆ドロップで追加（保存前にプレビュー）・並べ替え・ヒーロー指定・削除ができる。追加した画像はすぐ公開され、削除もその場で行われる。公開後の取り下げだけ、運営が行う（`python -m app.images_cli reject`）。設定・登録・移行・バックアップと復旧・R2 の手順は [docs/image-storage.md](docs/image-storage.md)。
 
 ## 開発とテスト
 

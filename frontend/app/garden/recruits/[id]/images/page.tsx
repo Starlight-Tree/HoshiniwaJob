@@ -12,10 +12,7 @@ export const metadata: Metadata = { title: '求人の画像' };
 
 const STATUS: Record<GardenImage['status'], string> = {
   approved: '公開中',
-  pending: '承認待ち（まだ公開されていません）',
-  rejected: '却下されました（公開されません）',
-  publishing: '公開の準備中',
-  uploading: '登録中',
+  rejected: '運営により取り下げられました（公開されていません）',
 };
 
 export default async function RecruitImagesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,15 +47,30 @@ export default async function RecruitImagesPage({ params }: { params: Promise<{ 
       <h1 className="garden-title">{data.category ?? '求人'}の画像</h1>
       <p className="garden-email">
         {data.is_displayed ? 'この求人は公開されています' : 'この求人は非表示です'}（画像は {data.images.length} / {data.max_images} 枚）。
-        登録した画像は運営が承認するまで公開されません。ヒーロー（一番大きく出る画像）にできるのは、公開中の画像です。
+        公開した画像は、すぐに求人ページへ表示されます。ヒーロー（一番大きく出る画像）は、公開中の画像から選べます。
       </p>
 
+      {data.images.length < data.max_images ? (
+        <section aria-labelledby="upload-heading">
+          <h2 id="upload-heading" className="garden-heading">
+            画像を追加する
+          </h2>
+          <ImageUploadForm recruitId={recruitId} />
+        </section>
+      ) : (
+        <p className="garden-email">画像は上限の {data.max_images} 枚です。追加するには、どれかを削除してください。</p>
+      )}
+
+      <h2 className="garden-heading">公開中の画像</h2>
       <ul className="image-list">
         {data.images.map((image, index) => (
           <li key={image.id} className="image-item">
-            {/* 承認前の画像もあるので、認証付きのプレビューを使う（公開 URL ではない） */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/garden/images/${image.id}/preview`} alt={image.alt} width={240} height={Math.round((240 * image.height) / image.width)} />
+            {image.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={image.url} alt={image.alt} width={240} height={Math.round((240 * image.height) / image.width)} />
+            ) : (
+              <div className="image-missing">取り下げられた画像</div>
+            )}
             <div className="image-meta">
               <p>
                 <strong>{index + 1}.</strong> {image.is_hero ? <span className="image-badge">ヒーロー</span> : null}{' '}
@@ -88,7 +100,7 @@ export default async function RecruitImagesPage({ params }: { params: Promise<{ 
                   <input type="hidden" name="recruit_id" value={recruitId} />
                   <input type="hidden" name="image_id" value={image.id} />
                   <button type="submit" className="small-button danger">
-                    削除を依頼する
+                    削除する
                   </button>
                 </form>
               </div>
@@ -96,16 +108,7 @@ export default async function RecruitImagesPage({ params }: { params: Promise<{ 
           </li>
         ))}
       </ul>
-      {data.images.length === 0 ? <p className="empty">まだ画像がありません。</p> : <p className="garden-email">削除を依頼した画像は、すぐには消えず、猶予のあとに運営が整理します。</p>}
-
-      {data.images.length < data.max_images ? (
-        <section aria-labelledby="upload-heading">
-          <h2 id="upload-heading" className="garden-heading">
-            画像を追加する
-          </h2>
-          <ImageUploadForm recruitId={recruitId} />
-        </section>
-      ) : null}
+      {data.images.length === 0 ? <p className="empty">まだ画像がありません。</p> : <p className="garden-email">削除すると、画像はすぐに求人ページから消えます（元に戻せません）。</p>}
     </main>
   );
 }
