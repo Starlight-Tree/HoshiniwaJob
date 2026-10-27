@@ -5,7 +5,8 @@
     python -m app.seed_images --source-url https://…/demo/         # 画像の置き場（https。末尾に file 名を足して取る）から
 
 - 元のファイルは、マニフェストの sha256 と一致しなければ使わない（別の画像が別の求人に結ばれるのを防ぐ）。
-- 求人は recruits.demo_key で探す。見つからなければ、結ばずに知らせる。すでに結ばれている関連（園が変えた並び・ヒーロー）は、再実行で変えない。
+- 求人は recruits.demo_key で先に探す。見つからなければ、画像も登録せずに知らせる（まだ無い求人の画像が、どの求人にも結ばれないまま増えるのを防ぐ）。
+  求人ができてから、もう一度実行すれば登録される。すでに結ばれている関連（園が変えた並び・ヒーロー）は、再実行で変えない。
 - 保存先は STORAGE_BACKEND の設定に従う（local なら開発用のフォルダー、s3 なら設定したバケット）。
 """
 
@@ -46,6 +47,11 @@ def seed(conn, storage: Storage, *, source_dir: Path | None, source_url: str | N
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     stats = {"registered": 0, "linked": 0, "kept": 0, "no_recruit": 0}
     for entry in manifest["images"]:
+        recruit = conn.execute("SELECT id FROM recruits WHERE demo_key = %s", (entry["recruit_demo_key"],)).fetchone()
+        if recruit is None:
+            stats["no_recruit"] += 1
+            out(f"求人 {entry['recruit_demo_key']} がありません。画像 {entry['demo_key']} は、求人ができてから登録します")
+            continue
         image = conn.execute("SELECT id, status FROM images WHERE demo_key = %s", (entry["demo_key"],)).fetchone()
         if image is None:
             data = _read_source(entry, source_dir, source_url)
@@ -68,11 +74,6 @@ def seed(conn, storage: Storage, *, source_dir: Path | None, source_url: str | N
                 continue
         if status != "approved":
             out(f"状態 {status} の画像です（{entry['demo_key']}）。触りません")
-            continue
-        recruit = conn.execute("SELECT id FROM recruits WHERE demo_key = %s", (entry["recruit_demo_key"],)).fetchone()
-        if recruit is None:
-            stats["no_recruit"] += 1
-            out(f"求人 {entry['recruit_demo_key']} がありません。画像 {entry['demo_key']} は結びません")
             continue
         inserted = conn.execute(
             "INSERT INTO recruit_images (recruit_id, image_id, position) VALUES (%s, %s, %s) ON CONFLICT (recruit_id, image_id) DO NOTHING",

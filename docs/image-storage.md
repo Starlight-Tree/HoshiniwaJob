@@ -104,6 +104,7 @@ docker compose exec -T db pg_restore -U hoshiniwa --no-owner -d hoshiniwa_restor
 ## 新しい環境（ダミー画像の復元）
 
 通常の `docker compose up` は、マイグレーションもダミーデータも流さない。新しい環境では、README の「初めての環境」の順に、`migrate` → `seed` → `seed-images` を 1 回ずつ実行する（いずれも `profile: tools` の道具で、`up` では起動しない。`seed` と `seed-images` は `DEMO_DATA=allow` が無いと実行を拒否する）。ダミー画像の元ファイルは `frontend/public/images/generated/recruits/`（Git 管理。マニフェストは `backend/app/demo_images.json`。元ファイルの sha256 が一致しなければ使わない）。
+マニフェストは 24 件（今ある求人に結ぶ 13 件と、まだ無い求人の分 11 件）。求人が DB に無い画像は、登録せずに知らせる（どの求人にも結ばれない画像を作らないため）。求人ができてから `seed-images` を再実行すると、その分が登録される。求人 1 と 7 は 2 枚、植物医（予定）は 3 枚で、ヒーローは位置 0 の 1 枚。
 同じことは単独でもできる（何度実行しても、画像も関連も増えない）。
 
 ```bash

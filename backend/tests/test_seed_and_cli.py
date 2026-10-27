@@ -16,7 +16,10 @@ from tests.imagefiles import make_image
 pytestmark = pytest.mark.skipif(not TEST_URL, reason="TEST_DATABASE_URL が未設定です")
 
 SOURCE = Path(__file__).resolve().parents[2] / "frontend" / "public" / "images" / "generated" / "recruits"
-FILE_OF_RECRUIT_ID = {1: "1.jpg", 2: "2.jpg", 3: "3.jpg", 4: "4.jpg", 5: "5.jpg", 6: "6.jpg", 7: "7-people.jpg", 8: "8.jpg", 9: "9.jpg", 10: "10.jpg", 11: "11.jpg"}
+# 今ある求人（ID 1〜11）に結ぶ画像。(求人 ID, 並び) → 元ファイル。求人 1 と 7 は 2 枚。
+FILE_OF = {(1, 0): "1.jpg", (1, 1): "1-2.jpg", (2, 0): "2.jpg", (3, 0): "3.jpg", (4, 0): "4.jpg", (5, 0): "5.jpg", (6, 0): "6.jpg", (7, 0): "7-people.jpg", (7, 1): "7.jpg", (8, 0): "8.jpg", (9, 0): "9.jpg", (10, 0): "10.jpg", (11, 0): "11.jpg"}
+PLACED = len(FILE_OF)  # 今ある求人に結べる画像の数（13）
+NOT_YET = 11  # まだ求人が無い画像の数（新しい求人の分。求人ができるまで登録しない）
 needs_sources = pytest.mark.skipif(not SOURCE.is_dir(), reason="画像のフォルダーがありません")
 
 
@@ -37,31 +40,36 @@ def test_every_demo_recruit_has_a_unique_demo_key_matching_the_manifest(fresh):
     keys = [r["demo_key"] for r in conn.execute("SELECT demo_key FROM recruits ORDER BY id").fetchall()]
     assert len(keys) == 12 and len(set(keys)) == 12 and None not in keys
     manifest = json.loads(seed_images.MANIFEST.read_text(encoding="utf-8"))["images"]
-    assert {e["recruit_demo_key"] for e in manifest} <= set(keys)
     assert len({e["demo_key"] for e in manifest}) == len(manifest)
+    assert len({(e["recruit_demo_key"], e["position"]) for e in manifest}) == len(manifest)
+    assert sum(1 for e in manifest if e["recruit_demo_key"] in keys) == PLACED  # 残りは、まだ無い求人の画像
+    for key in {e["recruit_demo_key"] for e in manifest}:  # どの求人も、ヒーローは位置 0 の 1 枚だけ
+        mine = [e for e in manifest if e["recruit_demo_key"] == key]
+        assert [e["position"] for e in mine if e["hero"]] == [0]
 
 
 @needs_sources
 def test_seed_images_maps_each_image_to_the_right_recruit_and_is_idempotent(fresh):
     conn, storage, _ = fresh
     first = seed_images.seed(conn, storage, source_dir=SOURCE, source_url=None, out=lambda *_: None)
-    assert first == {"registered": 11, "linked": 11, "kept": 0, "no_recruit": 0}
+    assert first == {"registered": PLACED, "linked": PLACED, "kept": 0, "no_recruit": NOT_YET}
     rows = conn.execute(
-        "SELECT ri.recruit_id, ri.is_hero, i.status, i.storage_key, i.alt, i.origin FROM recruit_images ri JOIN images i ON i.id = ri.image_id ORDER BY ri.recruit_id"
+        "SELECT ri.recruit_id, ri.position, ri.is_hero, i.status, i.storage_key, i.alt, i.origin FROM recruit_images ri JOIN images i ON i.id = ri.image_id ORDER BY ri.recruit_id, ri.position"
     ).fetchall()
-    assert [r["recruit_id"] for r in rows] == list(range(1, 12))  # 12（非表示のテスト求人）には結ばない
+    assert [(r["recruit_id"], r["position"]) for r in rows] == sorted(FILE_OF)  # 12（非表示のテスト求人）には結ばない
     for r in rows:
-        assert r["is_hero"] and r["status"] == "approved" and r["origin"] == "generated" and r["alt"].endswith("（職種名からの演出）")
-        expected = svc.process_image((SOURCE / FILE_OF_RECRUIT_ID[r["recruit_id"]]).read_bytes(), max_bytes=20 * 1024 * 1024)
+        assert r["is_hero"] == (r["position"] == 0) and r["status"] == "approved" and r["origin"] == "generated" and r["alt"].endswith("（職種名からの演出）")
+        expected = svc.process_image((SOURCE / FILE_OF[(r["recruit_id"], r["position"])]).read_bytes(), max_bytes=20 * 1024 * 1024)
         assert storage.get(r["storage_key"]) == expected.data  # 保存された実体が、その求人用の元画像から作られている
-    assert len({r["storage_key"] for r in rows}) == 11
+    assert len({r["storage_key"] for r in rows}) == PLACED
+    assert conn.execute("SELECT count(*) AS n FROM images").fetchone()["n"] == PLACED  # まだ無い求人の画像は、登録していない
     # 園が並びやヒーローを変えたあとに再実行しても、変えず、増やさない
     conn.execute("UPDATE recruit_images SET is_hero = false WHERE recruit_id = 1")
     conn.commit()
     second = seed_images.seed(conn, storage, source_dir=SOURCE, source_url=None, out=lambda *_: None)
-    assert second == {"registered": 0, "linked": 0, "kept": 11, "no_recruit": 0}
-    assert conn.execute("SELECT count(*) AS n FROM images").fetchone()["n"] == 11
-    assert conn.execute("SELECT count(*) AS n FROM recruit_images").fetchone()["n"] == 11
+    assert second == {"registered": 0, "linked": 0, "kept": PLACED, "no_recruit": NOT_YET}
+    assert conn.execute("SELECT count(*) AS n FROM images").fetchone()["n"] == PLACED
+    assert conn.execute("SELECT count(*) AS n FROM recruit_images").fetchone()["n"] == PLACED
     assert conn.execute("SELECT is_hero FROM recruit_images WHERE recruit_id = 1").fetchone()["is_hero"] is False
 
 
@@ -97,9 +105,9 @@ def test_seed_images_resumes_after_a_failure_in_the_middle(fresh):
     assert conn.execute("SELECT count(*) AS n FROM images").fetchone()["n"] == 2  # 3 枚目は、補償で行も実体も消えている
     assert len(list(flaky.list_keys("images/"))) == 2
     again = seed_images.seed(conn, flaky, source_dir=SOURCE, source_url=None, out=lambda *_: None)
-    assert again == {"registered": 9, "linked": 9, "kept": 2, "no_recruit": 0}
-    assert conn.execute("SELECT count(*) AS n FROM images").fetchone()["n"] == 11
-    assert conn.execute("SELECT count(*) AS n FROM recruit_images").fetchone()["n"] == 11
+    assert again == {"registered": PLACED - 2, "linked": PLACED - 2, "kept": 2, "no_recruit": NOT_YET}
+    assert conn.execute("SELECT count(*) AS n FROM images").fetchone()["n"] == PLACED
+    assert conn.execute("SELECT count(*) AS n FROM recruit_images").fetchone()["n"] == PLACED
 
 
 @needs_sources
@@ -135,8 +143,8 @@ def test_seed_images_finishes_or_clears_a_registration_that_stopped_halfway(fres
     assert any("片付けました" in line for line in out)
     assert conn.execute("SELECT status FROM images WHERE id = %s", (lost,)).fetchone()["status"] == "deleted"
     again = seed_images.seed(conn, storage, source_dir=SOURCE, source_url=None, out=lambda *_: None)
-    assert again["registered"] == 1  # 片付けた 1 枚だけを、改めて登録する（ほかの 10 枚は、最初の実行で登録済み）
-    assert conn.execute("SELECT count(*) AS n FROM images WHERE status = 'approved'").fetchone()["n"] == 11
+    assert again["registered"] == 1  # 片付けた 1 枚だけを、改めて登録する（ほかの画像は、最初の実行で登録済み）
+    assert conn.execute("SELECT count(*) AS n FROM images WHERE status = 'approved'").fetchone()["n"] == PLACED
 
 
 def test_backfill_demo_keys_links_only_rows_that_match_in_id_and_name(fresh):
@@ -206,3 +214,26 @@ def test_cli_register_with_hero_sets_the_hero_at_once(fresh, tmp_path):
     img.write_bytes(make_image())
     images_cli.run(images_cli._parser().parse_args(["register", str(img), "--alt", "x", "--recruit-id", "1", "--hero"]), conn, storage, out=lambda *_: None)
     assert conn.execute("SELECT is_hero FROM recruit_images").fetchone()["is_hero"] is True
+
+
+@needs_sources
+def test_seed_images_does_not_register_an_image_whose_recruit_does_not_exist_yet(fresh):
+    conn, storage, _ = fresh
+    out: list[str] = []
+    seed_images.seed(conn, storage, source_dir=SOURCE, source_url=None, out=out.append)
+    assert conn.execute("SELECT count(*) AS n FROM images WHERE demo_key LIKE 'plant-doctor%%'").fetchone()["n"] == 0
+    assert len(list(storage.list_keys("images/"))) == PLACED  # 実体も、結べる画像の分だけ
+    assert any("plant-doctor" in line and "求人ができてから" in line for line in out)
+    # 求人ができたあとに再実行すると、その求人の画像（3 枚）だけが登録され、ヒーローは位置 0 の 1 枚になる
+    conn.execute(
+        "INSERT INTO recruits (employ, category, corporate, profile, place, salary, pay_min, pay_max, comment1, note1,"
+        " start_hour, start_minute, end_hour, end_minute, workday, insurance, is_displayed, demo_key)"
+        " VALUES (1, '植物医', '星庭財団', 'x', 'x', 2, 1, 1, 'x', 'x', '09', '00', '18', '00', '月〜金', 'x', false, 'plant-doctor')"
+    )
+    conn.commit()
+    later = seed_images.seed(conn, storage, source_dir=SOURCE, source_url=None, out=lambda *_: None)
+    assert later == {"registered": 3, "linked": 3, "kept": PLACED, "no_recruit": NOT_YET - 3}
+    rows = conn.execute(
+        "SELECT ri.position, ri.is_hero FROM recruit_images ri JOIN recruits r ON r.id = ri.recruit_id WHERE r.demo_key = 'plant-doctor' ORDER BY ri.position"
+    ).fetchall()
+    assert [(r["position"], r["is_hero"]) for r in rows] == [(0, True), (1, False), (2, False)]

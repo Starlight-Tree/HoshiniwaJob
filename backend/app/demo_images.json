@@ -99,6 +99,123 @@
    "alt": "検疫官が、持ち込まれた植物を検査しているイメージ（職種名からの演出）",
    "position": 0,
    "hero": true
+  },
+  {
+   "demo_key": "greenhouse-vine-grower-2",
+   "recruit_demo_key": "greenhouse-vine-grower",
+   "file": "1-2.jpg",
+   "sha256": "bc9c3446345b5b253d71c54bb96bd4a71a2be7d35fe5abb83a27d204dde811b7",
+   "alt": "リング状の温室の通路で、無重力の蔓が格子に沿って伸びているイメージ（職種名からの演出）",
+   "position": 1,
+   "hero": false
+  },
+  {
+   "demo_key": "ruins-storyteller-2",
+   "recruit_demo_key": "ruins-storyteller",
+   "file": "7.jpg",
+   "sha256": "7954c81aecc59ec68882a65f86335bb54c8d246b2ce4aa5077e096c90e3c354b",
+   "alt": "遺跡の前の広場に、語り部の話を聞くための木のベンチが並んでいるイメージ（職種名からの演出）",
+   "position": 1,
+   "hero": false
+  },
+  {
+   "demo_key": "plant-doctor-hero",
+   "recruit_demo_key": "plant-doctor",
+   "file": "plant-doctor.jpg",
+   "sha256": "87f954b5746e9f55cbb265610585470fec3a4950dd0ec59a508d37070d7460af",
+   "alt": "植物医が、鉢植えの斑点のある葉を虫眼鏡で調べているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "plant-doctor-2",
+   "recruit_demo_key": "plant-doctor",
+   "file": "plant-doctor-2.jpg",
+   "sha256": "c0a46e2c0d89617af718fbc74da7b29ab120dc598509395ab81a4269e72a0ccf",
+   "alt": "植物医が、透明な処置ケースの中の苗に、スポイトで薬液を垂らしているイメージ（職種名からの演出）",
+   "position": 1,
+   "hero": false
+  },
+  {
+   "demo_key": "plant-doctor-3",
+   "recruit_demo_key": "plant-doctor",
+   "file": "plant-doctor-3.jpg",
+   "sha256": "ba9aac00d401712587a0d25f7c82590369fcf8c37ff2f4e327ea2120aaa1b78f",
+   "alt": "手袋をした手で、傷んだ葉と元気な葉を見比べているイメージ（職種名からの演出）",
+   "position": 2,
+   "hero": false
+  },
+  {
+   "demo_key": "garden-pr-officer-hero",
+   "recruit_demo_key": "garden-pr-officer",
+   "file": "garden-pr.jpg",
+   "sha256": "8ed1c8ab5958e12ca5cb12bdc793c4983167f829be28ab91624275fba52d3c9e",
+   "alt": "広報担当が、温室で光る花を一眼カメラで撮影しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "entrance-receptionist-hero",
+   "recruit_demo_key": "entrance-receptionist",
+   "file": "entrance-receptionist.jpg",
+   "sha256": "c928e37988204c2a85834e51d4580c581691d97100543b4559a5290952236ba4",
+   "alt": "受付の係員が、入園口のカウンターで来園者に案内の紙を手渡しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "water-cycle-technician-hero",
+   "recruit_demo_key": "water-cycle-technician",
+   "file": "water-cycle-technician.jpg",
+   "sha256": "32434daa594940743ee49162422199e9d6841d67e7d4298d1957baca0de399ef",
+   "alt": "技師が、水循環の水槽のそばでバルブのハンドルを回しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "dome-glass-cleaner-hero",
+   "recruit_demo_key": "dome-glass-cleaner",
+   "file": "dome-glass-cleaner.jpg",
+   "sha256": "064efbb1c30829f78d85c519f75b4f63ea36d063cb2a95591f306d8f6b33069e",
+   "alt": "清掃員が、命綱をつけて、ドームのガラスを長い柄の道具で拭いているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "seedling-courier-hero",
+   "recruit_demo_key": "seedling-courier",
+   "file": "seedling-courier.jpg",
+   "sha256": "edf421299caafb8269642cb153424fb0a08a5c246f2e3cc470ec70caeb6b08d1",
+   "alt": "搬送員が、苗のトレーを載せたカートを押して、通路を進んでいるイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "fungi-cultivator-hero",
+   "recruit_demo_key": "fungi-cultivator",
+   "file": "fungi-cultivator.jpg",
+   "sha256": "f10f02b33ff0ce3e4f80bf561d5401301035faf8c8b1291421deac3c1e68fa41",
+   "alt": "栽培員が、棚からキノコのトレーを取り出して状態を見ているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "pollinator-keeper-hero",
+   "recruit_demo_key": "pollinator-keeper",
+   "file": "pollinator-keeper.jpg",
+   "sha256": "8b17c93c93e0c68d237eb3261e2acb869907ef8491527241387eef6bccb7c400",
+   "alt": "飼育員が、透明な観察用の巣箱の蓋を上げて、ミツバチの様子を見ているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "flower-workshop-instructor-hero",
+   "recruit_demo_key": "flower-workshop-instructor",
+   "file": "flower-workshop-instructor.jpg",
+   "sha256": "b75672347ff54d06ead689d7eab60223213d92d6f5e3d670dc85c174f68b1db1",
+   "alt": "講師が、長い机で、参加者たちに花束の作り方を見せているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
   }
  ]
 }

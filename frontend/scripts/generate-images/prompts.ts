@@ -210,4 +210,141 @@ export const IMAGES: ImageSpec[] = [
     imageSize: '1K',
     outputFileName: 'recruits/9.png',
   },
+  // 以下は開発用ダミーの拡充（標準案）の新規画像。求人の ID・園は未確定なので、ファイル名は ID ではなく職種の slug にしている（求人の記載ではなく、職種名からの演出）。
+  {
+    id: 'vine-grower-2',
+    purpose: '「無重力蔓の育成士」（求人 ID 1）の 2 枚目。人のいない環境の写真',
+    prompt:
+      'A wide 16:9 photograph of the inside of a bright ring-shaped orbital greenhouse corridor, seen from eye level. ' +
+      'Long leafy green vines float and curl in microgravity along a white lattice that follows the curve of the corridor, with clean planters below and a large curved window showing a distant Earth. ' +
+      'Soft natural light, calm, trustworthy, optimistic atmosphere. Photorealistic, restrained sci-fi, no flashy effects. ' +
+      'No people at all. No text, no letters, no logos, no real brands, no real facilities, and nothing readable on any screen, dial, label or sign.',
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/1-2.png',
+  },
+  {
+    id: 'plant-doctor-1',
+    purpose: '植物医（新規求人・3 枚中の 1 枚目。ヒーロー）',
+    prompt:
+      'A 16:9 documentary-style photograph in a bright plant clinic room inside an orbital botanical garden. ' +
+      'One fictional man in his forties with short grey-streaked hair and a white coat holds a small potted plant under a desk lamp and studies a spotted leaf through a hand magnifier, his brow slightly furrowed in concentration. ' +
+      'Other potted plants wait on shelves behind him, a few with small blank paper tags. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/plant-doctor.png',
+  },
+  {
+    id: 'plant-doctor-2',
+    purpose: '植物医（新規求人・3 枚中の 2 枚目）',
+    prompt:
+      'A 16:9 documentary-style photograph of a treatment bench in a plant clinic aboard an orbital botanical garden. ' +
+      'One fictional woman in her thirties with shoulder-length hair, a white coat and gloves carefully places a drop of clear liquid from a dropper onto a seedling inside an open transparent treatment cabinet, her face calm and focused. ' +
+      'Rows of healthy small seedlings in trays are softly visible behind her. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/plant-doctor-2.png',
+  },
+  {
+    id: 'plant-doctor-3',
+    purpose: '植物医（新規求人・3 枚中の 3 枚目。手元のアップ）',
+    prompt:
+      'A 16:9 close-up documentary-style photograph of two gloved hands holding one spotted, wilting leaf and one healthy green leaf side by side to compare them, above a clean white examination tray. ' +
+      'Only the hands, forearms and a white coat sleeve are visible; no faces. A blurred greenhouse with plants is in the background. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/plant-doctor-3.png',
+  },
+  {
+    id: 'garden-pr-photographer',
+    purpose: '広報担当（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph inside a greenhouse of an orbital botanical garden. ' +
+      'One fictional woman in her thirties with a short bob and a casual green jacket crouches low and photographs a softly glowing night-blooming flower with a mirrorless camera, her eye pressed to the viewfinder; a small reflector panel stands beside her. ' +
+      'Rows of flowering plants fill the background. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/garden-pr.png',
+  },
+  {
+    id: 'entrance-receptionist',
+    purpose: '入園受付（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph of a bright, airy entrance hall of an orbital botanical garden with a curved wooden reception counter and hanging plants. ' +
+      'One fictional young man in his twenties in a simple green vest smiles warmly while handing a folded paper leaflet with no printed text to a fictional adult visitor with a small travel bag. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/entrance-receptionist.png',
+  },
+  {
+    id: 'water-cycle-technician',
+    purpose: '水循環の技師（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph in a utility room of an orbital greenhouse, with a tall transparent water-recycling tank filled with clear water and aquatic plants. ' +
+      'One fictional woman in her forties in practical grey overalls and safety glasses turns a large valve wheel with both hands while glancing at the water level in the tank. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/water-cycle-technician.png',
+  },
+  {
+    id: 'dome-glass-cleaner',
+    purpose: 'ドームのガラスの清掃員（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph inside a large curved glass dome of an orbital botanical garden, seen from a safe maintenance gantry. ' +
+      'One fictional man in his thirties wearing a safety harness clipped to a rail and a light work suit wipes a glass panel with a long soft squeegee pole, with a distant Earth and stars beyond the glass. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/dome-glass-cleaner.png',
+  },
+  {
+    id: 'seedling-courier',
+    purpose: '苗の搬送員（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph in a bright white corridor of an orbital station lined with plants. ' +
+      'One fictional young woman in her twenties with a ponytail and a green work vest pushes a wheeled cart stacked with trays of small seedlings, looking ahead along the corridor as she walks. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/seedling-courier.png',
+  },
+  {
+    id: 'fungi-cultivator',
+    purpose: '菌床の栽培員（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph in a cool, softly lit cultivation room of an orbital botanical garden, with tiered racks of mushroom beds. ' +
+      'One fictional man in his fifties with a grey beard, a cap and a plain apron lifts a tray of pale mushrooms from a rack and inspects it closely. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/fungi-cultivator.png',
+  },
+  {
+    id: 'pollinator-keeper',
+    purpose: '受粉昆虫の飼育員（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph beside a transparent observation hive in an orbital greenhouse, with flowering plants all around. ' +
+      'One fictional woman in her thirties wearing a light veiled hat and a pale work suit gently lifts a transparent hive panel and watches the bees on it, with a few bees drifting slowly in the air. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/pollinator-keeper.png',
+  },
+  {
+    id: 'flower-workshop-instructor',
+    purpose: '花の体験教室の講師（新規求人）',
+    prompt:
+      'A 16:9 documentary-style photograph of a bright workshop room in an orbital botanical garden with a long wooden table covered in fresh flowers and greenery. ' +
+      'One fictional woman in her sixties with silver hair and a linen apron demonstrates arranging a small bouquet while three fictional adult participants follow along, each holding a stem. ' +
+      WORK_TAIL,
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    outputFileName: 'recruits/flower-workshop-instructor.png',
+  },
 ]
