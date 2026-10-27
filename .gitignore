@@ -17,3 +17,10 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# DB のバックアップ（個人情報を含みうる）。Git に入れない
+backups/
+*.dump
+
+# 画像の保存先の開発用フォルダー（ローカル保存のとき）
+.dev-media/
