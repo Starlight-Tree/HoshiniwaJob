@@ -1,4 +1,16 @@
-import type { Facets, Garden, GardenSession, GardenSummary, Master, RecruitDetail, RecruitPage, Session, User } from './types';
+import type {
+  Facets,
+  Garden,
+  GardenRecruitImages,
+  GardenRecruitItem,
+  GardenSession,
+  GardenSummary,
+  Master,
+  RecruitDetail,
+  RecruitPage,
+  Session,
+  User,
+} from './types';
 import { KINDS, type Selection } from './search';
 
 // 画面のサーバー側（Next.js）から API を呼ぶ。ブラウザーは API を直接呼ばないので、CORS は要らない。
@@ -14,17 +26,18 @@ export class ApiError extends Error {
   }
 }
 
-type CallOptions = { method?: 'GET' | 'POST'; body?: unknown; token?: string };
+type CallOptions = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown; token?: string; raw?: { bytes: ArrayBuffer; contentType: string } };
 
-async function call(path: string, { method = 'GET', body, token }: CallOptions = {}): Promise<Response> {
+async function call(path: string, { method = 'GET', body, token, raw }: CallOptions = {}): Promise<Response> {
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (raw) headers['Content-Type'] = raw.contentType;
   try {
     return await fetch(`${BASE}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: raw ? raw.bytes : body === undefined ? undefined : JSON.stringify(body),
       cache: 'no-store',
     });
   } catch {
@@ -90,4 +103,45 @@ export const fetchGardenSummary = (token: string) => get<GardenSummary>('/api/ga
 export async function gardenLogoutRequest(token: string): Promise<void> {
   const res = await call('/api/garden/auth/logout', { method: 'POST', token });
   if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
+}
+
+// 園の画像管理。トークンは画面のサーバーだけが持ち、所有権の確認は API 側で行う（画面では判断しない）。
+export const fetchGardenRecruits = (token: string) => get<GardenRecruitItem[]>('/api/garden/recruits', token);
+
+export const fetchGardenRecruitImages = (token: string, recruitId: number) =>
+  get<GardenRecruitImages>(`/api/garden/recruits/${recruitId}/images`, token);
+
+export async function uploadGardenImage(token: string, recruitId: number, file: { bytes: ArrayBuffer; contentType: string }, alt: string): Promise<void> {
+  const res = await call(`/api/garden/recruits/${recruitId}/images?alt=${encodeURIComponent(alt)}`, { method: 'POST', token, raw: file });
+  if (!res.ok) throw new ApiError(res.status, await detailOf(res));
+}
+
+export async function reorderGardenImages(token: string, recruitId: number, imageIds: string[]): Promise<void> {
+  await json<GardenRecruitImages>(await call(`/api/garden/recruits/${recruitId}/images/order`, { method: 'PUT', token, body: { image_ids: imageIds } }));
+}
+
+export async function setGardenHeroImage(token: string, recruitId: number, imageId: string): Promise<void> {
+  await json<GardenRecruitImages>(await call(`/api/garden/recruits/${recruitId}/images/hero`, { method: 'PUT', token, body: { image_id: imageId } }));
+}
+
+export async function removeGardenImage(token: string, recruitId: number, imageId: string): Promise<void> {
+  const res = await call(`/api/garden/recruits/${recruitId}/images/${imageId}`, { method: 'DELETE', token });
+  if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
+}
+
+/** 承認前の画像のプレビュー（認証と所有権の確認を通った場合だけ中身が返る）。 */
+export async function fetchGardenImagePreview(token: string, imageId: string): Promise<Response> {
+  const res = await call(`/api/garden/images/${imageId}/preview`, { token });
+  if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
+  return res;
+}
+
+// 登録の拒否理由（形式・容量・寸法）は、API の固定の説明をそのまま画面に出してよい（内部の情報を含まない）
+async function detailOf(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { detail?: unknown };
+    return typeof body.detail === 'string' ? body.detail : `API がエラーを返しました（${res.status}）`;
+  } catch {
+    return `API がエラーを返しました（${res.status}）`;
+  }
 }

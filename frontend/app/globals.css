@@ -137,6 +137,9 @@ h1, h2 { line-height: 1.4; }
 /* 詳細 */
 .detail h1 { margin: 0 0 24px; font-size: 28px; }
 .detail-hero { display: block; width: 100%; max-width: 760px; height: auto; margin: 0 0 32px; border-radius: var(--radius); }
+.detail-gallery { display: flex; flex-wrap: wrap; gap: 12px; max-width: 760px; margin: -16px 0 32px; padding: 0; list-style: none; }
+.detail-gallery li { flex: 0 1 240px; }
+.detail-gallery img { display: block; width: 100%; height: auto; border-radius: 8px; }
 .spec { margin: 0 0 32px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .spec div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; padding: 14px 24px; border-bottom: 1px solid var(--border-soft); }
 .spec div:last-child { border-bottom: 0; }
@@ -181,3 +184,28 @@ h1, h2 { line-height: 1.4; }
 @media (max-width: 640px) {
   .card-side { flex-basis: 100%; text-align: left; }
 }
+
+/* 園の画像管理 */
+.garden-images { margin-top: 32px; }
+.garden-recruit-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.garden-recruit-list .garden-email { margin: 0; }
+.image-list { margin: 0 0 24px; padding: 0; list-style: none; display: grid; gap: 16px; }
+.image-item { display: flex; flex-wrap: wrap; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.image-item img { display: block; max-width: 100%; height: auto; border-radius: 8px; }
+.image-meta { flex: 1 1 280px; min-width: 0; }
+.image-meta p { margin: 0 0 8px; }
+.image-alt { font-size: 14px; color: var(--muted); }
+.image-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 12px; font-weight: 700; }
+.image-status { font-size: 13px; }
+.image-status.pending, .image-status.publishing, .image-status.uploading { color: #8a5a00; }
+.image-status.rejected { color: #a32020; }
+.image-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.image-actions form { display: flex; gap: 6px; }
+.small-button { min-height: 36px; padding: 0 12px; border: 1.5px solid var(--primary); border-radius: 8px; background: var(--surface); color: var(--primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.small-button:hover:not(:disabled) { background: var(--tag-bg); }
+.small-button:disabled { border-color: var(--border); color: var(--faint); cursor: not-allowed; }
+.small-button.danger { border-color: #a32020; color: #a32020; }
+.image-upload { display: grid; gap: 12px; max-width: 520px; }
+.image-upload .field { display: grid; gap: 4px; font-size: 14px; }
+.image-upload input[type='text'] { min-height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.image-ok { margin: 0; padding: 12px 16px; border: 1px solid var(--primary); border-radius: var(--radius); background: var(--tag-bg); }

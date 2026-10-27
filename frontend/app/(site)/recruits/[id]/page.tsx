@@ -9,36 +9,12 @@ import { hrefFor, parseSelection } from '../../../../src/lib/search';
 
 export const dynamic = 'force-dynamic';
 
-// 求人専用の画像がある求人 ID と、その代替テキスト。ない求人は共通の雰囲気画像を使う。
-const JOB_IMAGES: Record<number, { src: string; alt: string }> = {
-  1: {
-    src: '/images/generated/recruits/1.jpg',
-    alt: '育成士が、浮かぶ蔓を手で整えているイメージ（職種名からの演出）',
-  },
-  5: {
-    src: '/images/generated/recruits/5.jpg',
-    alt: '保守員が、砂丘ドームの温室で酸素供給装置を点検しているイメージ（職種名からの演出）',
-  },
-  8: {
-    src: '/images/generated/recruits/8.jpg',
-    alt: '調査員が、遺跡の石壁のそばで土を採取しているイメージ（職種名からの演出）',
-  },
-  10: {
-    src: '/images/generated/recruits/10.jpg',
-    alt: '記録係が、種子を拡大鏡で確かめながらタブレットに記録しているイメージ（職種名からの演出）',
-  },
-  11: {
-    src: '/images/generated/recruits/11.jpg',
-    alt: '検疫官が、持ち込まれた植物を検査しているイメージ（職種名からの演出）',
-  },
-  7: {
-    src: '/images/generated/recruits/7-people.jpg',
-    alt: '遺跡のアーチの前で、スタッフが来訪者に説明しているイメージ（職種名からの演出）',
-  },
-};
+// 画像が 1 枚も公開されていない求人に使う、共通の雰囲気画像（Git で管理するもの）
 const FALLBACK_IMAGE = {
   src: '/images/generated/job-detail-sample.jpg',
   alt: '環軌道植物園の温室のイメージ',
+  width: 1376,
+  height: 768,
 };
 
 type Props = {
@@ -83,7 +59,9 @@ export default async function RecruitPage({ params, searchParams }: Props) {
     );
   }
 
-  const hero = JOB_IMAGES[job.id] ?? FALLBACK_IMAGE;
+  // 画像は API が返す（承認済みのものだけ）。ヒーローは API が決める。無ければ共通の画像
+  const hero = job.hero_image ? { src: job.hero_image.url, alt: job.hero_image.alt, width: job.hero_image.width, height: job.hero_image.height } : FALLBACK_IMAGE;
+  const more = job.images.filter((image) => image.id !== job.hero_image?.id);
   const pay = payOf(job);
   const hours = job.start_time && job.end_time ? `${job.start_time}〜${job.end_time}` : null;
   const rows: [string, string | null][] = [
@@ -111,12 +89,21 @@ export default async function RecruitPage({ params, searchParams }: Props) {
       <Image
         src={hero.src}
         alt={hero.alt}
-        width={1376}
-        height={768}
+        width={hero.width}
+        height={hero.height}
         sizes="(max-width: 808px) 100vw, 760px"
         priority
         className="detail-hero"
       />
+      {more.length > 0 ? (
+        <ul className="detail-gallery" aria-label="ほかの画像">
+          {more.map((image) => (
+            <li key={image.id}>
+              <Image src={image.url} alt={image.alt} width={image.width} height={image.height} sizes="(max-width: 808px) 50vw, 240px" />
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       <dl className="spec">
         {rows

@@ -24,7 +24,12 @@ export type RecruitSummary = {
   employments: string[];
 };
 
+// 公開してよい（承認済みの）画像。url は API が保存キーから組み立てた公開 URL
+export type ImageInfo = { id: string; url: string; alt: string; width: number; height: number; mime_type: string };
+
 export type RecruitDetail = RecruitSummary & {
+  hero_image: ImageInfo | null;
+  images: ImageInfo[];
   profile: string | null;
   place: string | null;
   note2: string | null;
@@ -60,3 +65,20 @@ export type Session = { token: string; user: User };
 export type Garden = { id: number; email: string; corporate: string };
 export type GardenSession = { token: string; garden: Garden };
 export type GardenSummary = { corporate: string; email: string; displayed: number; hidden: number };
+
+// 園の画像管理。status は pending（承認待ち）/ approved（公開中）/ rejected（却下）
+export type GardenImage = {
+  id: string;
+  alt: string;
+  width: number;
+  height: number;
+  mime_type: string;
+  origin: string;
+  status: 'pending' | 'approved' | 'rejected' | 'publishing' | 'uploading';
+  position: number;
+  is_hero: boolean;
+  url: string | null;
+  preview_path: string;
+};
+export type GardenRecruitImages = { recruit_id: number; category: string | null; is_displayed: boolean; max_images: number; images: GardenImage[] };
+export type GardenRecruitItem = { id: number; category: string | null; is_displayed: boolean; image_count: number; approved_count: number };

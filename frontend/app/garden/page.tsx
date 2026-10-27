@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { ApiError, fetchGardenSummary } from '../../src/lib/api';
+import Link from 'next/link';
+import { ApiError, fetchGardenRecruits, fetchGardenSummary } from '../../src/lib/api';
 import { gardenToken } from '../../src/lib/session';
-import type { GardenSummary } from '../../src/lib/types';
+import type { GardenRecruitItem, GardenSummary } from '../../src/lib/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: '園の管理' };
@@ -12,8 +13,9 @@ export default async function GardenDashboardPage() {
   if (!token) redirect('/garden/login');
 
   let summary: GardenSummary;
+  let recruits: GardenRecruitItem[];
   try {
-    summary = await fetchGardenSummary(token);
+    [summary, recruits] = await Promise.all([fetchGardenSummary(token), fetchGardenRecruits(token)]);
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) redirect('/garden/login');
     return (
@@ -47,6 +49,24 @@ export default async function GardenDashboardPage() {
             </dd>
           </div>
         </dl>
+      </section>
+      <section aria-labelledby="garden-images" className="garden-images">
+        <h2 id="garden-images" className="garden-heading">
+          求人の画像
+        </h2>
+        <ul className="garden-recruit-list">
+          {recruits.map((r) => (
+            <li key={r.id}>
+              <Link href={`/garden/recruits/${r.id}/images`} className="text-link">
+                {r.category ?? `求人 ${r.id}`}
+              </Link>
+              <span className="garden-email">
+                {' '}
+                {r.is_displayed ? '表示中' : '非表示'}・画像 {r.image_count} 枚（公開中 {r.approved_count} 枚）
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
   );
