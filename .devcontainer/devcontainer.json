@@ -1,0 +1,30 @@
+{
+	"name": "hoshiniwa-job-dev",
+	// Compose ベース。開発コンテナ（dev）と、アプリの db・seed・api・frontend を、同じ Compose のプロジェクト hoshiniwa-job に置く。
+	// 定義は ../docker-compose.yml（アプリ。ホストの `docker compose up` と共通）と ./docker-compose.yml（dev。ここだけ）。
+	"dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+	"service": "dev",
+	"runServices": ["db", "seed", "api", "frontend"],
+	"workspaceFolder": "/workspaces/light-future",
+	"remoteUser": "vscode",
+	// ウィンドウを閉じると、まとめて止める（down ではない。コンテナも pg-data も残る）。
+	"shutdownAction": "stopCompose",
+	// Docker は、ホストのソケットを渡さず、星庭ジョブ専用のプロキシ（.devcontainer/docker-proxy/compose.yml）経由にする。
+	// initializeCommand: ホストで、コンテナの作成の前に実行される。プロキシを起動し、ネットワーク hoshiniwa-dev を作る。
+	"initializeCommand": "docker compose -f .devcontainer/docker-proxy/compose.yml up -d",
+	"features": {
+		"ghcr.io/devcontainers/features/node:2": {}
+	},
+	// DOCKER_HOST は ./docker-compose.yml の dev の environment にも置いてある（Compose ベースで containerEnv が効くかは未確認なので両方。変えるときは両方を直す）。
+	"containerEnv": {
+		"TZ": "Asia/Tokyo",
+		"DOCKER_HOST": "tcp://hoshiniwa-docker-proxy:2375"
+	},
+	// ポートは ../docker-compose.yml が 127.0.0.1:3200（画面）と 127.0.0.1:8200（API）でホストに公開している。forwardPorts は足さない。
+	"postCreateCommand": "docker --version && docker compose version",
+	"customizations": {
+		"vscode": {
+			"extensions": ["ms-azuretools.vscode-containers"]
+		}
+	}
+}

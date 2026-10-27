@@ -1,0 +1,28 @@
+# 開発コンテナ（dev）の定義。devcontainer.json の dockerComposeFile が、../docker-compose.yml（db・seed・api・frontend）に重ねて読む。
+# ホストの `docker compose up`（ルートの docker-compose.yml だけ）には dev は含まれない。
+# 相対パスは、最初のファイル（../docker-compose.yml）のあるリポジトリ直下が基準（このファイルの場所ではない）。
+services:
+  dev:
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    container_name: hoshiniwa-job-devcontainer
+    init: true
+    command: sleep infinity
+    volumes:
+      - .:/workspaces/light-future:cached
+    environment:
+      TZ: Asia/Tokyo
+      # 読み取り専用に近いプロキシ（.devcontainer/docker-proxy/compose.yml）。hoshiniwa-dev の中でだけ引ける名前。
+      # ホストのソケットは、この dev にはマウントしない。
+      DOCKER_HOST: tcp://hoshiniwa-docker-proxy:2375
+    # hoshiniwa-dev だけに繋ぐ（プロキシとの通信用。外へも出られる）。frontend-net・backend-net には繋がない
+    # （api と db に、開発コンテナから直接届かないようにするため）。
+    networks:
+      - dev-net
+
+networks:
+  # .devcontainer/docker-proxy/compose.yml が作る（devcontainer.json の initializeCommand が先に起動する）。
+  dev-net:
+    name: hoshiniwa-dev
+    external: true
