@@ -11,6 +11,9 @@ WORKDIR /code
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
 
+# 開発用の画像の保存先（名前付きボリュームを重ねたとき、app ユーザーが書けるように所有者を合わせる）
+RUN mkdir -p /data/media && chown app:app /data/media
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 

@@ -1,0 +1,104 @@
+{
+ "version": 1,
+ "images": [
+  {
+   "demo_key": "greenhouse-vine-grower-hero",
+   "recruit_demo_key": "greenhouse-vine-grower",
+   "file": "1.jpg",
+   "sha256": "0377d10dc048053dd1bfb6a0b57d040468a71abe6b293ee535f8fcd78adfa850",
+   "alt": "育成士が、浮かぶ蔓を手で整えているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "artificial-night-keeper-hero",
+   "recruit_demo_key": "artificial-night-keeper",
+   "file": "2.jpg",
+   "sha256": "43d63d61681d1b3cedc5e3dd86cfbee3855af3d99b853771da35ade0f81fb053",
+   "alt": "管理員が、夜の温室で壁の制御盤のダイヤルを回しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "garden-storyteller-hero",
+   "recruit_demo_key": "garden-storyteller",
+   "file": "3.jpg",
+   "sha256": "894ddbc1f9bef0dc9ba9ba215f2aa3dc1e42402794ec7af50fe6a395a18e7b94",
+   "alt": "語り部が、鉢植えの植物を手に、来訪者へ説明しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "night-blossom-guide-hero",
+   "recruit_demo_key": "night-blossom-guide",
+   "file": "4.jpg",
+   "sha256": "88d2db148cfbb97f156750c9032fd44c2ece7db737ef856de5ae222fecf06039",
+   "alt": "ガイドが、提灯を手に、光る花を指して来訪者を案内しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "oxygen-unit-maintainer-hero",
+   "recruit_demo_key": "oxygen-unit-maintainer",
+   "file": "5.jpg",
+   "sha256": "343ab15f21c18446747bc50badc69f3ebdb2c2d8a69f1f9b89f4a28b67221759",
+   "alt": "保守員が、砂丘ドームの温室で酸素供給装置を点検しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "dune-vehicle-guide-hero",
+   "recruit_demo_key": "dune-vehicle-guide",
+   "file": "6.jpg",
+   "sha256": "060b8c368f662da8db994f35e54164fd6c0bc18097f49794e50837a237a486c0",
+   "alt": "案内役が、砂丘のそばで高機動車の乗客にルートを説明しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "ruins-storyteller-hero",
+   "recruit_demo_key": "ruins-storyteller",
+   "file": "7-people.jpg",
+   "sha256": "e25b702622f5582b3879adaa6d734a6b9028c0c8fa9676a55ecd02a3829254d9",
+   "alt": "遺跡のアーチの前で、スタッフが来訪者に説明しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "ruins-soil-surveyor-hero",
+   "recruit_demo_key": "ruins-soil-surveyor",
+   "file": "8.jpg",
+   "sha256": "3db6652f977e5181d17eab44e39647c9eb61d0ff59d669b75ced6677fc5e8900",
+   "alt": "調査員が、遺跡の石壁のそばで土を採取しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "gravity-crossbreeding-coordinator-hero",
+   "recruit_demo_key": "gravity-crossbreeding-coordinator",
+   "file": "9.jpg",
+   "sha256": "8d8fc4d59b2d684b94e4aa60bc4e54e971c472c7ded10a66734fd7c4279aa53b",
+   "alt": "調整員が、細い筆で花粉を別の花へ移しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "seed-recorder-hero",
+   "recruit_demo_key": "seed-recorder",
+   "file": "10.jpg",
+   "sha256": "93010bc731c20ccf404976b1f44cf78bf6e1d2a15297b1137c972eef93da67f8",
+   "alt": "記録係が、種子を拡大鏡で確かめながらタブレットに記録しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  },
+  {
+   "demo_key": "plant-quarantine-officer-hero",
+   "recruit_demo_key": "plant-quarantine-officer",
+   "file": "11.jpg",
+   "sha256": "d916112dd1bea2306a417728684ca3ac9dfa7e8c0021a249a4fd11d525a6796d",
+   "alt": "検疫官が、持ち込まれた植物を検査しているイメージ（職種名からの演出）",
+   "position": 0,
+   "hero": true
+  }
+ ]
+}

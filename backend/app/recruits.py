@@ -4,7 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query
 
 from app.db import connection
+from app.image_queries import public_images
 from app.schemas import Facets, Master, RecruitDetail, RecruitPage, RecruitSummary
+from app.storage import get_storage
 
 router = APIRouter(prefix="/api")
 
@@ -122,6 +124,8 @@ def recruit_detail(recruit_id: int) -> RecruitDetail:
             f"{_NAMES} FROM recruit_search s WHERE s.id = %(id)s AND s.is_displayed",
             {"id": recruit_id},
         ).fetchone()
-    if row is None:
-        raise HTTPException(status_code=404, detail="求人が見つかりません")
-    return RecruitDetail(**row)
+        if row is None:
+            raise HTTPException(status_code=404, detail="求人が見つかりません")
+        images = public_images(conn, recruit_id, get_storage())
+    hero = next((i for i, is_hero in images if is_hero), images[0][0] if images else None)
+    return RecruitDetail(**row, hero_image=hero, images=[i for i, _ in images])
