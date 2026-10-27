@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   agentRules: false,
   // 開発サーバーが、サーバーアクションの引数（メール・名前など）を端末に出すのを止める
   logging: { serverFunctions: false },
+  // 画像は JPEG で置き、ブラウザーが対応していれば AVIF、次に WebP で配信する
+  images: { formats: ['image/avif', 'image/webp'] },
 };
 
 export default nextConfig;

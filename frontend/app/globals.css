@@ -136,6 +136,7 @@ h1, h2 { line-height: 1.4; }
 
 /* 詳細 */
 .detail h1 { margin: 0 0 24px; font-size: 28px; }
+.detail-hero { display: block; width: 100%; max-width: 760px; height: auto; margin: 0 0 32px; border-radius: var(--radius); }
 .spec { margin: 0 0 32px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .spec div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; padding: 14px 24px; border-bottom: 1px solid var(--border-soft); }
 .spec div:last-child { border-bottom: 0; }

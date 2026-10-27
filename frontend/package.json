@@ -11,7 +11,11 @@
     "build": "NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "NEXT_TELEMETRY_DISABLED=1 next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "images:create-batch": "node --env-file-if-exists=scripts/generate-images/.env scripts/generate-images/create-batch.ts",
+    "images:check-batch": "node --env-file-if-exists=scripts/generate-images/.env scripts/generate-images/check-batch.ts",
+    "images:download-results": "node --env-file-if-exists=scripts/generate-images/.env scripts/generate-images/download-results.ts",
+    "images:generate-single": "node --env-file-if-exists=scripts/generate-images/.env scripts/generate-images/generate-single.ts"
   },
   "dependencies": {
     "next": "^16.4.3",
@@ -19,6 +23,7 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@google/genai": "^2.31.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
