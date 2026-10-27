@@ -170,6 +170,97 @@ def test_seed_demo_on_existing_data_does_not_reset(fresh):
     assert conn.execute("SELECT count(demo_key) AS n FROM recruits").fetchone()["n"] == 12
 
 
+EXTRA_KEYS = [row[0] for row in seed_demo.EXTRA_RECRUITS]
+NEW_GARDENS = {"霧樹の森ガーデン", "北縁種苗センター", "ノクティラ環 花の学校", "岩山菌類園", "根元迎賓ガーデン", "南縁ドーム管理局"}
+
+
+def test_extra_definitions_match_the_plan_and_the_manifest():
+    base_keys = [row[0] for row in seed_demo.RECRUITS]
+    assert len(EXTRA_KEYS) == 18 and len(set(EXTRA_KEYS)) == 18 and not set(EXTRA_KEYS) & set(base_keys)
+    assert sum(1 for row in seed_demo.EXTRA_RECRUITS if row[9]) == 15  # 表示 15 件、非表示 3 件
+    assert {row[1] for row in seed_demo.EXTRA_RECRUITS} - {row[1] for row in seed_demo.RECRUITS} == NEW_GARDENS
+    manifest = json.loads(seed_images.MANIFEST.read_text(encoding="utf-8"))["images"]
+    assert {e["recruit_demo_key"] for e in manifest} <= set(base_keys) | set(EXTRA_KEYS)  # 画像のあるどの求人も、seed に定義がある
+    assert len(manifest) == 24 and not [e for e in manifest if e["recruit_demo_key"] not in set(base_keys) | set(EXTRA_KEYS)]
+
+
+def test_extend_adds_only_the_missing_recruits_and_is_idempotent(fresh):
+    conn, _, _ = fresh
+    assert conn.execute("SELECT count(*) AS n FROM recruits").fetchone()["n"] == 12  # 引数なしの seed は 12 件のまま
+    before = conn.execute("SELECT * FROM recruits ORDER BY id").fetchall()
+    gardens_before = conn.execute("SELECT * FROM garden_accounts ORDER BY id").fetchall()
+    seed_demo.main(reset=False, extend=True)
+    conn.rollback()
+    rows = conn.execute("SELECT * FROM recruits ORDER BY id").fetchall()
+    assert rows[:12] == before  # 既存の 12 件は、列も demo_key も作成日時も変わらない
+    assert [r["id"] for r in rows] == list(range(1, 31)) and [r["demo_key"] for r in rows[12:]] == EXTRA_KEYS
+    assert sum(1 for r in rows if r["is_displayed"]) == 26 and sum(1 for r in rows if not r["is_displayed"]) == 4
+    assert len({r["demo_key"] for r in rows}) == 30
+    assert {r["corporate"] for r in rows} - {"非表示のテスト求人"} >= NEW_GARDENS
+    assert len({r["corporate"] for r in rows} - {"非表示のテスト求人"}) == 12
+    assert conn.execute("SELECT * FROM garden_accounts ORDER BY id").fetchall() == gardens_before  # 園のアカウントは増やさない
+    owners = {r["demo_key"]: r["garden_account_id"] for r in rows[12:]}
+    mil = conn.execute("SELECT id FROM garden_accounts WHERE email = 'hoshiniwa-garden2@example.com'").fetchone()["id"]
+    assert owners["garden-pr-officer"] == mil and owners["hidden-ticket-accountant"] == mil
+    assert [k for k, v in owners.items() if v is not None] == ["garden-pr-officer", "hidden-ticket-accountant"]  # 新規 6 園などは、どの園にも紐づけない
+    for r in rows[12:]:
+        n = conn.execute(
+            "SELECT (SELECT count(*) FROM recruit_areas WHERE recruit_id = %(i)s) AS a, (SELECT count(*) FROM recruit_stations WHERE recruit_id = %(i)s) AS s,"
+            " (SELECT count(*) FROM recruit_occupations WHERE recruit_id = %(i)s) AS o, (SELECT array_agg(employment_code) FROM recruit_employments WHERE recruit_id = %(i)s) AS e",
+            {"i": r["id"]},
+        ).fetchone()
+        assert n["a"] >= 1 and n["s"] >= 1 and n["o"] >= 1 and n["e"] == [r["employ"]]
+        expected = seed_demo.SCHEDULE_OF_EMPLOY[r["employ"]]
+        assert (r["start_hour"], r["start_minute"], r["end_hour"], r["end_minute"], r["workday"]) == expected
+    seed_demo.main(reset=False, extend=True)  # 2 回目は何も増えない
+    conn.rollback()
+    assert conn.execute("SELECT * FROM recruits ORDER BY id").fetchall() == rows
+    assert conn.execute("SELECT count(*) AS n FROM garden_accounts").fetchone()["n"] == 2
+
+
+def test_extend_links_demo_keys_first_when_they_are_missing(fresh):
+    conn, _, _ = fresh
+    conn.execute("UPDATE recruits SET demo_key = NULL")
+    conn.commit()
+    seed_demo.main(reset=False, extend=True)
+    conn.rollback()
+    keys = [r["demo_key"] for r in conn.execute("SELECT demo_key FROM recruits ORDER BY id").fetchall()]
+    assert keys == [row[0] for row in seed_demo.RECRUITS] + EXTRA_KEYS  # 12 件を結んでから 18 件を足す。重複もない
+
+
+def test_reset_with_extend_gives_the_thirty_recruit_layout(fresh):
+    conn, _, _ = fresh
+    seed_demo.main(reset=True, extend=True)
+    conn.rollback()
+    assert conn.execute("SELECT count(*) AS n FROM recruits").fetchone()["n"] == 30
+    assert conn.execute("SELECT count(*) AS n FROM garden_accounts").fetchone()["n"] == 2
+    conn.rollback()  # TRUNCATE は、この接続の読み取りの鍵が残っていると待たされる
+    seed_demo.main(reset=True)  # 引数なしの --reset は、12 件に戻す
+    conn.rollback()
+    assert conn.execute("SELECT count(*) AS n FROM recruits").fetchone()["n"] == 12
+
+
+@needs_sources
+def test_every_manifest_image_resolves_after_extend(fresh):
+    conn, storage, _ = fresh
+    seed_demo.main(reset=False, extend=True)
+    conn.rollback()
+    first = seed_images.seed(conn, storage, source_dir=SOURCE, source_url=None, out=lambda *_: None)
+    assert first == {"registered": 24, "linked": 24, "kept": 0, "no_recruit": 0}
+    per_recruit = {
+        r["demo_key"]: r["n"]
+        for r in conn.execute(
+            "SELECT rc.demo_key, count(*) AS n FROM recruit_images ri JOIN recruits rc ON rc.id = ri.recruit_id GROUP BY rc.demo_key"
+        ).fetchall()
+    }
+    assert len(per_recruit) == 20 and sum(per_recruit.values()) == 24  # 画像あり 20 件、画像なし 10 件
+    assert sorted(n for n in per_recruit.values() if n > 1) == [2, 2, 3]  # 複数枚は 3 件（求人 1、求人 7、植物医）
+    assert per_recruit["greenhouse-vine-grower"] == 2 and per_recruit["ruins-storyteller"] == 2 and per_recruit["plant-doctor"] == 3
+    assert conn.execute("SELECT count(*) AS n FROM recruit_images WHERE is_hero").fetchone()["n"] == 20  # 求人ごとにヒーローは 1 枚
+    second = seed_images.seed(conn, storage, source_dir=SOURCE, source_url=None, out=lambda *_: None)
+    assert second == {"registered": 0, "linked": 0, "kept": 24, "no_recruit": 0}
+
+
 def test_cli_register_publishes_and_reject_takes_down(fresh, tmp_path):
     conn, storage, _ = fresh
     img = tmp_path / "a.jpg"

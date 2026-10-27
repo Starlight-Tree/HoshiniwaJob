@@ -29,6 +29,7 @@ docker compose up -d --build
 
 ダミーのアカウント（ローカル専用）: 利用者 `hoshiniwa-user@example.com`、園 `hoshiniwa-garden@example.com` と `hoshiniwa-garden2@example.com`、パスワードは `star-garden-demo`。
 ダミーデータだけ入れ直す: `docker compose run --rm seed python -m app.seed_demo --reset`
+ダミーの求人を 30 件構成（園 12・表示 26・非表示 4）に増やす（開発・テスト専用。足りない分だけ足し、何度実行しても増えない。既存の求人・アカウントは変えない）: `docker compose run --rm seed python -m app.seed_demo --extend`。先に開発 DB のバックアップを取る。引数なしの `seed` は、従来どおり 12 件。入れ直して 30 件にするなら `--reset --extend`。
 
 ## 機能
 
