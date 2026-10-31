@@ -115,7 +115,13 @@ docker compose run --rm seed-images python -m app.seed_images --source-url https
 
 ## Cloudflare R2 を使うとき
 
-**R2 への接続は、まだ実行していない**（開発用のバケット `hoshiniwa-images` の作成と、2026-10-28 の `r2.dev`（Public Development URL）の有効化だけが済んでいる。API トークン・接続・既存画像の複製は未実行。バケットは空）。DNS・API トークンの作成は、対象と設定を示して承認を取ってからにする。
+**R2 への接続は済んでいる**（開発用のバケット `hoshiniwa-images`。2026-10-28 に `r2.dev`（Public Development URL）を有効化）。API トークン `hoshiniwa-images-rw` の値を `STORAGE_S3_*` に設定し、`STORAGE_BACKEND=s3`、`IMAGE_PUBLIC_BASE_URL` は `r2.dev` の URL にしてある。2026-11-01 に、次を確認した。
+
+- R2 のオブジェクトは 11 件。
+- 公開 URL は 11 件とも 200・`image/jpeg`・`Cache-Control: immutable`。
+- 求人詳細（`/recruits/1`）の画像は、`/_next/image` 経由で `r2.dev` から取得され、コンソールにエラーは無い。
+
+既存画像の複製は不要だった（R2 にすでにあった）。DNS・独自ドメインは未実施で、設定する前に、対象と内容を示して承認を取る。
 
 - 必要なもの: Cloudflare のアカウント（R2 を有効にした状態）。独自ドメインを使うなら、**同じアカウントに zone として登録されたドメイン**（公開バケットの独自ドメインの条件）。
   独自ドメインが無い間の開発では、バケットの Public Development URL（`r2.dev`。レート制限があり、開発用。本番に使わない）を使える。
@@ -124,12 +130,12 @@ docker compose run --rm seed-images python -m app.seed_images --source-url https
   `r2.dev` の無効化は、`PUT /accounts/{account_id}/r2/buckets/hoshiniwa-images/domains/managed` に `{"enabled": false}`。
 - 作るもの（星庭ジョブ専用。ほかのプロジェクトのバケット・設定・認証情報は流用しない）: バケット 1 つ。公開設定にして、画像を公開 URL から読めるようにする。
 - API トークン: R2 の **Object Read & Write** を、**そのバケットだけ**に絞って作る（Admin 権限は使わない）。作成直後にだけ表示される Secret Access Key は、会話・Git・ログ・スクリーンショットに出さず、環境変数かシークレット管理へ直接入れる。
-- 費用の見積もり条件（出典: Cloudflare 公式の料金ページ。等級 B）: Standard ストレージ 10 GB-月・Class A（書き込み・一覧）100 万回/月・Class B（読み取り）1000 万回/月が無料枠、超過分は $0.015/GB-月・Class A $4.50/百万回・Class B $0.36/百万回、**外向きの転送（egress）は無料**。現在の画像は約 10MB（12 枚）で、無料枠に収まる見込み。支払い方法の登録が要るかは、公式ページに記載がなく未確認。
+- 費用の見積もり条件（出典: Cloudflare 公式の料金ページ。等級 B）: Standard ストレージ 10 GB-月・Class A（書き込み・一覧）100 万回/月・Class B（読み取り）1000 万回/月が無料枠、超過分は $0.015/GB-月・Class A $4.50/百万回・Class B $0.36/百万回、**外向きの転送（egress）は無料**。現在の画像は約 10MB で、無料枠に収まる見込み。支払い方法の登録が要るかは、公式ページに記載がなく未確認。
 - 出典: <https://developers.cloudflare.com/r2/pricing/> / <https://developers.cloudflare.com/r2/buckets/public-buckets/> / <https://developers.cloudflare.com/r2/api/tokens/>
 
 ## 未実装・未確認
 
-- 実際の R2 への接続（S3 互換の部分は、モックの S3（moto）でだけ確かめた。R2 実機での動作、CDN のキャッシュ、独自ドメインの設定は未確認）。
+- R2 実機での読み書き・公開 URL での配信（`r2.dev`）は確認済み（2026-11-01）。**未確認**: CDN のキャッシュ、独自ドメイン、WAF・レート制限（本番化のときに設定する）。S3 互換の部分の自動テストは、モックの S3（moto）のまま。
 - 法人画像の画面と公開ページでの表示。
 - 食い違いの報告（`reconcile`）の定期実行（今は手で実行する報告だけ）。ストレージの保護・復旧の運用（R2 側）。
 - 画像のウイルス・不適切な内容の検査（形式・寸法・実データの検証だけ）。承認が無いので、公開後の取り下げ（運営の CLI）だけが安全弁になる。
