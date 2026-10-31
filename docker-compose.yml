@@ -94,10 +94,14 @@ services:
     container_name: hoshiniwa-job-api
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/code/app"]
     environment:
-      # 画像の保存。ここは開発用のフォルダー（名前付きボリューム dev-media。消してよい）。本番は s3（Cloudflare R2）にする。README の「画像」
-      STORAGE_BACKEND: local
+      # 画像の保存。既定は開発用のフォルダー（名前付きボリューム dev-media。消してよい）。R2（s3）へ切り替えるときだけ、.env（Git 管理外）に値を書く。README の「画像」
+      STORAGE_BACKEND: "${STORAGE_BACKEND:-local}"
       STORAGE_LOCAL_DIR: /data/media
-      IMAGE_PUBLIC_BASE_URL: /media
+      IMAGE_PUBLIC_BASE_URL: "${IMAGE_PUBLIC_BASE_URL:-/media}"
+      STORAGE_S3_ENDPOINT_URL: "${STORAGE_S3_ENDPOINT_URL:-}"
+      STORAGE_S3_BUCKET: "${STORAGE_S3_BUCKET:-}"
+      STORAGE_S3_ACCESS_KEY_ID: "${STORAGE_S3_ACCESS_KEY_ID:-}"
+      STORAGE_S3_SECRET_ACCESS_KEY: "${STORAGE_S3_SECRET_ACCESS_KEY:-}"
       DATABASE_URL: *database_url
       CORS_ORIGINS: "http://localhost:3200"
       # ホスト↔コンテナ間のボリュームでファイル変更通知が届かない環境（Docker Desktop 等）向け
@@ -128,6 +132,8 @@ services:
     working_dir: /app
     environment:
       API_BASE_URL: "http://api:8000"
+      # 公開画像の URL の頭。既定は /media（API が配る）。R2 に切り替えるときは .env で api と同じ値にする（next.config.ts が読む）
+      IMAGE_PUBLIC_BASE_URL: "${IMAGE_PUBLIC_BASE_URL:-/media}"
     volumes:
       - ./frontend:/app
       # node_modules と .next は、ホストのものと分ける（ネイティブの依存が OS ごとに違うため）
