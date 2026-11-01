@@ -3,6 +3,7 @@
 星庭ジョブ（hoshiniwa-job）。架空の宇宙の植物園・ガーデンの求人サイト（運営は架空の「星庭ワークス」）。データはすべてダミー。
 FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Postgres 17（`db/`）、Docker Compose。入口は [README.md](README.md)、
 画像・マイグレーション・バックアップ・R2 の詳細は [docs/image-storage.md](docs/image-storage.md)、画面の調査は [docs/ux-research.md](docs/ux-research.md)。
+**Vertex AI の画像生成ジョブ（デプロイ済みの設定・成功した実行・モデル）の正本は [docs/image-gen-resources.md](docs/image-gen-resources.md)。** 会話の履歴やログを探す前に、これを読む。
 領域ごとの規約は `backend/` `frontend/` `jobs/image-gen/` `.devcontainer/` の各 `CLAUDE.md`、パス別の規則は `.claude/rules/`。
 
 ## よく使うコマンド
@@ -23,7 +24,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 | `backend/` | API（FastAPI）。認証、求人、園、画像、マイグレーション、seed、運営用 CLI | Python 3.13 |
 | `frontend/` | 画面（Next.js）。API は画面のサーバー側から呼ぶ。画像の一括生成の道具は `frontend/scripts/generate-images/` | Node 24 |
 | `db/` | 初期スキーマ（`schema.sql`）とマスタ（`seed_codes.sql`）。空のボリュームで初めて起動したときだけ流れる | Postgres 17 |
-| `jobs/image-gen/` | 画像生成の Cloud Run Job（試作。テスト・CI なし） | Python 3.11（**揃えていない。保留中**） |
+| `jobs/image-gen/` | 画像生成の Cloud Run Job のコード（試作。テスト・CI なし）。**デプロイ済みのジョブとは別物のことがある。正本は [台帳](docs/image-gen-resources.md)** | Python 3.11（**揃えていない。保留中**） |
 | `.devcontainer/` | 開発コンテナと、Docker のソケットプロキシ | |
 | `_legacy/` `backups/` | 旧 PHP の資料と DB のバックアップ。Git 管理外 | |
 
@@ -43,6 +44,9 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 - **エラー本文は固定の文。** 例外の文字列やサーバーのパスを API の応答に含めない。
 - **権限は API が毎回確認する。** 園は、自分に紐づく求人と画像だけを扱える。他の園のものは 404（存在も分からない）。利用者と園は、アカウントもセッションも Cookie も別。
 - **実 API・課金・外部への書き込みは、事前に承認を得る。** 画像の一括生成（Gemini の Batch API）、R2 への書き込み、本番の DB・デプロイ。件数・回数・概算費用を先に示す。
+- **画像生成のデプロイ・モデルの変更・保存先の変更は、[台帳](docs/image-gen-resources.md)を更新するまで「完了」にしない。** 台帳の「6. 変更したときの完了条件」に従う。
+  デプロイした・実行した・生成に成功した・保存と回収ができた・画面に表示できた、は別々に記録する。成功版の識別は、イメージのダイジェストで行い、`latest` などのタグだけにしない。
+  確認は `scripts/inspect-image-gen.sh`（読み取り専用）。担当 AI は、日常の ID では `imagen-app-2026` を読めないので、利用者が実行する。
 - **ポートは 3200（画面）と 8200（API）。** 他のローカルのサービスと同時に動かすため。変えない。
 - 変更したら、触れた範囲のテストを実行してから報告する。確認できていないこと（Docker のビルド、本物のブラウザーなど）は、確認済みと書かない。
 
@@ -50,6 +54,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 
 - `jobs/image-gen/`: Python の版（3.11）、モデル名（`gemini-3.1-flash-lite-image`。`frontend/scripts/generate-images/` は `gemini-nano-banana-2.1`）、
   既定のプロジェクト ID がコードに書かれていること。
+- 画像生成の「下書き用」モデル（安いモデル）の選定: 記録が見つかっていない（台帳の 2.1 節）。**モデルの確定は保留中**（利用者の指示、2026-11-02）。
 
 ## Git
 
