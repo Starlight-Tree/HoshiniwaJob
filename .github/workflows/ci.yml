@@ -54,16 +54,40 @@ jobs:
             backend/requirements-dev.in
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.in
+      # test_migrate.py のバックアップ・復旧のテストは /usr/lib/postgresql/17/bin の pg_dump / pg_restore を使う。
+      # ランナーには 17 のクライアントが無く、無いとそのテストが飛ばされる。サービスの Postgres と同じ 17 を入れる。
+      # 公式の設定スクリプトがあればそれを使い、無ければ PGDG の apt リポジトリを手で足す。
+      - name: Install the Postgres 17 client
+        working-directory: .
+        run: |
+          set -eu
+          if [ -x /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh ]; then
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          else
+            . /etc/os-release
+            sudo install -d -m 0755 /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+            sudo apt-get update
+          fi
+          sudo apt-get install -y postgresql-client-17
+          # テストが決め打ちしている場所に来ているか確かめる（無ければここで落とす）
+          for tool in pg_dump pg_restore; do
+            test -x "/usr/lib/postgresql/17/bin/${tool}"
+          done
+          /usr/lib/postgresql/17/bin/pg_dump --version
       # 画像は moto（偽の S3）とテスト用に作ったファイルで確かめる。外部のサービスは呼ばない。
       - name: Run pytest
         run: |
           set -o pipefail
           python -m pytest -q -rs | tee pytest.log
-      # TEST_DATABASE_URL の綴りがずれると、DB のテストはスキップされたまま green になる。スキップが 1 件でもあれば落とす。
+      # TEST_DATABASE_URL の綴りがずれたり、pg_dump が無かったりすると、テストはスキップされたまま green になる。スキップが 1 件でもあれば落とす。
       - name: No test may be skipped
         run: |
           if grep -qiE '(^|[^a-z])skipped' pytest.log; then
-            echo "スキップされたテストがある。TEST_DATABASE_URL と Postgres を確かめる" >&2
+            echo "スキップされたテストがある。pytest.log の SKIPPED の行で理由を確かめる（DB の設定、pg_dump の有無など）" >&2
             exit 1
           fi
 
