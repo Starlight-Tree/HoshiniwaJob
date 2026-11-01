@@ -131,6 +131,9 @@ jobs:
           python-version-file: .python-version
           cache: pip
           cache-dependency-path: requirements-lint.txt
+      # Python と Node の版が、Dockerfile・Compose・engines・CLAUDE.md・この CI で揃っているか
+      - name: Python and Node versions agree
+        run: scripts/check-versions.sh
       # ツールは、ハッシュ付きの固定（requirements-lint.txt）から入れる。アプリの依存とは別
       - name: Install the linters
         run: pip install --require-hashes -r requirements-lint.txt
