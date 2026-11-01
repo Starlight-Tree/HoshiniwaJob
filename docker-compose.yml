@@ -1,6 +1,6 @@
 # hoshiniwa-job のローカル開発用（Postgres 17 + FastAPI + Next.js）。
 #   docker compose up -d --build    # 起動（マイグレーションもダミーデータも流さない）
-#   初めての環境は、先に README の「初めて起動する」の手順（db → migrate → seed → seed-images）を実行する
+#   初めての環境は、先に README の「起動」の「初めての環境」の手順（db → migrate → seed → seed-images）を実行する
 #   http://localhost:3200            # 画面（求人検索）
 #   http://localhost:8200/docs       # API の仕様（FastAPI の自動文書）
 # 他のローカルのサービスと同時に動かせるよう、ポートは 3200 / 8200 にしてある。
@@ -37,7 +37,7 @@ services:
   # --- 次の 3 つは「道具」（profile: tools）。docker compose up では起動しない。必要なときに docker compose run --rm <名前> で 1 回だけ実行する ---
   # 通常の起動（up）はマイグレーションもダミーデータも流さない。本番では migrate だけを、デプロイの作業として明示的に実行する。
 
-  # マイグレーション。既存の DB には、データを変えずに足りないものだけ足す。--status / --dry-run は README の「マイグレーション」
+  # マイグレーション。既存の DB には、データを変えずに足りないものだけ足す。--status / --dry-run は README の「開発とテスト」の「既存の DB のマイグレーション」
   migrate:
     build: ./backend
     container_name: hoshiniwa-job-migrate
@@ -52,7 +52,7 @@ services:
       - backend-net
     restart: "no"
 
-  # ダミーの求人・アカウントを入れる（開発・テスト専用。すでにデータがあれば何もせず、既存の求人に demo_key を結ぶだけ。入れ直すときは README の「データのリセット」）
+  # ダミーの求人・アカウントを入れる（開発・テスト専用。すでにデータがあれば何もせず、既存の求人に demo_key を結ぶだけ。入れ直すときは README の「起動」の `--reset`）
   seed:
     build: ./backend
     container_name: hoshiniwa-job-seed
@@ -79,7 +79,7 @@ services:
     command: ["python", "-m", "app.seed_images", "--source-dir", "/demo-images"]
     environment:
       DEMO_DATA: allow
-      # 画像の保存。ここは開発用のフォルダー（名前付きボリューム dev-media。消してよい）。本番は s3（Cloudflare R2）にする。README の「画像」
+      # 画像の保存。ここは開発用のフォルダー（名前付きボリューム dev-media。消してよい）。本番は s3（Cloudflare R2）にする。docs/image-storage.md
       STORAGE_BACKEND: local
       STORAGE_LOCAL_DIR: /data/media
       IMAGE_PUBLIC_BASE_URL: /media
@@ -103,7 +103,7 @@ services:
       local.ui.group: "app-hoshiniwa-job"
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/code/app"]
     environment:
-      # 画像の保存。既定は開発用のフォルダー（名前付きボリューム dev-media。消してよい）。R2（s3）へ切り替えるときだけ、.env（Git 管理外）に値を書く。README の「画像」
+      # 画像の保存。既定は開発用のフォルダー（名前付きボリューム dev-media。消してよい）。R2（s3）へ切り替えるときだけ、.env（Git 管理外）に値を書く。docs/image-storage.md
       STORAGE_BACKEND: "${STORAGE_BACKEND:-local}"
       STORAGE_LOCAL_DIR: /data/media
       IMAGE_PUBLIC_BASE_URL: "${IMAGE_PUBLIC_BASE_URL:-/media}"
