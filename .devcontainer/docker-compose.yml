@@ -7,6 +7,9 @@ services:
       context: .devcontainer
       dockerfile: Dockerfile
     container_name: hoshiniwa-job-devcontainer
+    # 表示用ラベル
+    labels:
+      local.ui.group: "devcontainers"
     init: true
     command: sleep infinity
     volumes:

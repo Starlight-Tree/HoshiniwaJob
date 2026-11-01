@@ -27,6 +27,9 @@ services:
     # 1.x の固定版。Docunavi と同じ。更新するときは、検証をやり直す。
     image: docker.io/wollomatic/socket-proxy:1.13.1
     container_name: hoshiniwa-docker-proxy
+    # 表示用ラベル
+    labels:
+      local.ui.group: "docker-proxies"
     command:
       - "-listenip=0.0.0.0"
       - "-proxyport=2375"
