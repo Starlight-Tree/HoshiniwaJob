@@ -60,6 +60,11 @@ docker compose run --rm migrate                                   # 適用
 
 `backend/requirements.txt` は `requirements.in` から作った固定版。直接編集しない。
 
+版は Python 3.13、Node 24（基準は `.python-version` と `.node-version`。`scripts/check-versions.sh` が Dockerfile・Compose・`engines`・CI との整合を確かめる）。
+CI は [.github/workflows/ci.yml](.github/workflows/ci.yml)（バックエンドのテスト〔Postgres 17〕、バックエンドのイメージのビルド、フロントエンドのテスト・ビルド・型検査、ワークフローの静的検査。外部の API は呼ばず、デプロイは含まない）。
+コミットの前後に、登録した語が入っていないかを `scripts/check-sensitive-terms.sh` で検査できる（語は Git の管理外の `.git/sensitive-terms` に置く）。
+エージェント（Claude Code）向けの規約は [CLAUDE.md](CLAUDE.md) と、各フォルダーの `CLAUDE.md`、`.claude/rules/`。
+
 ## これから
 
 パスワード再設定、応募、園の管理画面（画像以外）、CSV・PDF 出力、メール送信、法人画像の表示、お知らせ記事。
