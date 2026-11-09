@@ -24,11 +24,12 @@
 	// ポートは ../docker-compose.yml が 127.0.0.1:3200（画面）と 127.0.0.1:8200（API）でホストに公開している。forwardPorts は足さない。
 	"postCreateCommand": {
 		"claude-volume": "sudo chown -R vscode:vscode /home/vscode/.claude",
+		"project-manager-volume": "sudo chown -R vscode:vscode /home/vscode/.project-manager",
 		"docker-version": "docker --version && docker compose version"
 	},
 	"customizations": {
 		"vscode": {
-			"extensions": ["ms-azuretools.vscode-containers", "anthropic.claude-code"]
+			"extensions": ["ms-azuretools.vscode-containers", "anthropic.claude-code", "alefragnani.project-manager"]
 		}
 	}
 }
