@@ -24,3 +24,6 @@ backups/
 
 # 画像の保存先の開発用フォルダー（ローカル保存のとき）
 .dev-media/
+
+# Claude Code のローカル設定（個人用。コミットしない）
+.claude/settings.local.json
