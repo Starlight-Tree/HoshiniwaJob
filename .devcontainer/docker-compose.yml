@@ -13,7 +13,7 @@ services:
     init: true
     command: sleep infinity
     volumes:
-      - .:/workspaces/light-future:cached
+      - .:/workspaces/hoshiniwa-job:cached
     environment:
       TZ: Asia/Tokyo
       # 読み取り専用に近いプロキシ（.devcontainer/docker-proxy/compose.yml）。hoshiniwa-dev の中でだけ引ける名前。

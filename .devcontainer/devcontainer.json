@@ -5,7 +5,7 @@
 	"dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
 	"service": "dev",
 	"runServices": ["db", "seed", "api", "frontend"],
-	"workspaceFolder": "/workspaces/light-future",
+	"workspaceFolder": "/workspaces/hoshiniwa-job",
 	"remoteUser": "vscode",
 	// ウィンドウを閉じると、まとめて止める（down ではない。コンテナも pg-data も残る）。
 	"shutdownAction": "stopCompose",
