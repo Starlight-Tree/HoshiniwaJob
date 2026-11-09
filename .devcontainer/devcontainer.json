@@ -13,7 +13,8 @@
 	// initializeCommand: ホストで、コンテナの作成の前に実行される。プロキシを起動し、ネットワーク hoshiniwa-dev を作る。
 	"initializeCommand": "docker compose -f .devcontainer/docker-proxy/compose.yml up -d",
 	"features": {
-		"ghcr.io/devcontainers/features/node:2": {}
+		"ghcr.io/devcontainers/features/node:2": {},
+		"ghcr.io/devcontainers/features/python:1": { "version": "3.13" }
 	},
 	// DOCKER_HOST は ./docker-compose.yml の dev の environment にも置いてある（Compose ベースで containerEnv が効くかは未確認なので両方。変えるときは両方を直す）。
 	"containerEnv": {
