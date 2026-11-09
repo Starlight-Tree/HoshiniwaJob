@@ -14,8 +14,10 @@ services:
     command: sleep infinity
     volumes:
       - .:/workspaces/hoshiniwa-job:cached
+      - claude-config:/home/vscode/.claude
     environment:
       TZ: Asia/Tokyo
+      CLAUDE_CONFIG_DIR: /home/vscode/.claude
       # 読み取り専用に近いプロキシ（.devcontainer/docker-proxy/compose.yml）。hoshiniwa-dev の中でだけ引ける名前。
       # ホストのソケットは、この dev にはマウントしない。
       DOCKER_HOST: tcp://hoshiniwa-docker-proxy:2375
@@ -28,4 +30,12 @@ networks:
   # .devcontainer/docker-proxy/compose.yml が作る（devcontainer.json の initializeCommand が先に起動する）。
   dev-net:
     name: hoshiniwa-dev
+    external: true
+
+volumes:
+  # Claude Code の設定・認証・履歴。docunavi の claude-config と同じ外部ボリュームを、名前で共有する（2026-11-10 に変更。以前は P2 で「共有しない」と決定）。
+  # docunavi 側での実測（2026-11-10、docunavi のコンテナ内）: ~/.claude は claude-code-config-166oi…。hoshiniwa-job 自身のコンテナでは未実測。
+  # 履歴はパスごとのフォルダー（projects/-workspaces-hoshiniwa-job/ など）に分かれるが、認証情報と .claude.json は共有される。
+  claude-config:
+    name: claude-code-config-166oi5198v23umj7mu1l48p8d00au5920c8hog97rp6gbuvfuoe4
     external: true
