@@ -27,3 +27,4 @@ backups/
 
 # Claude Code のローカル設定（個人用。コミットしない）
 .claude/settings.local.json
+.claude/settings.json.bak-*

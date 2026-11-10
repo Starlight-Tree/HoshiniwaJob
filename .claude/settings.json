@@ -1,0 +1,62 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./backups/**)",
+      "Read(./_legacy/**)"
+    ],
+    "ask": [
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(git reset *)",
+      "Bash(git restore *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-cloud-cli.py"
+            ],
+            "timeout": 10,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-git-write.py"
+            ],
+            "timeout": 30,
+            "onFailure": "block"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-rules.py"
+            ],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
