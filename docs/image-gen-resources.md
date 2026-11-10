@@ -40,19 +40,25 @@ Vertex AI で画像を生成する Cloud Run Job について、**何が・ど�
 | 呼び出し方式 | **未確認**（`generate_content` か別か） | 同上。独自のエンドポイントがあるかも未確認 |
 | イメージ（成功した実行） | `asia-northeast1-docker.pkg.dev/imagen-app-2026/image-repo/imagen-fast-job@sha256:ae0fbf302a87d2c8bbdf2df0524a394cc7302db8282cba7b35e308988f64eeac` | 利用者の報告。ダイジェストで固定。**`latest` などのタグは、成功版の識別情報として使わない** |
 | 対応するソースコミット | **未確認** | 4 節。リポジトリのコードをデプロイ元と断定しない |
-| 実行サービスアカウント | 既定の Compute Engine サービスアカウント（`<プロジェクト番号>-compute@developer.gserviceaccount.com`）。`roles/aiplatform.user` と `roles/editor` を持つ | 利用者の報告（2026-11-02）。担当 AI は IAM を読めず未確認。**`editor` は権限が広い**（下の 2.2 節） |
+| 実行サービスアカウント（現在） | `hero-image-job@imagen-app-2026.iam.gserviceaccount.com`。付与した役割は `roles/aiplatform.user` だけ（`editor` なし。キーは作っていない） | 利用者の報告（2026-11-02。手順 1〜3 を利用者が実行し、切り替わったと報告）。生の出力は未受領。担当 AI は IAM を読めず未確認 |
+| 実行サービスアカウント（成功した実行・動作確認の実行の時点。復旧用） | 既定の Compute Engine サービスアカウント（`<プロジェクト番号>-compute@developer.gserviceaccount.com`）。`roles/aiplatform.user` と `roles/editor` を持つ | 利用者の報告（2026-11-02）。このアカウントの権限は変えていない（`editor` は残る） |
 | 入力方法 | **未確認**（環境変数 `IMAGE_PROMPT` か、引数か） | |
-| タスク数・再試行（成功した実行） | `taskCount: 2`、`maxRetries: 1` | 利用者の報告。**ジョブの現在の設定が同じかは未確認** |
-| 出力先・画像の回収方法 | **コンテナ内のローカルファイルのみ。GCS へのアップロードは無い。ジョブが終わると画像は失われる** | 利用者の報告（2026-11-02 の 1 回の実行のログ確認）。生のログは未受領で、`docs/image-gen-evidence/` に無い。出力ファイル名は 3 節 |
+| タスク数・再試行（成功した実行） | `taskCount: 2`、`maxRetries: 1` | 利用者の報告 |
+| タスク数・再試行（現在） | `taskCount: 5`、`maxRetries: 0`、並列数は未設定（既定）。1 回の `execute` の生成呼び出しの上限は 5 × (1 + 0) = 5 回。**以前は `taskCount: 1`**（`taskCount` を変えた日時と操作は未確認） | 利用者の報告（2026-11-02 夜。`gcloud run jobs describe` の値を会話に貼った。生の出力は未受領）。担当 AI は読めない |
+| Secret Manager（親トークン用） | Secret Manager API は有効。**空の Secret `r2-docunavi-hero-parent` を作成済み**（版なし。値はまだ無い）。誰にも `secretAccessor` を付けない方針 | 利用者の報告（2026-11-02）。担当 AI は読めず未確認。版の有無と IAM の束縛は、保存の前後に利用者が確認する |
+| イメージ・環境変数・Secret 参照（現在） | イメージ: `asia-northeast1-docker.pkg.dev/imagen-app-2026/image-repo/docunavi-hero-job@sha256:db1e9cd35528902a02c155c4db3af719306beace40fe432e96486acbbc20ed51`（**2 節の成功した実行の `imagen-fast-job` とは別のイメージ名**）。実行サービスアカウント: `hero-image-job`。環境変数の名前: `GOOGLE_CLOUD_PROJECT`、`GOOGLE_CLOUD_LOCATION`、`R2_BUCKET`、`R2_ACCOUNT_ID`、`R2_TEMP_CREDENTIALS`。うち `R2_TEMP_CREDENTIALS` は **Secret 参照**（Secret `r2-docunavi-hero-write-temp`、版 `latest`）で、ほかは値の直書き。`PLAN_JSON` と `PLAN_SHA256` は**ジョブの定義に無く**、実行時に `--update-env-vars` で渡す | 利用者の報告（2026-11-02 夜。`gcloud run jobs describe` の出力を、名前と数値だけ出す形式で会話に貼った。値は出していない）。このダイジェストが、3.2 の 1 回目の実行のイメージと同じかは**未確認** |
+| 出力先・画像の回収方法 | **現在: Cloudflare R2**（バケット `hoshiniwa-images`、prefix `docunavi-hero/<資料 ID>/<plan ハッシュ先頭 16 文字>.png`。名前は `.png` だが中身は JPEG の場合がある。書き込みは `If-None-Match: *` で、既存は上書きしない）。回収は、利用者が読み取り専用の一時キーで取り出す（3.2）。**2026-11-02 の動作確認の実行（3.1）の時点では、コンテナ内のローカルファイルのみで、画像は失われた** | 3.2 の実行で、R2 への保存と回収を利用者が確認（2026-11-02 夜）。生のログは未受領で、`docs/image-gen-evidence/` に無い |
 | ジョブの現在の最新の版（generation） | **未確認** | |
 | 成功したイメージが Artifact Registry に残っているか | **未確認** | 掃除のルールで消えていないか（`scripts/inspect-image-gen.sh` の手順 5） |
 
 ### 2.2 実行身分と費用の扱い（運用ルール）
 
 - 実行身分は、Cloud Run Jobs が API 呼び出しの身分として使う既定の Compute Engine サービスアカウント。**Compute Engine の VM は起動しておらず、VM の費用は発生しない**（利用者の報告）。
-- 一方、このアカウントの `roles/editor` は広い。ジョブのコードが誤って、または取り込んだ入力の指示で、他のリソースを変更・削除できてしまう。**権限の絞り込み（専用のサービスアカウント + `aiplatform.user` と出力先への書き込みだけ）は、利用者の承認を得てから行う。** 担当 AI は IAM を変更しない。
-- 動作確認の実行は **1 回だけ**。再実行、`taskCount`・`timeout`・`maxRetries`・イメージ・環境変数・サービスアカウントの変更、IAM の変更はしない。失敗しても自動で再実行しない。
-- **1 回の `execute` で起きる生成呼び出しの上限は `taskCount × (1 + maxRetries)`**（成功時の設定なら 2 × 2 = 4 回）。実行の前に、この回数を利用者に示す。`scripts/inspect-image-gen.sh` がジョブの設定から計算して表示する。
+- 一方、このアカウントの `roles/editor` は広い。ジョブのコードが誤って、または取り込んだ入力の指示で、他のリソースを変更・削除できてしまう。担当 AI は IAM を変更しない。
+- **2026-11-02 に、利用者が専用のサービスアカウント `hero-image-job`（`roles/aiplatform.user` のみ）を作り、ジョブの実行 ID を切り替えた**（利用者の報告）。以後、ジョブは `editor` を持たない。`aiplatform.user` だけで `generate_content`（`global`）が通るかは、実行するまで**未確認**。
+  出力先への書き込みは、IAM ではなく R2 の一時キー（`PutObject` / `HeadObject`、`docunavi-hero/`、15〜30 分）で行う。一時キー用の Secret への `secretAccessor` は、その Secret ができた時点で別途付ける（承認制）。親トークンの Secret には、誰にも付けない。
+- 動作確認の実行は **1 回だけ**だった（2026-11-02）。以後の実行は、そのつど利用者の承認を得る（初回の R2 保存の試験は `taskCount: 1`、`maxRetries: 0`）。失敗しても自動で再実行しない。
+- **1 回の `execute` で起きる生成呼び出しの上限は `taskCount × (1 + maxRetries)`**（成功した実行の設定なら 2 × 2 = 4 回。現在は `taskCount: 5`、`maxRetries: 0` なので 5 回。利用者の報告、2026-11-02 夜）。実行の前に、この回数を利用者に示す。`scripts/inspect-image-gen.sh` がジョブの設定から計算して表示する。
 - 実行の前に、出力の回収方法（保存先がコンテナ内だけではないこと）を確認する。確認できないうちは実行しない。
 - 結果は「ジョブ成功」と「画像生成 API の成功」と「GCS への保存」を分けて報告する。ジョブ成功だけでは、画像生成の成功とみなさない（ログの API 応答と保存の行、出力先の新しいオブジェクトで確かめる）。
 
@@ -108,12 +114,44 @@ GCS 保存の実装・デプロイ、バケットの作成、IAM の変更は、
 
 「デプロイした」「実行した」「生成に成功した」「保存・回収できた」「画面に表示できた」は別々に記録する。1 つが済んだことを、次が済んだことにしない。
 
+### 3.2 R2 へ保存した実行（2026-11-02）
+
+結果の出どころは「利用者の報告」と、担当 AI が R2 から取り出して見た画像。実行 ID と生のログは**未受領**（`docs/image-gen-evidence/` に無い）。
+
+| 回 | 内容 | 結果 |
+|---|---|---|
+| 1 回目（ヒーロー 1 枚） | docunavi の資料 4 の画像。実行 ID は `image-generation-job-z6fgz`（担当 AI の記憶メモにあった値。生の出力は未受領）。R2 のオブジェクトは `docunavi-hero/4/1179505c52d20892.png` | 保存に成功。docunavi の DB に取り込み、承認し、本番に表示された |
+| 2 回目（5 枚） | 資料 1・2・3・5・6。`plan.json` は 5 件、`max_images: 5`、モデル `gemini-3.1-flash-lite-image`、16:9。plan の SHA-256 先頭は `3200171cc78f8b84` | 利用者の報告: ジョブ成功、5 枚すべてが R2 に保存、エラーなし、生成呼び出しは 5 回。取り出したファイルの大きさは、ログと一致。先頭バイトは 5 枚とも JPEG |
+
+2 回目の画像は、利用者が読み取り専用の一時キーで取り出し、担当 AI が目で確かめた（文字・数字・ロゴ・顔は見当たらない。資料 2 と 6 には額縁のような縁がある）。その後、docunavi の DB に draft で取り込み、承認した（資料 1・2・3・5・6 すべて。画像 ID 3〜7）。
+
+**実行の手順（利用者がホストで行う。担当 AI は行わない）**
+
+1. 親の鍵（Secret `r2-docunavi-hero-parent` の JSON）を標準入力に流し、`scripts/issue-r2-temp-credentials.py --kind write`（`--ttl 1200`）で、書き込み用の一時キーをローカルで署名する。
+2. 一時キーを、Secret `r2-docunavi-hero-write-temp` の**新しい版**として追加する（ジョブは `latest` を参照する。環境変数の文字列での上書きは、定義が Secret 参照なので拒否される）。
+3. `gcloud run jobs execute image-generation-job --wait --update-env-vars` で、`PLAN_JSON` と `PLAN_SHA256` を渡して実行する。
+4. 終了時に、追加した版を破棄する（失敗しても破棄する）。
+
+取り出しは、`--kind read`（`--ttl 900`）で署名した一時キーを、使い捨てのコンテナ（`python:3.13-slim` と `boto3`）に環境変数で渡して行う。
+
+- 1 回の `execute` の生成呼び出しの上限は `taskCount × (1 + maxRetries)`＝5 回。実行の前に、題材・枚数・費用の扱いを利用者に示し、承認を得た。
+- 保存済みの資料は、再実行しても生成を呼ばない（保存の有無を先に確かめる）。
+- **未確認:** 1 枚あたりの単価と請求額、実行 ID、一時キーの版が破棄されたことの確認出力、`taskCount` を 5 にした操作。
+
 ## 4. ローカルのコミットとの関係（デプロイ済みと混ぜない）
 
 | コミット | 日時 | 内容 | デプロイ |
 |---|---|---|---|
 | `3e21bf3` | 2026-10-31 | `jobs/image-gen/` の最初のコミット。モデル `gemini-3.1-flash-lite-image`、`vertexai=True`、プロジェクトの既定 `imagen-app-2026`、場所の既定 `global`、縦横比 1:1、出力はコンテナ内のファイルだけ | **未確認**（成功した実行は 10-29 で、このコミットより前） |
-| `ef98041` | ローカルのみ | 承認済みの `plan.json`（GCS）を読み、PNG を GCS へ書く版。`MODEL` は環境変数にする予定 | **デプロイしていない。プッシュしない**（利用者の指示） |
+| `ef98041` | 2026-11-01 | 承認済みの `plan.json`（GCS）を読み、PNG を GCS へ書く版。`MODEL` は環境変数にする予定 | **push 済み**（`origin/main` に含まれる。確認: `git branch -r --contains ef98041`）。当時の利用者の指示は「プッシュしない」で、食い違っている。いつ・誰の操作で push されたかは未確認。デプロイは**していない**（現在のジョブは R2 版。GCS 版をデプロイした記録は無い） |
+| R2 版（この台帳と同じコミット） | 2026-11-02 | `ef98041` の GCS を、Cloudflare R2（S3 互換 API、`boto3==1.40.76`）に書き換えた版。既存バケット `hoshiniwa-images` の `docunavi-hero/<資料ID>/<plan ハッシュ先頭 16 文字>.png` に、`If-None-Match: *` で書く。偽の S3・偽の genai のテスト 23 件が通る（実 API・実 R2・通信なし）。モデルは `gemini-3.1-flash-lite-image` のまま（モデルの決定は保留中） | **デプロイ済みと読める（利用者の報告に基づく）**。現在のジョブ（`docunavi-hero-job`、`R2_TEMP_CREDENTIALS` を Secret 参照）は、この版だけが読む環境変数を使い、3.2 の実行で R2 への保存と回収を確認した。**ただし、ビルド元のコミットが無かった**（この版は未コミットで、デプロイしたイメージとこの版が同一かは、イメージ内の `/app/main.py` を読むまで未確認）。412 の応答、`HeadObject` の 404、チェックサム設定を個別に確かめた記録は未受領 |
+
+**保存先の決定（利用者、2026-11-02）:** R2 が正規で、GCS は使わない。既存バケット `hoshiniwa-images`、prefix `docunavi-hero/`、バケットロックなし、r2.dev は使わない。
+ジョブには親トークンを渡さず、親から署名した一時キー（書き込み用: `PutObject` + `HeadObject`、取得用: `GetObject` + `HeadObject`。どちらも `docunavi-hero/`、15〜30 分）だけを渡す。
+親トークンの方針（利用者、2026-11-02 に変更）: **新しい親トークンは作らず、既存の Account API token `hoshiniwa-images-rw`（`hoshiniwa-images` のみ、期限 2027-04-27、IP 制限なし、2026-10-27 発行）を親にする。**
+当初案の `docunavi-hero-parent-2026-11`（72 時間）は作らない。MCP の一覧に存在しないことを確認済み。
+その Access Key ID と Secret Access Key を Secret `r2-docunavi-hero-parent` へ保存する（利用者が端末で行う。値はこの台帳に書かない。保存済みかは、利用者の報告があるまで未確認）。
+**既存トークンなので、「作業後に削除」はできない**（削除すると、同じキーを使う既存の求人サイト側が止まる可能性がある）。漏えいの疑いがあるときは、このトークンを再発行（roll）し、既存側のキーも差し替える。
 
 成功した実行（2026-10-29）は、`3e21bf3`（2026-10-31）より前。コンテナのイメージ名（`imagen-fast-job`）もこのリポジトリのパスと一致しない。
 したがって、`3e21bf3` は**成功したイメージの元のコードとは限らない**。モデル ID は、イメージ内の `/app/main.py` を読んで確かめる。
