@@ -1,10 +1,10 @@
 {
-	"name": "hoshiniwa-job-dev",
-	// Compose ベース。開発コンテナ（dev）と、アプリの db・seed・api・frontend を、同じ Compose のプロジェクト hoshiniwa-job に置く。
+	"name": "HoshiniwaJob",
+	// Compose ベース。開発コンテナ（dev）と、アプリの db・api・frontend を、同じ Compose のプロジェクト hoshiniwa-job に置く（seed は道具なので自動では起動しない。README の「初めての環境」）。
 	// 定義は ../docker-compose.yml（アプリ。ホストの `docker compose up` と共通）と ./docker-compose.yml（dev。ここだけ）。
 	"dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
 	"service": "dev",
-	"runServices": ["db", "seed", "api", "frontend"],
+	"runServices": ["db", "api", "frontend"],
 	"workspaceFolder": "/workspaces/hoshiniwa-job",
 	"remoteUser": "vscode",
 	// ウィンドウを閉じると、まとめて止める（down ではない。コンテナも pg-data も残る）。

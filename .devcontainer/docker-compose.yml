@@ -1,4 +1,4 @@
-# 開発コンテナ（dev）の定義。devcontainer.json の dockerComposeFile が、../docker-compose.yml（db・seed・api・frontend）に重ねて読む。
+# 開発コンテナ（dev）の定義。devcontainer.json の dockerComposeFile が、../docker-compose.yml（db・api・frontend）に重ねて読む。
 # ホストの `docker compose up`（ルートの docker-compose.yml だけ）には dev は含まれない。
 # 相対パスは、最初のファイル（../docker-compose.yml）のあるリポジトリ直下が基準（このファイルの場所ではない）。
 services:
@@ -9,7 +9,7 @@ services:
     container_name: hoshiniwa-job-devcontainer
     # 表示用ラベル
     labels:
-      local.ui.group: "devcontainers"
+      local.ui.group: "Devcontainers"
     init: true
     command: sleep infinity
     volumes:

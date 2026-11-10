@@ -29,7 +29,7 @@ services:
     container_name: hoshiniwa-docker-proxy
     # 表示用ラベル
     labels:
-      local.ui.group: "docker-proxies"
+      local.ui.group: "Docker-Proxies"
     command:
       - "-listenip=0.0.0.0"
       - "-proxyport=2375"

@@ -2,7 +2,7 @@
 
 全体の方針・禁止事項は、ルートの [CLAUDE.md](../CLAUDE.md)。
 
-Compose ベース。`devcontainer.json` が、`../docker-compose.yml`（アプリ: `db` `seed` `api` `frontend`。ホストの `docker compose up` と共通）に、
+Compose ベース。`devcontainer.json` が、`../docker-compose.yml`（アプリ: `db` `api` `frontend`。ホストの `docker compose up` と共通）に、
 `docker-compose.yml`（開発コンテナ `dev` だけ）を重ねて読む。ホストの `docker compose up`（ルートの定義だけ）には `dev` は含まれない。
 
 - **Docker はホストのソケットを渡さず、専用のプロキシ経由。** `docker-proxy/compose.yml`（`wollomatic/socket-proxy`）が、3 つのコンテナの `start` / `stop` / `restart` と読み取りだけを許す。

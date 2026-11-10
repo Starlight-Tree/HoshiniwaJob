@@ -14,7 +14,7 @@ services:
     container_name: hoshiniwa-job-db
     # 表示用ラベル
     labels:
-      local.ui.group: "app-hoshiniwa-job"
+      local.ui.group: "App-HoshiniwaJob"
     environment:
       POSTGRES_DB: hoshiniwa
       POSTGRES_USER: hoshiniwa
@@ -58,7 +58,7 @@ services:
     container_name: hoshiniwa-job-seed
     # 表示用ラベル
     labels:
-      local.ui.group: "app-hoshiniwa-job"
+      local.ui.group: "App-HoshiniwaJob"
     profiles: ["tools"]
     command: ["python", "-m", "app.seed_demo"]
     environment:
@@ -100,7 +100,7 @@ services:
     container_name: hoshiniwa-job-api
     # 表示用ラベル
     labels:
-      local.ui.group: "app-hoshiniwa-job"
+      local.ui.group: "App-HoshiniwaJob"
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/code/app"]
     environment:
       # 画像の保存。既定は開発用のフォルダー（名前付きボリューム dev-media。消してよい）。R2（s3）へ切り替えるときだけ、.env（Git 管理外）に値を書く。docs/image-storage.md
@@ -140,7 +140,7 @@ services:
     container_name: hoshiniwa-job-frontend
     # 表示用ラベル
     labels:
-      local.ui.group: "app-hoshiniwa-job"
+      local.ui.group: "App-HoshiniwaJob"
     working_dir: /app
     environment:
       API_BASE_URL: "http://api:8000"
