@@ -29,7 +29,7 @@
 	},
 	"customizations": {
 		"vscode": {
-			"extensions": ["ms-azuretools.vscode-containers", "anthropic.claude-code", "alefragnani.project-manager"]
+			"extensions": ["ms-azuretools.vscode-containers", "anthropic.claude-code", "alefragnani.project-manager", "ms-ceintl.vscode-language-pack-ja"]
 		}
 	}
 }
