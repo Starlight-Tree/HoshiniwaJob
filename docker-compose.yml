@@ -1,17 +1,17 @@
-# hoshiniwa-job のローカル開発用（Postgres 17 + FastAPI + Next.js）。
+# hoshiniwajob のローカル開発用（Postgres 17 + FastAPI + Next.js）。
 #   docker compose up -d --build    # 起動（マイグレーションもダミーデータも流さない）
 #   初めての環境は、先に README の「Quick start」の手順（db → migrate → seed → seed-images）を実行する
 #   http://localhost:3200            # 画面（求人検索）
 #   http://localhost:8200/docs       # API の仕様（FastAPI の自動文書）
 # 他のローカルのサービスと同時に動かせるよう、ポートは 3200 / 8200 にしてある。
-name: hoshiniwa-job
+name: hoshiniwajob
 
 services:
   # 求人のデータ。ホストにポートを公開せず、internal の backend-net（外へも出られない）にだけ置く。
   # 空のボリュームで初めて起動したときだけ、db/ の SQL（テーブルとマスタ）を流し込む。
   db:
     image: postgres:17
-    container_name: hoshiniwa-job-db
+    container_name: hoshiniwajob-db
     # 表示用ラベル
     labels:
       local.ui.group: "App-HoshiniwaJob"
@@ -40,7 +40,7 @@ services:
   # マイグレーション。既存の DB には、データを変えずに足りないものだけ足す。--status / --dry-run は README の「開発とテスト」の「既存の DB のマイグレーション」
   migrate:
     build: ./backend
-    container_name: hoshiniwa-job-migrate
+    container_name: hoshiniwajob-migrate
     profiles: ["tools"]
     command: ["python", "-m", "app.migrate"]
     environment:
@@ -55,7 +55,7 @@ services:
   # ダミーの求人・アカウントを入れる（開発・テスト専用。すでにデータがあれば何もせず、既存の求人に demo_key を結ぶだけ。入れ直すときは README の「起動」の `--reset`）
   seed:
     build: ./backend
-    container_name: hoshiniwa-job-seed
+    container_name: hoshiniwajob-seed
     # 表示用ラベル
     labels:
       local.ui.group: "App-HoshiniwaJob"
@@ -74,7 +74,7 @@ services:
   # ダミーの画像を登録・承認する（開発・テスト専用。何度実行しても増えない）。元ファイルが無い環境でも、api と画面は起動する
   seed-images:
     build: ./backend
-    container_name: hoshiniwa-job-seed-images
+    container_name: hoshiniwajob-seed-images
     profiles: ["tools"]
     command: ["python", "-m", "app.seed_images", "--source-dir", "/demo-images"]
     environment:
@@ -97,7 +97,7 @@ services:
 
   api:
     build: ./backend
-    container_name: hoshiniwa-job-api
+    container_name: hoshiniwajob-api
     # 表示用ラベル
     labels:
       local.ui.group: "App-HoshiniwaJob"
@@ -137,7 +137,7 @@ services:
   # 画面の開発サーバー（frontend/ の next dev）。API はサーバー側（Next.js）から呼ぶので、ブラウザーは API を直接呼ばない。
   frontend:
     image: node:24-slim
-    container_name: hoshiniwa-job-frontend
+    container_name: hoshiniwajob-frontend
     # 表示用ラベル
     labels:
       local.ui.group: "App-HoshiniwaJob"
