@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-星庭ジョブ（hoshiniwa-job）。架空の宇宙の植物園・ガーデンの求人サイト（運営は架空の「星庭ワークス」）。データはすべてダミー。
-FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Postgres 17（`db/`）、Docker Compose。入口は [README.md](README.md)、
+星庭ジョブ（HoshiniwaJob）。架空の宇宙の植物園・ガーデンの求人サイト（運営は架空の「星庭ワークス」）。データはすべてダミー。
+FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Postgres 17（`db/`）、Docker Compose。入口は [README.md](README.md)（日本語は [README.ja.md](README.ja.md)）、開発・テスト・ダミーデータ・CI は [docs/development.md](docs/development.md)、
 画像・マイグレーション・バックアップ・R2 の詳細は [docs/image-storage.md](docs/image-storage.md)、画面の調査は [docs/ux-research.md](docs/ux-research.md)。
 **Vertex AI の画像生成ジョブ（デプロイ済みの設定・成功した実行・モデル）の正本は [docs/image-gen-resources.md](docs/image-gen-resources.md)。** 会話の履歴やログを探す前に、これを読む。
 領域ごとの規約は `backend/` `frontend/` `jobs/image-gen/` `.devcontainer/` の各 `CLAUDE.md`、パス別の規則は `.claude/rules/`。
@@ -11,7 +11,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 | 目的 | コマンド |
 |---|---|
 | 起動（ホストで） | `docker compose up -d --build`。画面 <http://localhost:3200>、API <http://localhost:8200/docs>。マイグレーションもダミーデータも流さない |
-| 初めての環境（空の DB） | `docker compose up -d db` → `run --rm migrate` → `run --rm seed` → `run --rm seed-images` → `up -d --build`（README の「起動」） |
+| 初めての環境（空の DB） | `docker compose up -d db` → `run --rm migrate` → `run --rm seed` → `run --rm seed-images` → `up -d --build`（README の「Quick start」） |
 | バックエンドのテスト | `cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.in`、`TEST_DATABASE_URL=<Postgres の URL> .venv/bin/python -m pytest -q`。**`TEST_DATABASE_URL` が無いと DB のテスト（ほぼ全部）がスキップされる** |
 | フロントエンドの検査 | `cd frontend && npm ci && npm test && npm run build && npm run typecheck`（`typecheck` は `build` の後） |
 | 版の整合 | `scripts/check-versions.sh`（Python・Node の版が、各ファイルで揃っているか） |
@@ -54,7 +54,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 
 - `jobs/image-gen/`: Python の版（3.11）、モデル名（`gemini-3.1-flash-lite-image`。`frontend/scripts/generate-images/` は `gemini-nano-banana-2.1`）、
   既定のプロジェクト ID がコードに書かれていること。
-- 画像生成の「下書き用」モデル（安いモデル）の選定: 記録が見つかっていない（台帳の 2.1 節）。**モデルの確定は保留中**（利用者の指示、2026-11-02）。
+- 画像生成の「下書き用」モデル（安いモデル）の選定: 記録が見つかっていない（台帳の 2.1 節）。**モデルの確定は保留中**（2026-11-02 の決定）。
 
 ## Git
 

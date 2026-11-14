@@ -115,13 +115,9 @@ docker compose run --rm seed-images python -m app.seed_images --source-url https
 
 ## Cloudflare R2 を使うとき
 
-**R2 への接続は済んでいる**（開発用のバケット `hoshiniwa-images`。2026-10-28 に `r2.dev`（Public Development URL）を有効化）。API トークン `hoshiniwa-images-rw` の値を `STORAGE_S3_*` に設定し、`STORAGE_BACKEND=s3`、`IMAGE_PUBLIC_BASE_URL` は `r2.dev` の URL にしてある。2026-11-01 に、次を確認した。
-
-- R2 のオブジェクトは 11 件。
-- 公開 URL は 11 件とも 200・`image/jpeg`・`Cache-Control: immutable`。
-- 求人詳細（`/recruits/1`）の画像は、`/_next/image` 経由で `r2.dev` から取得され、コンソールにエラーは無い。
-
-既存画像の複製は不要だった（R2 にすでにあった）。DNS・独自ドメインは未実施で、設定する前に、対象と内容を示して承認を取る。
+開発では、開発用のバケット `hoshiniwa-images` を使っている（`r2.dev`＝Public Development URL を有効にしてある）。API トークン `hoshiniwa-images-rw` の値を `STORAGE_S3_*` に設定し、`STORAGE_BACKEND=s3`、`IMAGE_PUBLIC_BASE_URL` は `r2.dev` の URL にする。
+2026-11-01 に、R2 のオブジェクト 11 件が、公開 URL から 200・`image/jpeg`・`Cache-Control: immutable` で返ること、求人詳細（`/recruits/1`）の画像が `/_next/image` 経由で `r2.dev` から取得され、コンソールにエラーが無いことを確認した。
+DNS・独自ドメインは未設定。
 
 - 必要なもの: Cloudflare のアカウント（R2 を有効にした状態）。独自ドメインを使うなら、**同じアカウントに zone として登録されたドメイン**（公開バケットの独自ドメインの条件）。
   独自ドメインが無い間の開発では、バケットの Public Development URL（`r2.dev`。レート制限があり、開発用。本番に使わない）を使える。

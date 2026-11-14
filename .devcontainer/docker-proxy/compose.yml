@@ -19,7 +19,7 @@
 #  - GET はパスでしか絞れないので、OrbStack 上のすべてのコンテナの一覧とログが見える。
 #  - `docker compose restart <サービス>` は、コンテナを ID で指定する（名前ではない）。ID のパスは名前の規則に合わないので通らない可能性が高い。
 #    ID の形（16 進）を許すと、他のプロジェクトのコンテナまで止められるので許さない。再起動は `docker restart hoshiniwa-job-<名前>` を使う。
-#  - 正規表現がクエリ文字列（?t=10 など）を含めずにパスだけで照合されるかは、実機で未確認（README の検証手順で確かめる）。
+#  - 正規表現がクエリ文字列（?t=10 など）を含めずにパスだけで照合されるかは、実機で未確認（導入するときに確かめる）。
 name: hoshiniwa-dev-proxy
 
 services:
@@ -46,7 +46,7 @@ services:
       # :ro はソケットのファイルの権限であって、Docker API の読み書きの制限ではない。制限は上の許可リストが行う。
       - /var/run/docker.sock:/var/run/docker.sock:ro
     # OrbStack のソケットは root:root 0660。イメージの既定のユーザー（非 root）では開けないので、uid は非 root のまま、グループ 0 だけを足す
-    # （Docunavi の docker-proxy/compose.yml と同じ。2026-10-21 にそちらで確認）。
+    # （Docunavi の docker-proxy/compose.yml と同じ）。
     user: "65534:65534"
     group_add:
       - "0"

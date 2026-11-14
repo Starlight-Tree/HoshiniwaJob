@@ -35,13 +35,12 @@ networks:
     external: true
 
 volumes:
-  # Claude Code の設定・認証・履歴。docunavi の claude-config と同じ外部ボリュームを、名前で共有する（2026-11-10 に変更。以前は P2 で「共有しない」と決定）。
-  # docunavi 側での実測（2026-11-10、docunavi のコンテナ内）: ~/.claude は claude-code-config-166oi…。hoshiniwa-job 自身のコンテナでは未実測。
-  # 履歴はパスごとのフォルダー（projects/-workspaces-hoshiniwa-job/ など）に分かれるが、認証情報と .claude.json は共有される。
+  # Claude Code の設定・認証・履歴。docunavi の claude-config と同じ外部ボリュームを、名前で共有する（ホストにあらかじめ作ってある）。
+  # 履歴はパスごとのフォルダーに分かれるが、認証情報と .claude.json は共有される。
   claude-config:
     name: claude-code-config-166oi5198v23umj7mu1l48p8d00au5920c8hog97rp6gbuvfuoe4
     external: true
-  # 新規。docunavi と hoshiniwa-job の両方が、同じ名前で参照する（Project Manager の projects.json だけ）。
+  # docunavi と hoshiniwa-job の両方が、同じ名前で参照する（Project Manager の projects.json だけ）。
   # external: ホストで 1 回 `docker volume create devcontainer-shared-project-manager` を実行してから起動する（無いと起動に失敗する）。
   shared-project-manager:
     name: devcontainer-shared-project-manager
