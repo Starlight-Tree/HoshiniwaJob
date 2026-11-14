@@ -29,7 +29,17 @@
 	},
 	"customizations": {
 		"vscode": {
-			"extensions": ["ms-azuretools.vscode-containers", "anthropic.claude-code", "alefragnani.project-manager", "ms-ceintl.vscode-language-pack-ja"]
+			"extensions": [
+				"anthropic.claude-code",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"mhutchie.git-graph",
+				"ms-ossdata.vscode-pgsql",
+				"ms-azuretools.vscode-containers",
+				"golang.go",
+				"alefragnani.project-manager",
+				"ms-ceintl.vscode-language-pack-ja"
+			]
 		}
 	}
 }
