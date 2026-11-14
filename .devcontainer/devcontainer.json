@@ -16,17 +16,33 @@
 		"ghcr.io/devcontainers/features/node:2": {},
 		"ghcr.io/devcontainers/features/python:1": { "version": "3.13" }
 	},
-	// DOCKER_HOST は ./docker-compose.yml の dev の environment にも置いてある（Compose ベースで containerEnv が効くかは未確認なので両方。変えるときは両方を直す）。
+	// DOCKER_HOST・CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT・INFISICAL_DISABLE_* は ./docker-compose.yml の dev の environment にも置いてある
+	// （Compose ベースで containerEnv が効くかは未確認なので両方。変えるときは両方を直す）。
+	// CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT: gcloud の日常の ID を、閲覧専用のサービスアカウント（運用用プロジェクト hoshiniwa-job-ops）へのなりすましに固定する。
+	// 書き込みは、コマンドごとに明示する（docs/access-separation.md）。そのサービスアカウントは、作るまで存在しない（作るまで gcloud は失敗する）。
 	"containerEnv": {
 		"TZ": "Asia/Tokyo",
-		"DOCKER_HOST": "tcp://hoshiniwa-docker-proxy:2375"
+		"DOCKER_HOST": "tcp://hoshiniwa-docker-proxy:2375",
+		"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT": "hoshiniwajob-viewer@hoshiniwa-job-ops.iam.gserviceaccount.com",
+		"INFISICAL_DISABLE_TELEMETRY": "true",
+		"INFISICAL_DISABLE_UPDATE_CHECK": "true"
 	},
 	// ポートは ../docker-compose.yml が 127.0.0.1:3200（画面）と 127.0.0.1:8200（API）でホストに公開している。forwardPorts は足さない。
+	// 専用ボリュームは、新規作成直後は root 所有になりうるので、vscode が書けるようにする（infisical は権限 700、gcloud は親の ~/.config も直す）。
+	// cli-tools: 次を順番に実行する。失敗してもコンテナの作成は止まらない（最後のコマンドの終了コードが 0 のため）。
+	//   1. register-mcp.sh: MCP を user スコープに「無ければ登録」（専用ボリューム内）
+	//   2. install-playwright.sh: Chromium の取得と起動確認（ブラウザーは専用ボリュームに入る）
+	//   3. ツールの存在確認（導入はしない）
 	"postCreateCommand": {
 		"claude-volume": "sudo chown -R vscode:vscode /home/vscode/.claude",
 		"project-manager-volume": "sudo chown -R vscode:vscode /home/vscode/.project-manager",
-		"docker-version": "docker --version && docker compose version"
+		"infisical-volume": "sudo chown -R vscode:vscode /home/vscode/.infisical && chmod 700 /home/vscode/.infisical",
+		"gcloud-volume": "sudo chown vscode:vscode /home/vscode/.config && sudo chown -R vscode:vscode /home/vscode/.config/gcloud && chmod 700 /home/vscode/.config/gcloud",
+		"docker-version": "docker --version && docker compose version",
+		"cli-tools": "bash .devcontainer/register-mcp.sh; bash .devcontainer/install-playwright.sh; for t in gcloud docker infisical claude; do command -v $t >/dev/null || echo missing: $t >&2; done"
 	},
+	// 起動のたびに: Infisical のユーザーのログイン状態を専用ボリュームに残し（再ビルドで消えないように）、MCP の登録が失われていたら登録し直す。失敗しても接続は妨げない。
+	"postStartCommand": "bash .devcontainer/persist-infisical-login.sh > /tmp/persist-infisical-login.log 2>&1 || true; bash .devcontainer/register-mcp.sh > /tmp/register-mcp.log 2>&1 || true",
 	"customizations": {
 		"vscode": {
 			"extensions": [

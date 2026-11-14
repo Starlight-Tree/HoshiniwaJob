@@ -14,7 +14,11 @@ services:
     command: sleep infinity
     volumes:
       - .:/workspaces/hoshiniwajob:cached
+      # このプロジェクト専用のボリューム。認証情報・MCP の登録・履歴が、他のプロジェクトと混ざらない（docs/access-separation.md）。
       - claude-config:/home/vscode/.claude
+      - playwright-browsers:/home/vscode/.cache/ms-playwright
+      - infisical-config:/home/vscode/.infisical
+      - gcloud-config:/home/vscode/.config/gcloud
       # Project Manager の projects.json（docunavi と hoshiniwajob で共有。資格情報は入れない）。
       - shared-project-manager:/home/vscode/.project-manager
     environment:
@@ -23,6 +27,10 @@ services:
       # 読み取り専用に近いプロキシ（.devcontainer/docker-proxy/compose.yml）。hoshiniwa-dev の中でだけ引ける名前。
       # ホストのソケットは、この dev にはマウントしない。
       DOCKER_HOST: tcp://hoshiniwa-docker-proxy:2375
+      # gcloud の日常の ID は閲覧専用のなりすまし（devcontainer.json の containerEnv と同じ値。変えるときは両方を直す）。
+      CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT: hoshiniwajob-viewer@hoshiniwa-job-ops.iam.gserviceaccount.com
+      INFISICAL_DISABLE_TELEMETRY: "true"
+      INFISICAL_DISABLE_UPDATE_CHECK: "true"
     # hoshiniwa-dev だけに繋ぐ（プロキシとの通信用。外へも出られる）。frontend-net・backend-net には繋がない
     # （api と db に、開発コンテナから直接届かないようにするため）。
     networks:
@@ -35,10 +43,20 @@ networks:
     external: true
 
 volumes:
-  # Claude Code の設定・認証・履歴。docunavi の claude-config と同じ外部ボリュームを、名前で共有する（ホストにあらかじめ作ってある）。
-  # 履歴はパスごとのフォルダーに分かれるが、認証情報と .claude.json は共有される。
+  # 次の 4 つは、このプロジェクト専用（他のプロジェクトと共有しない）。ホストで 1 回ずつ作ってから起動する（無いと起動に失敗する）:
+  #   for v in claude-config playwright-browsers infisical-config gcloud-config; do docker volume create hoshiniwajob-$v; done
+  # claude-config は、作ったあとに settings.json・CLAUDE.md・履歴だけを写す（認証情報と .claude.json は写さない。docs/access-separation.md）。
   claude-config:
-    name: claude-code-config-166oi5198v23umj7mu1l48p8d00au5920c8hog97rp6gbuvfuoe4
+    name: hoshiniwajob-claude-config
+    external: true
+  playwright-browsers:
+    name: hoshiniwajob-playwright-browsers
+    external: true
+  infisical-config:
+    name: hoshiniwajob-infisical-config
+    external: true
+  gcloud-config:
+    name: hoshiniwajob-gcloud-config
     external: true
   # docunavi と hoshiniwajob の両方が、同じ名前で参照する（Project Manager の projects.json だけ）。
   # external: ホストで 1 回 `docker volume create devcontainer-shared-project-manager` を実行してから起動する（無いと起動に失敗する）。
