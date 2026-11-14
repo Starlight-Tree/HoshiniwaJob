@@ -59,6 +59,7 @@ docker compose up -d --build
 | [docs/image-storage.md](docs/image-storage.md) | 画像の仕組み、設定、マイグレーション、バックアップと復旧、R2 |
 | [docs/ux-research.md](docs/ux-research.md) | 求人検索の画面の調査と採用した案 |
 | [docs/image-gen-resources.md](docs/image-gen-resources.md) | 画像生成ジョブ（試作）の設定と確認の記録 |
+| [docs/access-separation.md](docs/access-separation.md) | 権限と資格情報のプロジェクトごとの分離（開発コンテナのボリューム、MCP、Infisical、GCP） |
 | [CLAUDE.md](CLAUDE.md) | 開発の規約（AI エージェント向け。各フォルダーにもあります） |
 
 ## このリポジトリについて

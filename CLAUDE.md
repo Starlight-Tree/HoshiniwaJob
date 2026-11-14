@@ -2,7 +2,8 @@
 
 星庭ジョブ（HoshiniwaJob）。架空の宇宙の植物園・ガーデンの求人サイト（運営は架空の「星庭ワークス」）。データはすべてダミー。
 FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Postgres 17（`db/`）、Docker Compose。入口は [README.md](README.md)（日本語は [README.ja.md](README.ja.md)）、開発・テスト・ダミーデータ・CI は [docs/development.md](docs/development.md)、
-画像・マイグレーション・バックアップ・R2 の詳細は [docs/image-storage.md](docs/image-storage.md)、画面の調査は [docs/ux-research.md](docs/ux-research.md)。
+画像・マイグレーション・バックアップ・R2 の詳細は [docs/image-storage.md](docs/image-storage.md)、画面の調査は [docs/ux-research.md](docs/ux-research.md)、
+資格情報・権限・MCP をプロジェクトごとに分ける方針は [docs/access-separation.md](docs/access-separation.md)。
 **Vertex AI の画像生成ジョブ（デプロイ済みの設定・成功した実行・モデル）の正本は [docs/image-gen-resources.md](docs/image-gen-resources.md)。** 会話の履歴やログを探す前に、これを読む。
 領域ごとの規約は `backend/` `frontend/` `jobs/image-gen/` `.devcontainer/` の各 `CLAUDE.md`、パス別の規則は `.claude/rules/`。
 

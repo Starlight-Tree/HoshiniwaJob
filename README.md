@@ -59,6 +59,7 @@ The documents are written in Japanese.
 | [docs/image-storage.md](docs/image-storage.md) | How images work, settings, migrations, backup and restore, R2 |
 | [docs/ux-research.md](docs/ux-research.md) | Research on the job search screen and the design chosen |
 | [docs/image-gen-resources.md](docs/image-gen-resources.md) | Settings and verification record of the image generation job (prototype) |
+| [docs/access-separation.md](docs/access-separation.md) | Per-project separation of credentials and permissions (dev container volumes, MCP, Infisical, GCP) |
 | [CLAUDE.md](CLAUDE.md) | Development conventions (for AI agents; each folder has one too) |
 
 ## About this repository
