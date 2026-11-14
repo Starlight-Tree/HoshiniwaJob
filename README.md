@@ -1,74 +1,70 @@
-# 星庭ジョブ（hoshiniwa-job）
+# HoshiniwaJob
 
-架空の宇宙の植物園・ガーデンの求人サイト（運営は架空の「星庭ワークス」）。月面・軌道都市・惑星ザーハード、通貨「ノクト」など、すべて架空。データはすべてダミー。
+[![CI](https://github.com/Starlight-Tree/HoshiniwaJob/actions/workflows/ci.yml/badge.svg)](https://github.com/Starlight-Tree/HoshiniwaJob/actions/workflows/ci.yml)
 
-FastAPI + psycopg3（`backend/`）/ Next.js + TypeScript（`frontend/`）/ Postgres 17（`db/`）/ Docker Compose。
+English | [日本語](README.ja.md)
 
-## 起動
+HoshiniwaJob (星庭ジョブ) is a fictional job board for botanical gardens on the Moon, in orbital cities and on the planet Zahard (FastAPI, Next.js, Postgres 17, Docker Compose). The operator "Hoshiniwa Works", the place names, the currency "nokt" and all data are made up.
 
-ホストのターミナルで、このフォルダーで実行する。
+| Job search (with counts per filter) | Job detail (with images) |
+|---|---|
+| ![Job search](docs/images/search.png) | ![Job detail](docs/images/detail.png) |
 
-```bash
-docker compose up -d --build   # 起動。マイグレーションもダミーデータも流さない
+## Features
+
+- **Job search.** Filters (employment type, area, station, occupation) live in the URL. Values of one kind are OR-ed, kinds are AND-ed; each filter shows its count, and selected filters are chips you can remove.
+- **Separate logins for job seekers and gardens.** Separate accounts and cookies. Passwords use argon2, the session is an HttpOnly cookie. The API checks permissions in SQL on every request, and another garden's job is a 404.
+- **Image management by gardens.** Add images by drag and drop (with a preview before saving), reorder, set the hero image, delete. The API validates format, size and dimensions and re-encodes without location data ([docs/image-storage.md](docs/image-storage.md)).
+- **Swappable image storage.** The files live in storage (a folder in development, an S3-compatible Cloudflare R2 bucket for production), the links to jobs live in the DB, and `reconcile` reports any mismatch left by a failure.
+- **Numbered SQL migrations.** Applied files are checked by sha256 to detect edits, and the initial schema is checked against a fingerprint.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    B[Browser] --> F["Next.js<br/>frontend (:3200)"]
+    F -->|"called from the server side"| A["FastAPI<br/>backend (:8200)"]
+    A --> DB[("Postgres 17")]
+    A -->|saves images| S[("Storage<br/>folder / Cloudflare R2")]
+    B -->|fetches images| S
 ```
 
-**初めての環境（空の DB）**は、先にこの順で 1 回ずつ実行する（`migrate` `seed` `seed-images` は、`up` では起動しない「道具」）。`seed` と `seed-images` は開発・テスト専用で、`DEMO_DATA=allow` が無いと実行を拒否する（Compose の定義が渡す。本番の環境には渡さない）。
+The browser never calls the API directly; the server side of the UI (server actions, Server Components) does. The session is an HttpOnly cookie. Images are fetched by the browser from a public URL.
+
+## Quick start
+
+Docker Compose runs the DB, the API and the UI. On a new environment (empty DB), run `migrate`, `seed` and `seed-images` once each (they are tools that `up` does not start). `seed` and `seed-images` load dummy data and refuse to run without `DEMO_DATA=allow` (the Compose file passes it).
 
 ```bash
 docker compose up -d db
-docker compose run --rm migrate       # マイグレーション（本番でも、デプロイの作業として明示的に実行するのはこれだけ）
-docker compose run --rm seed          # ダミーの求人・アカウント（開発・テスト専用）
-docker compose run --rm seed-images   # ダミーの画像（開発・テスト専用。何度実行しても増えない）
+docker compose run --rm migrate       # migrations
+docker compose run --rm seed          # dummy jobs and accounts
+docker compose run --rm seed-images   # dummy images
 docker compose up -d --build
 ```
 
-- 画面: <http://localhost:3200>（初回は `npm install` で 1〜2 分）
-- API の文書: <http://localhost:8200/docs>
-- 止める: `docker compose down`。DB ごと消すなら `docker compose down -v`
-- 通常の起動は、画像の元ファイル（`frontend/public/images/generated/recruits/`）やダミーデータに依存しない。画像の詳細は [docs/image-storage.md](docs/image-storage.md)
+- UI: <http://localhost:3200>, API docs: <http://localhost:8200/docs>
+- Stop: `docker compose down`. To delete the DB as well: `docker compose down -v`
+- Dummy accounts (local only): job seeker `hoshiniwa-user@example.com`, garden `hoshiniwa-garden@example.com`, password `star-garden-demo`. Gardens sign in at `/garden/login`.
 
-ダミーのアカウント（ローカル専用）: 利用者 `hoshiniwa-user@example.com`、園 `hoshiniwa-garden@example.com` と `hoshiniwa-garden2@example.com`、パスワードは `star-garden-demo`。
-ダミーデータだけ入れ直す: `docker compose run --rm seed python -m app.seed_demo --reset`
-ダミーの求人を 30 件構成（園 12・表示 26・非表示 4）に増やす（開発・テスト専用。足りない分だけ足し、何度実行しても増えない。既存の求人・アカウントは変えない）: `docker compose run --rm seed python -m app.seed_demo --extend`。先に開発 DB のバックアップを取る。引数なしの `seed` は、従来どおり 12 件。入れ直して 30 件にするなら `--reset --extend`。
+Tests: `cd backend && pip install -r requirements.txt -r requirements-dev.in && TEST_DATABASE_URL=<Postgres URL> pytest` and `cd frontend && npm ci && npm test && npm run build && npm run typecheck`. Without `TEST_DATABASE_URL`, the tests that need the DB are skipped.
 
-## 機能
+## Documentation
 
-- **求人検索**: 条件（雇用形態・エリア・乗り場・職種）は URL に持つ。同じ種類の中は OR、種類の間は AND。条件ごとの件数、チップでの解除。
-- **利用者の会員登録・ログイン・ログアウト**（`/register`、`/login`）: パスワードは argon2。ログインの印は HttpOnly の Cookie（`hj_session`）。https で公開するときは `SESSION_COOKIE_SECURE=true`。
-- **園のログイン・ログアウト**（<http://localhost:3200/garden/login>）: 利用者とは別のアカウント・別のセッション・別の Cookie（`hj_garden_session`）。ダッシュボード（`/garden`）には、自分の法人の求人の件数だけが出る。園の会員登録の画面・API は無く、アカウントは `seed`（開発・テスト専用）で作る。
+The documents are written in Japanese.
 
-- **求人・法人の画像**: 画像の本体はストレージ（開発は Compose のボリューム、本番は S3 互換の Cloudflare R2 を想定。バケットは 1 つ）、求人との対応は DB。園は `/garden` から、自分の求人の画像をドラッグ＆ドロップで追加（保存前にプレビュー）・並べ替え・ヒーロー指定・削除ができる。追加した画像はすぐ公開され、削除もその場で行われる。公開後の取り下げだけ、運営が行う（`python -m app.images_cli reject`）。設定・登録・移行・バックアップと復旧・R2 の手順は [docs/image-storage.md](docs/image-storage.md)。
+| Document | Contents |
+|---|---|
+| [docs/development.md](docs/development.md) | Layout and versions, tests, dummy data, migrations, CI |
+| [docs/image-storage.md](docs/image-storage.md) | How images work, settings, migrations, backup and restore, R2 |
+| [docs/ux-research.md](docs/ux-research.md) | Research on the job search screen and the design chosen |
+| [docs/image-gen-resources.md](docs/image-gen-resources.md) | Settings and verification record of the image generation job (prototype) |
+| [CLAUDE.md](CLAUDE.md) | Development conventions (for AI agents; each folder has one too) |
 
-## 開発とテスト
+## About this repository
 
-```bash
-cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.in
-TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:55432/postgres .venv/bin/python -m pytest -q   # 未設定なら DB のテストは飛ばす
+A personal project published as a portfolio, built to explore: authentication and permission separation between two kinds of users (job seekers and gardens), safe acceptance and storage of uploaded images, and migrations that do not damage an existing DB. It contains no secrets (`.env` is outside Git; only `.env.example` is committed). Pattern-based secret checks are not a complete guarantee.
 
-cd frontend && npm install && npm test && npm run build && npm run typecheck   # typecheck は build の後
-```
+## License
 
-既存の DB のマイグレーション（適用前に必ずバックアップ。[docs/image-storage.md](docs/image-storage.md)）:
-
-```bash
-docker compose run --rm migrate python -m app.migrate --status    # 読むだけ
-docker compose run --rm migrate python -m app.migrate --dry-run   # 事前検査だけ
-docker compose run --rm migrate                                   # 適用
-```
-
-画像の生成（Gemini の Batch API）は `frontend/scripts/generate-images/`。生成した画像は `python -m app.images_cli register` で登録する。
-
-`backend/requirements.txt` は `requirements.in` から作った固定版。直接編集しない。
-
-版は Python 3.13、Node 24（基準は `.python-version` と `.node-version`。`scripts/check-versions.sh` が Dockerfile・Compose・`engines`・CI との整合を確かめる）。
-CI は [.github/workflows/ci.yml](.github/workflows/ci.yml)（バックエンドのテスト〔Postgres 17〕、バックエンドのイメージのビルド、フロントエンドのテスト・ビルド・型検査、ワークフローの静的検査。外部の API は呼ばず、デプロイは含まない）。
-コミットの前後に、登録した語が入っていないかを `scripts/check-sensitive-terms.sh` で検査できる（語は Git の管理外の `.git/sensitive-terms` に置く）。
-エージェント（Claude Code）向けの規約は [CLAUDE.md](CLAUDE.md) と、各フォルダーの `CLAUDE.md`、`.claude/rules/`。
-
-## これから
-
-パスワード再設定、応募、園の管理画面（画像以外）、CSV・PDF 出力、メール送信、法人画像の表示、お知らせ記事。
-
-## ライセンス
-
-[LICENSE](LICENSE) を参照してください。
+[MIT](LICENSE)
