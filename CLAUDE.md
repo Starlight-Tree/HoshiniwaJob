@@ -70,3 +70,4 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 - タスクで指定された範囲だけを編集する。範囲外に必要な変更があれば、勝手に直さず提案する。
 - 新しいサービス・言語・フレームワーク・DB を足す前に、ユーザーに確認する。
 - 既存の文書は、新規作成より更新を優先する。この CLAUDE.md は短く保ち、詳細は領域の `CLAUDE.md` と `docs/` に置く。
+- wrangler・infisical・prisma の書き込み系は、フック `.claude/hooks/guard-deploy-cli.py` が確認に回す（docunavi と同じファイルのコピー。直すときは docunavi 側のテスト `tests/test_guard_deploy_cli.py` を先に直し、両方をそろえる）。止められたら回避せず、ユーザーに伝える。

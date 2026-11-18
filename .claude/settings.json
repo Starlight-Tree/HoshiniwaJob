@@ -3,7 +3,14 @@
     "deny": [
       "Read(./.env)",
       "Read(./backups/**)",
-      "Read(./_legacy/**)"
+      "Read(./_legacy/**)",
+      "Read(./.env.local)",
+      "Read(./.dev.vars)",
+      "Read(~/.config/gcloud/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.infisical/**)",
+      "Read(~/.ssh/**)",
+      "Bash(git commit *--no-verify*)"
     ],
     "ask": [
       "Bash(git push)",
@@ -68,6 +75,20 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-git-write.py"
             ],
             "timeout": 30,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-deploy-cli.py"
+            ],
+            "timeout": 10,
             "onFailure": "block"
           }
         ]

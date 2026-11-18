@@ -10,6 +10,8 @@
 完全な防御ではない（権限の deny と併用する）。gcloud・gh の書き込み全般のガードは guard-cloud-cli.py の役割で、ここは重ねない。
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
