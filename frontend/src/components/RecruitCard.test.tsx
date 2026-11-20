@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { FALLBACK_IMAGE } from '../lib/fallback-image';
 import type { RecruitSummary } from '../lib/types';
 import { RecruitCard } from './RecruitCard';
 
@@ -64,13 +65,16 @@ describe('RecruitCard のサムネ', () => {
     expect(arrow?.textContent).toBe('›');
   });
 
-  it('hero_image が null なら、img は出さず、同じ大きさの空き枠（card-thumb-empty）を出す', () => {
+  it('hero_image が null なら、詳細と同じ共通の画像（FALLBACK_IMAGE）を、同じ形のサムネで出す', () => {
     const { container } = render(<RecruitCard job={job({ hero_image: null })} query="" />);
-    expect(container.querySelector('img')).toBeNull();
-    const empty = container.querySelector('div.card-thumb.card-thumb-empty');
-    expect(empty).not.toBeNull();
-    expect(empty).toHaveAttribute('aria-hidden', 'true');
-    expect(container.querySelector('a.card-thumb')).toBeNull();
+    const thumb = container.querySelector('a.card-thumb');
+    expect(thumb).not.toBeNull();
+    expect(thumb).toHaveAttribute('aria-hidden', 'true');
+    const img = thumb?.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src') ?? '').toContain(encodeURIComponent(FALLBACK_IMAGE.src));
+    expect(img).toHaveAttribute('alt', '');
+    expect(container.querySelector('.card-thumb-empty')).toBeNull();
   });
 
   it('サムネは、card-main より前（カードの先頭）に置く', () => {
