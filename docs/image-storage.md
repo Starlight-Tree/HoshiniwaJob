@@ -85,17 +85,20 @@ python -m app.images_cli formfile              # recruits.formfile に値のあ�
 ## バックアップと復旧
 
 マイグレーションの前に、必ずバックアップを取る（`backups/` と `*.dump` は Git に入れない）。
+バックアップは、最新の 1 つだけを、同じ名前へ上書きして持つ（日付つきの名前で増やさない。2026-11-20 にユーザーが決めた個人ルール）。上書きの前に、新しい写しが取れたこと（サイズが 0 でない）を確かめる。
 
 ```bash
 mkdir -p backups
-docker compose exec -T db pg_dump -U hoshiniwa -Fc hoshiniwa > backups/hoshiniwa-$(date +%Y%m%d-%H%M).dump
+docker compose exec -T db pg_dump -U hoshiniwa -Fc hoshiniwa > backups/hoshiniwa.dump.new
+ls -l backups/hoshiniwa.dump.new                    # サイズが 0 でないことを確かめる。0 なら、次の行は実行しない
+mv backups/hoshiniwa.dump.new backups/hoshiniwa.dump   # 古い写しは、これで置き換わる
 ```
 
 復旧（別の DB へ戻して中身を確かめてから、必要なら入れ替える）:
 
 ```bash
 docker compose exec -T db psql -U hoshiniwa -d postgres -c "CREATE DATABASE hoshiniwa_restore"
-docker compose exec -T db pg_restore -U hoshiniwa --no-owner -d hoshiniwa_restore < backups/<ファイル>.dump
+docker compose exec -T db pg_restore -U hoshiniwa --no-owner -d hoshiniwa_restore < backups/hoshiniwa.dump
 ```
 
 - 画像の本体は DB のバックアップに入らない。**ストレージ側の保護**が別に要る（R2 ではバケットの保護の運用を決める）。バケットロックは、取り下げ・削除を妨げるので、開発では掛けない。
