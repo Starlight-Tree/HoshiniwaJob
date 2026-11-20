@@ -1,6 +1,6 @@
 # 画像の一括生成（管理用）
 
-星庭ジョブの画像（トップのヒーロー、求人詳細の雰囲気、園のバナー）を、Gemini の Batch API で事前に生成して保存する。
+星庭ジョブの画像 27 枚（トップのヒーロー、求人詳細と園のバナーのサンプル各 1 枚、求人ごとの画像 24 枚＝`recruits/` 配下）を、Gemini の Batch API で事前に生成して保存する。
 ページを開くたびには生成しない。生成はこのスクリプトからだけ行う。
 
 - モデル: `gemini-nano-banana-2.1`（1K・16:9）
@@ -31,7 +31,8 @@ npm run images:download-results
 # Batch を使わず、Standard API（interactions.create）で 1 枚ずつ生成する場合
 npm run images:generate-single -- --id job-detail-sample
 
-# 画像を確認してから、全件（3 枚）
+# 全件（27 枚。`recruits/` 配下の 24 枚も作り直す）。課金される Batch を作る。
+# 作成の前に件数の表示も確認もない（件数は作成後に出る）。承認を得て、`--all --dry-run` で枚数を確かめてから実行する。
 npm run images:create-batch -- --all
 ```
 
