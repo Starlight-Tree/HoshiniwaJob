@@ -1,7 +1,7 @@
 import type { RecruitSummary } from './types';
 
-// 給与の通貨は架空の「ノクト」（実在の通貨にしない）
-const CURRENCY = 'ノクト';
+// 給与の通貨は架空の「ルミ」（実在の通貨にしない）
+const CURRENCY = 'ルミ';
 
 const SALARY_LABELS: Record<number, string> = { 1: '年俸', 2: '月給', 3: '日給', 4: '時給' };
 
@@ -13,17 +13,11 @@ function yen(n: number): string {
   return n.toLocaleString('ja-JP');
 }
 
-// 1 万以上は「万」にし（18万ノクト、18.5万ノクト）、それ未満はそのまま（1,100ノクト）。
-function man(n: number): string {
-  return String(Math.round(n / 1000) / 10);
-}
-
-/** 給与の範囲を、一覧で見比べやすい短い文字にする。値が無ければ「応相談」。 */
+/** 給与の範囲を、全桁の数字（3 桁ごとの区切り）で出す。値が無ければ「応相談」。海外の求人サイトと同じ書き方（月給も時給も同じ形で、見比べやすい）。 */
 export function payRange(min: number | null, max: number | null): string {
   const lo = min ?? max;
   const hi = max ?? min;
   if (lo === null || hi === null || (lo === 0 && hi === 0)) return '応相談';
-  if (lo >= 10000) return lo === hi ? `${man(lo)}万${CURRENCY}` : `${man(lo)}〜${man(hi)}万${CURRENCY}`;
   return lo === hi ? `${yen(lo)}${CURRENCY}` : `${yen(lo)}〜${yen(hi)}${CURRENCY}`;
 }
 

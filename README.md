@@ -4,7 +4,7 @@
 
 English | [日本語](README.ja.md)
 
-HoshiniwaJob (星庭ジョブ) is a fictional job board for botanical gardens on the Moon, in orbital cities and on the planet Zahard (FastAPI, Next.js, Postgres 17, Docker Compose). The operator "Hoshiniwa Works", the place names, the currency "nokt" and all data are made up.
+HoshiniwaJob (星庭ジョブ) is a fictional job board for botanical gardens on the Moon, in orbital cities and on the planet Zahard (FastAPI, Next.js, Postgres 17, Docker Compose). The operator "Hoshiniwa Works", the place names, the currency "lumi" and all data are made up.
 
 | Job search (with counts per filter) | Job detail (with images) |
 |---|---|

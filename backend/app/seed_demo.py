@@ -18,7 +18,7 @@ from app.settings import database_url, require_demo_data_allowed
 # ローカル専用のダミー。実在のパスワードは使わない。
 DEMO_PASSWORD = "star-garden-demo"
 
-# 給与は架空の通貨「ノクト」（常勤は月給制、それ以外は時給制。通貨の表示は画面側）。
+# 給与は架空の通貨「ルミ」（常勤は月給制、それ以外は時給制。通貨の表示は画面側）。
 # (demo_key, 法人名, 職種名, 雇用形態コード, 最低給与, 最高給与, 地域コード, 乗り場コード, 職種コード, 表示)
 RECRUITS = [
     ("greenhouse-vine-grower", "環軌道植物公社", "無重力蔓の育成士", 1, 180000, 240000, [3], [5], [1], True),
