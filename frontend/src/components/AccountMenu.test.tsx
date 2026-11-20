@@ -2,6 +2,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { THEME_KEY } from '../lib/theme';
+
+vi.mock('../actions/auth', () => ({ updateNameAction: vi.fn(async () => ({})) }));
 import { AccountMenu } from './AccountMenu';
 
 const setup = () => render(<AccountMenu name="試験 花子" email="hanako@example.com" logout={vi.fn(async () => {})} />);
@@ -117,12 +119,12 @@ describe('AccountMenu（パネルを開いたときの名前と矢印）', () =>
 });
 
 describe('AccountMenu（ログインしていない）', () => {
-  it('テーマと、ログイン・会員登録の入口だけを出す（ログアウトは出さない）', async () => {
+  it('テーマと、Google でログインする入口だけを出す（ログアウトは出さない）', async () => {
     render(<AccountMenu loginHref="/login" />);
     const button = screen.getByRole('button', { name: 'メニュー' });
     await userEvent.click(button);
     const menu = screen.getByRole('menu', { name: 'メニュー' });
-    expect(within(menu).getByRole('menuitem', { name: 'ログイン・会員登録' })).toHaveAttribute('href', '/login');
+    expect(within(menu).getByRole('menuitem', { name: 'Google でログイン' })).toHaveAttribute('href', '/login');
     expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(3);
     expect(within(menu).queryByRole('menuitem', { name: 'ログアウト' })).not.toBeInTheDocument();
   });
@@ -133,5 +135,46 @@ describe('AccountMenu（ログインしていない）', () => {
     const menu = screen.getByRole('menu', { name: 'メニュー' });
     expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(3);
     expect(within(menu).queryByRole('menuitem')).not.toBeInTheDocument();
+  });
+});
+
+describe('AccountMenu（DocuNavi と同じ項目）', () => {
+  const nav = { href: '/', label: '求人を探す' };
+  const profile = { lastName: '試験', firstName: '花子' };
+  const logout = vi.fn(async () => {});
+
+  it('ログイン中の項目と順は、メール → 画面への入口 → テーマ → 表示名を変更 → ログアウト', async () => {
+    render(<AccountMenu name="試験 花子" email="hanako@example.com" nav={nav} profile={profile} logout={logout} />);
+    await userEvent.click(screen.getByRole('button', { name: '試験 花子のアカウントメニュー' }));
+    const menu = screen.getByRole('menu', { name: 'アカウント' });
+    const order = [...menu.querySelectorAll('.account-who, [role^="menuitem"]')].map((e) => (e.getAttribute('aria-label') ?? e.textContent ?? '').trim());
+    expect(order).toEqual(['hanako@example.com', '求人を探す', 'ライト', 'ダーク', 'システム', '表示名を変更', 'ログアウト']);
+    expect(within(menu).getByRole('menuitem', { name: '求人を探す' })).toHaveAttribute('href', '/');
+  });
+
+  it('ログインしていない人にも、画面への入口を出す（ナレッジを出す DocuNavi と同じ）', async () => {
+    render(<AccountMenu nav={nav} loginHref="/login" />);
+    await userEvent.click(screen.getByRole('button', { name: 'メニュー' }));
+    const menu = screen.getByRole('menu', { name: 'メニュー' });
+    expect(within(menu).getByRole('menuitem', { name: '求人を探す' })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: '表示名を変更' })).not.toBeInTheDocument();
+  });
+
+  it('profile を渡さなければ（園）、表示名を変更は出さない', async () => {
+    render(<AccountMenu name="環軌道植物公社" email="garden@example.com" nav={{ href: '/garden', label: 'ダッシュボード' }} logout={logout} />);
+    await userEvent.click(screen.getByRole('button', { name: '環軌道植物公社のアカウントメニュー' }));
+    expect(screen.queryByRole('menuitem', { name: '表示名を変更' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'ダッシュボード' })).toHaveAttribute('href', '/garden');
+  });
+
+  it('表示名を変更を押すと、メニューを閉じて、いまの姓・名が入ったダイアログを開く', async () => {
+    render(<AccountMenu name="試験 花子" email="hanako@example.com" nav={nav} profile={profile} logout={logout} />);
+    const button = screen.getByRole('button', { name: '試験 花子のアカウントメニュー' });
+    await userEvent.click(button);
+    await userEvent.click(screen.getByRole('menuitem', { name: '表示名を変更' }));
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    const dialog = screen.getByRole('dialog', { name: '表示名を変更' });
+    expect(within(dialog).getByLabelText('姓')).toHaveValue('試験');
+    expect(within(dialog).getByLabelText('名')).toHaveValue('花子');
   });
 });

@@ -249,6 +249,9 @@ h1, h2 { line-height: 1.4; }
 .toggle-password { position: absolute; right: 6px; top: 6px; min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .toggle-password:hover { background: var(--tag-bg); }
 .form-alert { margin: 0; padding: 12px 16px; background: var(--error-bg); border: 1px solid var(--error-border); border-radius: 8px; color: var(--error-text); font-size: 14px; font-weight: 500; }
+.auth-lead { margin: -8px 0 20px; font-size: 14px; color: var(--muted); text-align: center; }
+.google-login { display: flex; align-items: center; justify-content: center; margin-top: 0; text-decoration: none; }
+.google-login:hover { color: var(--on-primary); }
 .auth-alt { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; }
 .auth-alt p { margin: 0; font-size: 14px; color: var(--muted); }
 .auth-alt .outline-button { justify-content: center; padding: 0 28px; border-radius: 10px; font-size: 14px; background: var(--surface); }
@@ -400,3 +403,13 @@ h1, h2 { line-height: 1.4; }
   .app-sidebar[data-open='true'] .account-caret { display: block; flex: none; }
   .app-sidebar[data-open='true'] .account-menu { top: auto; right: 0; bottom: calc(100% + 0.35rem); left: 0; width: auto; }
 }
+
+/* 表示名の変更（標準の <dialog>）。背景の色は、色の変数（--shadow）だけを使う */
+.name-dialog { width: min(28rem, calc(100vw - 32px)); padding: 24px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: 0 8px 24px var(--shadow); }
+.name-dialog::backdrop { background: var(--shadow); }
+.name-dialog h2 { margin: 0 0 8px; font-size: 16.8px; }
+.name-dialog-note { margin: 0 0 16px; font-size: 13.6px; color: var(--muted); }
+.name-dialog .form-alert { margin-bottom: 16px; }
+.name-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+.name-dialog-actions .primary-button, .name-dialog-actions .outline-button { display: inline-flex; align-items: center; justify-content: center; width: auto; min-height: 44px; margin-top: 0; padding: 0 24px; font: inherit; font-size: 14.4px; }
+.name-dialog-actions .outline-button { background: var(--surface); cursor: pointer; }

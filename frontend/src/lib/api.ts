@@ -26,7 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-type CallOptions = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown; token?: string; raw?: { bytes: ArrayBuffer; contentType: string } };
+type CallOptions = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; token?: string; raw?: { bytes: ArrayBuffer; contentType: string } };
 
 async function call(path: string, { method = 'GET', body, token, raw }: CallOptions = {}): Promise<Response> {
   const headers: Record<string, string> = {};
@@ -85,6 +85,18 @@ export async function registerRequest(input: RegisterInput): Promise<Session> {
 }
 
 export const fetchMe = (token: string) => get<User>('/api/auth/me', token);
+
+// Google でのログイン。Google から戻った code と、画面のサーバーが作った PKCE の verifier・nonce を渡す。コードの交換と検証は API がする（クライアントのシークレットは API だけが持つ）。
+export type GoogleLoginInput = { code: string; code_verifier: string; nonce: string; redirect_uri: string };
+
+export async function googleLoginRequest(input: GoogleLoginInput): Promise<Session> {
+  return json<Session>(await call('/api/auth/google', { method: 'POST', body: input }));
+}
+
+/** お名前（姓・名）の変更。変えられるのは、トークンの持ち主本人だけ。 */
+export async function updateNameRequest(token: string, input: { last_name: string; first_name: string }): Promise<User> {
+  return json<User>(await call('/api/auth/me', { method: 'PATCH', token, body: input }));
+}
 
 export async function logoutRequest(token: string): Promise<void> {
   const res = await call('/api/auth/logout', { method: 'POST', token });

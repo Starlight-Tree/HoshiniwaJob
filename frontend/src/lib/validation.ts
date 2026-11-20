@@ -24,6 +24,11 @@ function compact(errors: FieldErrors): FieldErrors {
   return Object.fromEntries(Object.entries(errors).filter(([, v]) => v !== undefined)) as FieldErrors;
 }
 
+/** お名前の変更（姓・名）。登録と同じ決まり。 */
+export function validateName(input: { last_name: string; first_name: string }): FieldErrors {
+  return compact({ last_name: name(input.last_name, '姓'), first_name: name(input.first_name, '名') });
+}
+
 export function validateLogin(input: { email: string; password: string }): FieldErrors {
   return compact({
     email: email(input.email),

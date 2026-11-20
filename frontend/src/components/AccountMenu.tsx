@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { chooseTheme, clearTheme, themeChoice } from '../lib/theme';
 import type { Theme } from '../lib/theme';
+import { DisplayNameDialog } from './DisplayNameDialog';
 import { PersonIcon } from './icons';
 import { THEME_OPTIONS } from './themeOptions';
 
@@ -15,8 +17,12 @@ type Props = {
   logout?: () => Promise<void>;
   /** プロフィール画像の URL。https のときだけ表示し、読めなければ人型アイコンに戻す（DocuNavi と同じ）。 */
   image?: string | null;
-  /** ログインしていない人のメニューに出す、ログイン・会員登録の行き先。 */
+  /** ログインしていない人のメニューに出す、ログイン（Google）の行き先。 */
   loginHref?: string;
+  /** メニューの先頭に出す、画面への入口（DocuNavi の「ナレッジ」にあたる。求職者は「求人を探す」、園は「ダッシュボード」）。 */
+  nav?: { href: string; label: string };
+  /** 渡すと、「表示名を変更」を出す（お名前の姓・名を変えられる人だけ。園は渡さない）。 */
+  profile?: { lastName: string | null; firstName: string | null };
 };
 
 /**
@@ -25,7 +31,9 @@ type Props = {
  * 開いたら先頭の項目にフォーカスを置く。↑↓ で移動、Esc で閉じてボタンへ戻る。メニューの外を押しても閉じる。
  * テーマを選ぶと localStorage に保存し、以後は OS より優先する（「システム」で OS に従う状態へ戻す）。保存値は、開いたときに読む（サーバーの出力とずれないよう、描画の最初には読まない）。
  */
-export function AccountMenu({ name, email, logout, image, loginHref }: Props) {
+export function AccountMenu({ name, email, logout, image, loginHref, nav, profile }: Props) {
+  const pathname = usePathname();
+  const [nameOpen, setNameOpen] = useState(false);
   const signedIn = name !== undefined && email !== undefined && logout !== undefined;
   // 読み込みに失敗した URL は覚えて、人型アイコンに戻す（URL が変わったら、また試す）
   const [failedImage, setFailedImage] = useState<string | null>(null);
@@ -70,6 +78,11 @@ export function AccountMenu({ name, email, logout, image, loginHref }: Props) {
           {signedIn ? (
             <p className="account-who">{email}</p>
           ) : null}
+          {nav ? (
+            <Link href={nav.href} role="menuitem" className="account-item" aria-current={pathname === nav.href ? 'page' : undefined} onClick={() => setOpen(false)}>
+              {nav.label}
+            </Link>
+          ) : null}
           <div role="group" aria-label="テーマ" className="account-theme">
             <span className="account-theme-label" aria-hidden="true">
               テーマ
@@ -95,6 +108,19 @@ export function AccountMenu({ name, email, logout, image, loginHref }: Props) {
               ))}
             </span>
           </div>
+          {signedIn && profile ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="account-item"
+              onClick={() => {
+                setOpen(false);
+                setNameOpen(true);
+              }}
+            >
+              表示名を変更
+            </button>
+          ) : null}
           {signedIn ? (
             <form action={logout}>
               <button type="submit" role="menuitem" className="account-item">
@@ -103,7 +129,7 @@ export function AccountMenu({ name, email, logout, image, loginHref }: Props) {
             </form>
           ) : loginHref ? (
             <Link href={loginHref} role="menuitem" className="account-item" onClick={() => setOpen(false)}>
-              ログイン・会員登録
+              Google でログイン
             </Link>
           ) : null}
         </div>
@@ -136,6 +162,7 @@ export function AccountMenu({ name, email, logout, image, loginHref }: Props) {
           ▴
         </span>
       </button>
+      {nameOpen && profile ? <DisplayNameDialog lastName={profile.lastName} firstName={profile.firstName} onClose={() => setNameOpen(false)} /> : null}
     </div>
   );
 }
