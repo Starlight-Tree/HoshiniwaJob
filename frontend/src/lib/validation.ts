@@ -24,7 +24,7 @@ function compact(errors: FieldErrors): FieldErrors {
   return Object.fromEntries(Object.entries(errors).filter(([, v]) => v !== undefined)) as FieldErrors;
 }
 
-/** お名前の変更（姓・名）。登録と同じ決まり。 */
+/** お名前の変更（姓・名）。それぞれ 1〜50 文字。 */
 export function validateName(input: { last_name: string; first_name: string }): FieldErrors {
   return compact({ last_name: name(input.last_name, '姓'), first_name: name(input.first_name, '名') });
 }
@@ -38,21 +38,6 @@ export function validateLogin(input: { email: string; password: string }): Field
         ? 'パスワードを入力してください'
         : count(input.password) > 128
           ? 'パスワードは 128 文字以内で入力してください'
-          : undefined,
-  });
-}
-
-export function validateRegister(input: { last_name: string; first_name: string; email: string; password: string }): FieldErrors {
-  const n = count(input.password);
-  return compact({
-    last_name: name(input.last_name, '姓'),
-    first_name: name(input.first_name, '名'),
-    email: email(input.email),
-    password:
-      n === 0
-        ? 'パスワードを入力してください'
-        : n < 8 || n > 128
-          ? `パスワードは 8 文字以上 128 文字以内で入力してください（いま ${n} 文字）`
           : undefined,
   });
 }

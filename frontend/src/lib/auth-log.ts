@@ -1,0 +1,10 @@
+// ログイン処理で握りつぶす例外の、ログへの 1 行。依存を持たない（単体で試せる）。
+// 画面は「ログアウトに見える」「ログインに失敗しました」としか出さないので、原因（migrate の前に使った・BETTER_AUTH_SECRET を変えた・URL の書き間違い）は、ここでしか分からない。
+// 出すのは、場所と、例外の名前・短くした本文だけ。Better Auth と pg の本文には、秘密（接続文字列・Secret）が入らない。
+
+/** `auth: <場所> failed: <名前>: <本文（200 文字まで）>` を console.error に出す。 */
+export function logAuthError(where: string, error: unknown): void {
+  const name = error instanceof Error ? error.name : 'Error';
+  const message = error instanceof Error ? error.message.replace(/\s+/g, ' ').slice(0, 200) : '';
+  console.error(`auth: ${where} failed: ${name}${message ? `: ${message}` : ''}`);
+}

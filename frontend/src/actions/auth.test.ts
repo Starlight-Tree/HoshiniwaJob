@@ -7,9 +7,11 @@ const store = new Map<string, { value: string; options?: Record<string, unknown>
 vi.mock('next/headers', () => ({
   cookies: async () => ({
     get: (k: string) => (store.has(k) ? { name: k, value: store.get(k)!.value } : undefined),
+    getAll: () => [...store.entries()].map(([name, c]) => ({ name, value: c.value })),
     set: (k: string, value: string, options?: Record<string, unknown>) => void store.set(k, { value, options }),
     delete: (k: string) => void store.delete(k),
   }),
+  headers: async () => new Headers({ cookie: 'x=1' }),
 }));
 class Redirected extends Error {
   constructor(readonly to: string) {
@@ -22,7 +24,14 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
-const { loginAction, logoutAction, registerAction, updateNameAction } = await import('./auth');
+// Better Auth は、本物を動かさない（DB・Google へつなげない）。サーバー側の関数だけを差し替える
+const api = vi.hoisted(() => ({ signInSocial: vi.fn(), signOut: vi.fn(), getToken: vi.fn() }));
+const authRef = vi.hoisted(() => ({ current: null as { api: typeof api } | null }));
+vi.mock('../lib/auth', () => ({ getAuth: () => authRef.current }));
+const token = vi.hoisted(() => ({ value: null as string | null }));
+vi.mock('../lib/session', () => ({ userToken: async () => token.value }));
+
+const { googleLoginAction, logoutAction, updateNameAction } = await import('./auth');
 
 const form = (fields: Record<string, string>) => {
   const f = new FormData();
@@ -31,97 +40,41 @@ const form = (fields: Record<string, string>) => {
 };
 const reply = (status: number, body?: unknown) =>
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(body === undefined ? null : JSON.stringify(body), { status }));
-const session = { token: 'tok-123', user: { id: 1, email: 'a@example.com', last_name: '試験', first_name: '花子' } };
 
-beforeEach(() => store.clear());
-
-describe('loginAction', () => {
-  it('成功したらトークンを HttpOnly の Cookie に入れて / へ移す', async () => {
-    const fetchMock = reply(200, session);
-    await expect(loginAction({}, form({ email: ' a@example.com ', password: 'pw-pw-pw-1' }))).rejects.toMatchObject({ to: '/' });
-    expect(store.get('hj_session')?.value).toBe('tok-123');
-    expect(store.get('hj_session')?.options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/' });
-    const [, init] = fetchMock.mock.calls[0]!;
-    expect(JSON.parse(String(init?.body))).toEqual({ email: 'a@example.com', password: 'pw-pw-pw-1' });
-    expect(store.has('hj_registered')).toBe(false);
-  });
-
-  it('401 は固定の文を返し、Cookie は作らない。入力したメールは残す', async () => {
-    reply(401, { detail: 'メールアドレスまたはパスワードが違います' });
-    const state = await loginAction({}, form({ email: 'a@example.com', password: 'wrong-pw' }));
-    expect(state.error).toBe('メールアドレスまたはパスワードが違います');
-    expect(state.values).toEqual({ email: 'a@example.com' });
-    expect(JSON.stringify(state)).not.toContain('wrong-pw');
-    expect(store.size).toBe(0);
-  });
-
-  it('形式の誤りは、API を呼ばずに返す', async () => {
-    const fetchMock = reply(200, session);
-    const state = await loginAction({}, form({ email: 'nope', password: '' }));
-    expect(state.fieldErrors?.email).toBeDefined();
-    expect(state.fieldErrors?.password).toBeDefined();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('API に届かないときは、例外の文字列を出さず固定の文にする', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.5:8000'));
-    const state = await loginAction({}, form({ email: 'a@example.com', password: 'pw-pw-pw-1' }));
-    expect(state.error).toBe('ただいま利用できません。しばらくしてから、もう一度お試しください');
-    expect(JSON.stringify(state)).not.toContain('ECONNREFUSED');
-  });
+beforeEach(() => {
+  store.clear();
+  api.signInSocial.mockReset();
+  api.signOut.mockReset();
+  authRef.current = { api };
+  token.value = null;
 });
 
-describe('registerAction', () => {
-  const input = { last_name: '試験', first_name: '花子', email: 'a@example.com', password: 'correct-horse-1' };
-
-  it('成功したらログイン状態にし、完了メッセージの印を付けて / へ移す', async () => {
-    reply(201, session);
-    await expect(registerAction({}, form(input))).rejects.toMatchObject({ to: '/' });
-    expect(store.get('hj_session')?.value).toBe('tok-123');
-    expect(store.get('hj_registered')?.value).toBe('1');
-    expect(store.get('hj_registered')?.options).toMatchObject({ maxAge: 60 });
+describe('googleLoginAction', () => {
+  it('Google の同意画面の URL へ移す。失敗・取り消しの戻りはログイン画面にする', async () => {
+    api.signInSocial.mockResolvedValue({ url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1', redirect: true });
+    await expect(googleLoginAction()).rejects.toMatchObject({ to: 'https://accounts.google.com/o/oauth2/v2/auth?x=1' });
+    expect(api.signInSocial).toHaveBeenCalledOnce();
+    expect(api.signInSocial.mock.calls[0]![0].body).toEqual({ provider: 'google', callbackURL: '/', errorCallbackURL: '/login' });
   });
 
-  it('409 は、ログイン失敗と同じ形（error）で固定の文を返す。パスワードは返さない', async () => {
-    reply(409, { detail: 'このメールアドレスは登録できません' });
-    const state = await registerAction({}, form(input));
-    expect(state.error).toBe('このメールアドレスは登録できません');
-    expect(state.values).toEqual({ last_name: '試験', first_name: '花子', email: 'a@example.com' });
-    expect(JSON.stringify(state)).not.toContain('correct-horse-1');
-    expect(store.size).toBe(0);
+  it('設定が足りないときは、Better Auth を呼ばずに、ログイン画面へ（まだ設定されていません）', async () => {
+    authRef.current = null;
+    await expect(googleLoginAction()).rejects.toMatchObject({ to: '/login?error=not_configured' });
+    expect(api.signInSocial).not.toHaveBeenCalled();
   });
 
-  it('短いパスワードは、API を呼ばずに文字数つきで返す', async () => {
-    const fetchMock = reply(201, session);
-    const state = await registerAction({}, form({ ...input, password: 'abc123' }));
-    expect(state.fieldErrors?.password).toContain('いま 6 文字');
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-describe('logoutAction', () => {
-  it('API のトークンを無効にして、Cookie を消し、/ へ移す', async () => {
-    store.set('hj_session', { value: 'tok-123' });
-    const fetchMock = reply(204);
-    await expect(logoutAction()).rejects.toMatchObject({ to: '/' });
-    expect(store.has('hj_session')).toBe(false);
-    const [url, init] = fetchMock.mock.calls[0]!;
-    expect(String(url)).toContain('/api/auth/logout');
-    expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok-123');
-  });
-
-  it('API に届かなくても、Cookie は消す', async () => {
-    store.set('hj_session', { value: 'tok-123' });
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('down'));
-    await expect(logoutAction()).rejects.toMatchObject({ to: '/' });
-    expect(store.has('hj_session')).toBe(false);
+  it('Better Auth が失敗しても（URL が無い・例外）、例外の文字列を出さず、ログイン画面へ', async () => {
+    api.signInSocial.mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.5:5432'));
+    await expect(googleLoginAction()).rejects.toMatchObject({ to: '/login?error=google_failed' });
+    api.signInSocial.mockResolvedValue({ redirect: false });
+    await expect(googleLoginAction()).rejects.toMatchObject({ to: '/login?error=google_failed' });
   });
 });
 
 describe('updateNameAction', () => {
-  const loggedIn = () => store.set('hj_session', { value: 'tok-123' });
+  const loggedIn = () => (token.value = 'jwt-123');
 
-  it('成功したら、トークンを付けて API に姓・名を送り、サイドパネルを更新する（保存できた印を返す）', async () => {
+  it('成功したら、JWT を付けて API に姓・名を送り、サイドパネルを更新する（保存できた印を返す）', async () => {
     loggedIn();
     const fetchMock = reply(200, { id: 1, email: 'a@example.com', last_name: '新姓', first_name: '新名' });
     const state = await updateNameAction({}, form({ last_name: ' 新姓 ', first_name: '新名' }));
@@ -129,7 +82,7 @@ describe('updateNameAction', () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain('/api/auth/me');
     expect(init?.method).toBe('PATCH');
-    expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok-123');
+    expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer jwt-123');
     expect(JSON.parse(String(init?.body))).toEqual({ last_name: '新姓', first_name: '新名' });
     expect(revalidate).toHaveBeenCalledWith('/', 'layout');
   });
@@ -143,10 +96,10 @@ describe('updateNameAction', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('ログインしていなければ（Cookie が無い）、API を呼ばない', async () => {
+  it('ログインしていなければ（JWT が取れない）、API を呼ばない', async () => {
     const fetchMock = reply(200, {});
     const state = await updateNameAction({}, form({ last_name: '姓', first_name: '名' }));
-    expect(state.error).toBe('ログインしてください');
+    expect(state.error).toContain('有効期限');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -158,6 +111,28 @@ describe('updateNameAction', () => {
     const state = await updateNameAction({}, form({ last_name: '姓', first_name: '名' }));
     expect(state.error).toBe('ただいま利用できません。しばらくしてから、もう一度お試しください');
     expect(JSON.stringify(state)).not.toContain('ECONNREFUSED');
-    expect(revalidate).not.toHaveBeenCalled();
+  });
+});
+
+describe('logoutAction', () => {
+  it('Better Auth でサーバー側の印を消し、/ へ移す', async () => {
+    api.signOut.mockResolvedValue({ success: true });
+    await expect(logoutAction()).rejects.toMatchObject({ to: '/' });
+    expect(api.signOut).toHaveBeenCalledOnce();
+  });
+
+  it('Better Auth に届かなくても、この端末の Better Auth の Cookie だけは消す（園の Cookie・他のアプリの Cookie は残す）', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    store.set('hoshiniwajob.session_token', { value: 'x' });
+    store.set('__Secure-hoshiniwajob.session_token', { value: 'y' });
+    store.set('better-auth.session_token', { value: 'docunavi' }); // 同じ localhost の別のアプリ（接頭辞が違う）
+    store.set('hj_garden_session', { value: 'garden-tok' });
+    api.signOut.mockRejectedValue(new Error('down'));
+    await expect(logoutAction()).rejects.toMatchObject({ to: '/' });
+    // 期限切れにして上書きする。https の Cookie は、Secure を付けないと、ブラウザーが消させない
+    expect(store.get('hoshiniwajob.session_token')).toMatchObject({ value: '', options: { maxAge: 0, secure: false } });
+    expect(store.get('__Secure-hoshiniwajob.session_token')).toMatchObject({ value: '', options: { maxAge: 0, secure: true } });
+    expect(store.get('better-auth.session_token')?.value).toBe('docunavi');
+    expect(store.get('hj_garden_session')?.value).toBe('garden-tok');
   });
 });

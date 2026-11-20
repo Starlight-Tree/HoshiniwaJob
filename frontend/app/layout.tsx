@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
 
-// サイドパネルとフッターは、画面のグループごとの layout.tsx にある（求人の画面は (site)、園の管理は garden）。ログイン・会員登録（(auth)）は、迷わないよう上の帯だけ
+// サイドパネルは、画面のグループごとの layout.tsx にある（求人の画面は (site)、園の管理は garden）。ログイン・会員登録（(auth)）は、迷わないよう上の帯だけ
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // data-theme は描画前のスクリプトが付ける（サーバーの出力とは違うので、警告を止める）

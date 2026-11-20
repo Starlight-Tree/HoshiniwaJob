@@ -8,7 +8,6 @@ import type {
   Master,
   RecruitDetail,
   RecruitPage,
-  Session,
   User,
 } from './types';
 import { KINDS, type Selection } from './search';
@@ -73,34 +72,12 @@ export function fetchRecruits(sel: Selection, perPage = 10): Promise<RecruitPage
 
 export const fetchRecruit = (id: number) => get<RecruitDetail>(`/api/recruits/${id}`);
 
-// 求職者の認証。トークンは画面のサーバーだけが持つ（Cookie に入れるのは session.ts）。
-export async function loginRequest(email: string, password: string): Promise<Session> {
-  return json<Session>(await call('/api/auth/login', { method: 'POST', body: { email, password } }));
-}
-
-export type RegisterInput = { last_name: string; first_name: string; email: string; password: string };
-
-export async function registerRequest(input: RegisterInput): Promise<Session> {
-  return json<Session>(await call('/api/auth/register', { method: 'POST', body: input }));
-}
-
+// 求職者の API。ログインは Better Auth（lib/auth.ts）。ここへ渡すトークンは、そこが出す JWT（session.ts の userToken）。
 export const fetchMe = (token: string) => get<User>('/api/auth/me', token);
-
-// Google でのログイン。Google から戻った code と、画面のサーバーが作った PKCE の verifier・nonce を渡す。コードの交換と検証は API がする（クライアントのシークレットは API だけが持つ）。
-export type GoogleLoginInput = { code: string; code_verifier: string; nonce: string; redirect_uri: string };
-
-export async function googleLoginRequest(input: GoogleLoginInput): Promise<Session> {
-  return json<Session>(await call('/api/auth/google', { method: 'POST', body: input }));
-}
 
 /** お名前（姓・名）の変更。変えられるのは、トークンの持ち主本人だけ。 */
 export async function updateNameRequest(token: string, input: { last_name: string; first_name: string }): Promise<User> {
   return json<User>(await call('/api/auth/me', { method: 'PATCH', token, body: input }));
-}
-
-export async function logoutRequest(token: string): Promise<void> {
-  const res = await call('/api/auth/logout', { method: 'POST', token });
-  if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
 }
 
 // 園の認証。利用者とは別の API・別のトークン（Cookie に入れるのは session.ts）。

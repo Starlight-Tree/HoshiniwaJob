@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { logoutAction } from '../../src/actions/auth';
 import { AccountMenu } from '../../src/components/AccountMenu';
 import { AppSidebar } from '../../src/components/AppSidebar';
-import { SiteFooter } from '../../src/components/SiteFooter';
 import { currentUser, displayName } from '../../src/lib/session';
 
 const SEARCH_NAV = { href: '/', label: '求人を探す' };
@@ -27,7 +26,6 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       </AppSidebar>
       <div className="app-main">
         <div className="app-content">{children}</div>
-        <SiteFooter />
       </div>
     </div>
   );

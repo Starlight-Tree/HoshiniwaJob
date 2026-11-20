@@ -39,7 +39,7 @@ describe('gardenLoginAction', () => {
     await expect(gardenLoginAction({}, form({ email: ' garden@example.com ', password: 'pw-pw-pw-1' }))).rejects.toMatchObject({ to: '/garden' });
     expect(store.get('hj_garden_session')?.value).toBe('garden-tok');
     expect(store.get('hj_garden_session')?.options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/' });
-    expect(store.has('hj_session')).toBe(false);
+    expect([...store.keys()].filter((name) => name.includes('hoshiniwajob.'))).toEqual([]); // 求職者（Better Auth）の Cookie は作らない
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain('/api/garden/auth/login');
     expect(JSON.parse(String(init?.body))).toEqual({ email: 'garden@example.com', password: 'pw-pw-pw-1' });
@@ -73,11 +73,11 @@ describe('gardenLoginAction', () => {
 describe('gardenLogoutAction', () => {
   it('園のトークンを無効にして園の Cookie だけを消し、/garden/login へ移す', async () => {
     store.set('hj_garden_session', { value: 'garden-tok' });
-    store.set('hj_session', { value: 'user-tok' });
+    store.set('hoshiniwajob.session_token', { value: 'user-tok' });
     const fetchMock = reply(204);
     await expect(gardenLogoutAction()).rejects.toMatchObject({ to: '/garden/login' });
     expect(store.has('hj_garden_session')).toBe(false);
-    expect(store.get('hj_session')?.value).toBe('user-tok');
+    expect(store.get('hoshiniwajob.session_token')?.value).toBe('user-tok');
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain('/api/garden/auth/logout');
     expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer garden-tok');

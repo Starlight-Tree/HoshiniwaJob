@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { FilterForm } from '../../src/components/FilterForm';
 import { Pagination } from '../../src/components/Pagination';
-import { RegisteredNotice } from '../../src/components/RegisteredNotice';
 import { RecruitCard } from '../../src/components/RecruitCard';
 import { SelectedChips } from '../../src/components/SelectedChips';
 import { fetchFacets, fetchMaster, fetchRecruits } from '../../src/lib/api';
@@ -28,7 +27,6 @@ export default async function Home({ searchParams }: Props) {
   if (data === null) {
     return (
       <main className="page">
-        <RegisteredNotice />
         <h1>宇宙の植物園・ガーデンの求人</h1>
         <div className="notice" role="alert">
           <p>求人を読み込めませんでした。しばらくしてから、もう一度開いてください。</p>
@@ -48,7 +46,6 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <main className="page">
-      <RegisteredNotice />
       <div className="title-row">
         <h1>宇宙の植物園・ガーデンの求人</h1>
         <p className="result-count" aria-live="polite">

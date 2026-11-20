@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { FormAction } from '../lib/form-state';
-import { LoginForm, RegisterForm } from './AuthForm';
+import { LoginForm } from './AuthForm';
 
 describe('LoginForm', () => {
   it('失敗の文を、フォームの上の alert に出し、入力したメールは残す', async () => {
@@ -33,27 +33,5 @@ describe('LoginForm', () => {
     expect(input).toHaveAttribute('type', 'text');
     await userEvent.click(screen.getByRole('button', { name: '隠す' }));
     expect(input).toHaveAttribute('type', 'password');
-  });
-});
-
-describe('RegisterForm', () => {
-  it('項目ごとのエラーを入力欄に結び付ける', async () => {
-    const action: FormAction = vi.fn(async () => ({
-      fieldErrors: { email: 'メールアドレスの形式が正しくありません（例: name@example.com）', password: 'パスワードは 8 文字以上 128 文字以内で入力してください（いま 6 文字）' },
-      values: { last_name: '試験', first_name: '花子', email: 'hanako@example' },
-    }));
-    render(<RegisterForm action={action} />);
-    await userEvent.click(screen.getByRole('button', { name: '登録してログインする' }));
-    const email = await screen.findByLabelText('メールアドレス');
-    expect(email).toHaveAttribute('aria-invalid', 'true');
-    expect(email).toHaveAccessibleDescription('メールアドレスの形式が正しくありません（例: name@example.com）');
-    expect(screen.getByLabelText(/パスワード/)).toHaveAccessibleDescription(/いま 6 文字/);
-    expect(screen.getByLabelText('姓')).toHaveValue('試験');
-  });
-
-  it('409 は、ログインと同じ alert に出る', async () => {
-    render(<RegisterForm action={vi.fn(async () => ({ error: 'このメールアドレスは登録できません' }))} />);
-    await userEvent.click(screen.getByRole('button', { name: '登録してログインする' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('このメールアドレスは登録できません');
   });
 });
