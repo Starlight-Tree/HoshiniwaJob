@@ -21,7 +21,7 @@ README の Quick start の続き。ローカルでの開発・テスト・ダミ
 cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.in
 TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:55432/postgres .venv/bin/python -m pytest -q
 
-cd frontend && npm ci && npm test && npm run build && npm run typecheck   # typecheck は build の後
+cd frontend && npm ci && npm test && npm run build && npm run typecheck   # typecheck は build の後。ホストで実行する（開発コンテナの作業ツリーでは npm ci しない）
 ```
 
 上の検査と、版の整合・compose の構文・`scripts/` のテストを、まとめて流すには `scripts/verify.sh [段]`（段: `backend` `frontend` `lint` `scripts` `all`）。
@@ -71,4 +71,4 @@ docker compose run --rm migrate                                   # 適用
 
 ## 秘密の検査
 
-コミットの前後に、登録した語（実プロジェクト ID など）が入っていないかを `scripts/check-sensitive-terms.sh` で検査できる。語は Git の管理外の `.git/sensitive-terms` に置く（リポジトリには置かない）。
+コミットの前後に、登録した語（実プロジェクト ID など）が入っていないかを `scripts/check-sensitive-terms.sh` で検査できる。語は Git の管理外の `.git/sensitive-terms` に置く（リポジトリには置かない。エージェントは、この中身を読まず、表示しない）。台帳に書いてよいプロジェクト ID と、登録語に入れた語は別で、登録語に当たるものは書かない。

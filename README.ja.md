@@ -49,7 +49,7 @@ docker compose up -d --build
 - Google でのログインには、Google Cloud Console で作る OAuth クライアント（種類: ウェブ。コマンドや API はありません）が要ります。リダイレクト URI は `http://localhost:3200/api/auth/callback/google` です。そのあと、`scripts/login-secrets.sh <Infisical のプロジェクト ID>` で 3 つの値を登録します（クライアント ID とシークレットは、画面に出さずに入力します。`BETTER_AUTH_SECRET` はその場で 1 回だけ作り、作り直しません）。起動は `infisical run --projectId <プロジェクト ID> --env dev -- docker compose up -d` です。Infisical を使わないときは、`GOOGLE_CLIENT_ID`・`GOOGLE_CLIENT_SECRET`・`BETTER_AUTH_SECRET`（32 文字以上のランダムな値。例: `openssl rand -base64 32`）を `.env`（Git に入れない）に書き、`docker compose up -d` します。画面を使う前に `migrate`（マイグレーション 0004 が `auth_` の表を足します）を 1 回流してください。先に画面を使ったときは、`frontend` コンテナを再起動します。無いときは、ログイン画面に「Google でのログインは、まだ設定されていません」と出ます。シークレットは画面のコンテナ（Better Auth）が持ち、API には渡しません。
 - **`BETTER_AUTH_SECRET` は、決めたら変えません。** DB の `auth_jwks` の署名鍵と、`auth_account` の Google のトークンを暗号化しているためです。変えると、全員がログアウトに見え、画面のログに `Failed to decrypt private key` と出ます。直すには `auth_jwks` の行を消す必要があります（消す前に確認します）。DB のバックアップと一緒に、Infisical で持ちます。
 
-テスト: `cd backend && pip install -r requirements.txt -r requirements-dev.in && TEST_DATABASE_URL=<Postgres の URL> pytest` と `cd frontend && npm ci && npm test && npm run build && npm run typecheck`。`TEST_DATABASE_URL` が無いと、DB を使うテストは飛ばされます。
+テスト: `cd backend && pip install -r requirements.txt -r requirements-dev.in && TEST_DATABASE_URL=<Postgres の URL> pytest` と `cd frontend && npm ci && npm test && npm run build && npm run typecheck`（ホストで実行します。開発コンテナの作業ツリーで `npm ci` すると、ホストの `node_modules` を上書きしうります）。`TEST_DATABASE_URL` が無いと、DB を使うテストは飛ばされます。
 
 ## ドキュメント
 
