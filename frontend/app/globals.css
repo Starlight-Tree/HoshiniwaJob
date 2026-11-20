@@ -132,24 +132,48 @@ h1, h2 { line-height: 1.4; }
 .result-count strong { font-size: 20px; line-height: 1; color: var(--primary); margin-right: 2px; }
 .result-count .range { font-size: 13px; }
 
-.layout { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
-
-/* しぼり込み */
-.filter { flex: 0 0 280px; max-width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 20px 20px; }
-.filter fieldset { border: 0; border-bottom: 1px solid var(--border-soft); margin: 0; padding: 16px 0; min-width: 0; }
-.filter legend { float: left; width: 100%; font-size: 14px; font-weight: 700; padding: 0; margin-bottom: 8px; }
-.filter legend + * { clear: both; }
-.option { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 14px; }
+/* しぼり込み（上の横並びのチップ。DocuNavi の資料一覧と同じ形）。チップを押すと、真下に選択肢の一覧が開く（複数選べる）。開閉はブラウザー標準の <details> */
+.filter-bar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
+.facet { position: relative; min-width: 0; max-width: 100%; }
+.facet-summary { display: flex; width: 11.5rem; max-width: 100%; min-height: 2.4rem; box-sizing: border-box; align-items: center; gap: 0.4rem; padding: 0 0.6rem 0 0.7rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--surface); color: var(--text); font-size: 14.4px; white-space: nowrap; list-style: none; cursor: pointer; }
+.facet-summary::-webkit-details-marker { display: none; }
+.facet-summary:hover, .facet[open] > .facet-summary { background: var(--surface-muted); }
+.facet-label { color: var(--muted); font-size: 12.8px; }
+.facet-value { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.facet-more { flex: none; color: var(--primary); font-size: 12.8px; font-weight: 700; }
+.facet-caret { margin-left: auto; color: var(--muted); font-size: 12px; }
+.facet[data-active='true'] > .facet-summary { border-color: var(--primary); background: var(--tag-bg); }
+.facet[data-active='true'] .facet-value { font-weight: 600; }
+.facet-panel { position: absolute; z-index: 20; top: calc(100% + 0.3rem); left: 0; width: 18rem; max-width: calc(100vw - 32px); max-height: 22rem; padding: 0.4rem; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--surface); box-shadow: 0 8px 24px var(--shadow); }
+.facet-panel-wide { width: 22rem; }
+/* 左端そろえだと画面の右へはみ出すとき（開いたときに FilterForm が data-align を付ける）は、チップの右端にそろえる */
+.facet[data-align='end'] > .facet-panel { right: 0; left: auto; }
+.facet-panel fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.option { display: flex; align-items: center; gap: 10px; padding: 6px 0.5rem; border-radius: 0.5rem; font-size: 14px; }
+.option:hover { background: var(--surface-muted); }
+.option-empty:hover { background: transparent; }
 .option input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
 .option label { flex-grow: 1; cursor: pointer; }
 .option .count { font-size: 12px; color: var(--muted); min-width: 2ch; text-align: right; }
 .option-empty label, .option-empty .count { color: var(--faint); }
-.filter details { border-top: 1px solid var(--border-soft); padding: 4px 0; }
-.filter details:first-of-type { border-top: 0; }
-.filter summary { cursor: pointer; font-size: 14px; padding: 6px 0; display: flex; gap: 8px; align-items: center; }
-.filter summary .picked { font-size: 12px; color: var(--primary); font-weight: 700; margin-left: auto; }
-.filter details[open] summary { font-weight: 700; }
-.filter-status { margin: 8px 0 0; min-height: 1.5em; font-size: 13px; color: var(--muted); text-align: center; }
+.facet-panel details { border-top: 1px solid var(--border-soft); padding: 2px 0; }
+.facet-panel details:first-of-type { border-top: 0; }
+.facet-panel summary { cursor: pointer; font-size: 14px; padding: 8px 0.5rem; display: flex; gap: 8px; align-items: center; }
+.facet-panel summary::before { content: '▸'; content: '▸' / ''; flex: none; width: 1em; color: var(--muted); font-size: 12px; }
+.facet-panel details[open] > summary::before { content: '▾'; content: '▾' / ''; }
+.facet-panel summary .picked { font-size: 12px; color: var(--primary); font-weight: 700; margin-left: auto; }
+.facet-panel details[open] > summary { font-weight: 700; }
+/* 送信ボタンは、JavaScript が無いときだけ出す（動いているあいだは、チェックを入れた時点で絞り込む） */
+.filter-submit { min-height: 2.4rem; padding: 0 16px; border: 0; border-radius: 0.5rem; background: var(--primary); color: var(--on-primary); font: inherit; font-size: 14.4px; font-weight: 700; cursor: pointer; }
+.filter-submit:hover { background: var(--primary-dark); }
+.filter-submit[hidden] { display: none; }
+.filter-status { position: absolute; top: 100%; left: 0; margin: 0; font-size: 13px; line-height: 1.3; color: var(--muted); pointer-events: none; }
+@media (max-width: 640px) {
+  /* 狭い幅では、チップを 1 列に並べ（長いラベルと値が省略されないように）、一覧は、押したチップの真下に、左右いっぱいに開く */
+  .facet { flex: 1 1 100%; }
+  .facet-summary { width: 100%; }
+  .facet-panel, .facet-panel-wide { right: 0; left: 0; width: auto; max-width: none; }
+}
 
 .primary-button { display: block; width: 100%; min-height: 44px; margin-top: 20px; border: 0; border-radius: 6px; background: var(--primary); color: var(--on-primary); font: inherit; font-size: 14.4px; font-weight: 700; cursor: pointer; }
 .primary-button:hover { background: var(--primary-dark); }
@@ -157,7 +181,7 @@ h1, h2 { line-height: 1.4; }
 .primary-button.inline:hover { color: var(--on-primary); }
 
 /* 結果 */
-.results { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.results { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
 .chips ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 500; text-decoration: none; }
@@ -277,7 +301,7 @@ h1, h2 { line-height: 1.4; }
 .image-preview-actions .primary-button { margin-top: 0; }
 .image-ok { margin: 0; padding: 12px 16px; border: 1px solid var(--primary); border-radius: var(--radius); background: var(--tag-bg); }
 
-/* サイドパネル（公開側と園の管理）。DocuNavi と同じ、開いた表示（16rem）と、アイコンだけの細い帯（3.5rem）を、ボタンで切り替える。開閉できるのは、DocuNavi と同じ 1024px 以上（末尾の @media）。ログイン・会員登録（(auth)）は、上の帯（.site-header）だけ */
+/* サイドパネル（公開側と園の管理）。DocuNavi と同じ、開いた表示（16rem）と、アイコンだけの細い帯（3.5rem）を、ボタンで切り替える。開閉できるのは、DocuNavi と同じ 1024px 以上（末尾の @media）。1023px 以下は、上の横帯。ログイン・会員登録（(auth)）は、上の帯（.site-header）だけ */
 .app-shell { display: flex; align-items: flex-start; }
 .app-main { flex: 1 1 0; min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
 .app-content { flex: 1 0 auto; }
@@ -335,13 +359,12 @@ h1, h2 { line-height: 1.4; }
 .theme-switch-option:hover { color: var(--text); }
 .theme-switch-option[aria-pressed='true'] { background: var(--tag-bg); color: var(--tag-text); box-shadow: inset 0 0 0 1.5px var(--primary); }
 
-/* 狭い画面（975px 以下）: 細い帯は、上の横の帯になり、名前を文字で見せる。メニューは下へ開く。
-   境目の 976px は、求人検索の「しぼり込み」と結果が横に並ぶ幅（280+32+560=872px に、.page の左右の余白 48px と、細い帯 56px を足した値）。
-   帯の幅や .filter・.results の基準を変えるときは、この値も変える */
-@media (max-width: 975px) {
+/* 狭い画面（1023px 以下）: サイドパネルは、上の横の帯になり、名前を文字で見せる（開閉はしない）。メニューは下へ開く。
+   境目の 1024px は、サイドパネルを開閉できる幅（末尾の @media）と同じ。DocuNavi の PC 幅の境目にそろえた */
+@media (max-width: 1023px) {
   .app-shell { display: block; }
   .app-main { min-height: 0; }
-  .app-sidebar { position: static; height: auto; flex-direction: row; align-items: center; gap: 0.25rem; padding: 0.5rem 1rem; border-right: 0; border-bottom: 1px solid var(--border); }
+  .app-sidebar { position: relative; z-index: 1; height: auto; flex-direction: row; align-items: center; gap: 0.25rem; padding: 0.5rem 1rem; border-right: 0; border-bottom: 1px solid var(--border); }
   .app-rail { flex-direction: row; gap: 0.25rem; }
   .app-rail-foot { margin-top: 0; margin-left: auto; }
   .app-rail-btn { display: inline-flex; width: auto; gap: 0.5rem; padding: 0 0.75rem; }
@@ -351,8 +374,7 @@ h1, h2 { line-height: 1.4; }
 }
 
 /* サイドパネルの開閉（1024px 以上だけ。DocuNavi と同じ境目）。開くと本文の幅が 16rem - 3.5rem = 200px ほど狭くなる。
-   求人検索の「しぼり込み」と結果が横に並ぶのに要る 872px に、.page の左右の余白 48px と、開いたパネル 256px を足した値は 1176px。
-   開いたまま 1176px 未満になると、しぼり込みが結果の上に積み重なる（.layout の折り返し。パネルを閉じると、また横に並ぶ）。
+   しぼり込みは上の横並びのチップ（折り返す）で、結果は全幅なので、開閉しても配置は崩れない。
    パネルの幅や .filter・.results の基準を変えるときは、この値も変える。ロゴの絵は、細い帯と同じ位置（左から中心 28px）に置き、開閉で動かさない */
 @media (min-width: 1024px) {
   .app-sidebar .app-toggle { display: grid; }

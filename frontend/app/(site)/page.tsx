@@ -57,35 +57,33 @@ export default async function Home({ searchParams }: Props) {
         </p>
       </div>
 
-      <div className="layout">
-        <FilterForm master={master} facets={facets} selection={selection} />
+      <FilterForm master={master} facets={facets} selection={selection} />
 
-        <section className="results" aria-label="検索結果">
-          <SelectedChips chips={chips} />
-          {result.items.length > 0 ? (
-            <>
-              {result.items.map((job) => (
-                <RecruitCard key={job.id} job={job} query={query} />
-              ))}
-              <Pagination selection={selection} last={result.last_page} />
-            </>
-          ) : (
-            <div className="empty">
-              <h2>条件に合う求人は見つかりませんでした</h2>
-              {hasConditions(selection) ? (
-                <>
-                  <p>条件を 1 つ外すと、見つかることがあります。上のチップの ✕ で、条件を 1 つずつ外せます。</p>
-                  <a className="primary-button inline" href="/">
-                    条件をすべてクリア
-                  </a>
-                </>
-              ) : (
-                <p>いま公開している求人はありません。</p>
-              )}
-            </div>
-          )}
-        </section>
-      </div>
+      <section className="results" aria-label="検索結果">
+        <SelectedChips chips={chips} />
+        {result.items.length > 0 ? (
+          <>
+            {result.items.map((job) => (
+              <RecruitCard key={job.id} job={job} query={query} />
+            ))}
+            <Pagination selection={selection} last={result.last_page} />
+          </>
+        ) : (
+          <div className="empty">
+            <h2>条件に合う求人は見つかりませんでした</h2>
+            {hasConditions(selection) ? (
+              <>
+                <p>条件を 1 つ外すと、見つかることがあります。上のチップの ✕ で、条件を 1 つずつ外せます。</p>
+                <a className="primary-button inline" href="/">
+                  条件をすべてクリア
+                </a>
+              </>
+            ) : (
+              <p>いま公開している求人はありません。</p>
+            )}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
