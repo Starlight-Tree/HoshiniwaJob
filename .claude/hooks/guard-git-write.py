@@ -2,6 +2,8 @@
 """PreToolUse(Bash) の小さなガード: git commit / git push のフック回避と秘密の混入、gh の PR・issue コメントの投稿。
 
   - git commit / git push の --no-verify（commit の -n も）→ 拒否
+  - git add -A / --all / . / ./（全部のステージ。ルートの CLAUDE.md は、パスを指定すると定める）→ 拒否
+  - git push の強制（--force / -f / --force-with-lease / +refspec）→ 確認（公開済みの履歴の書き換え。原則しない）
   - git commit: ステージ済みの差分（-a のときは追跡中の未ステージ分も）の追加行、またはコマンド文字列に、秘密のパターン → 拒否
   - gh pr comment / pr review / issue comment / api（コメント・レビューの書き込み）→ 確認。本文に秘密のパターンがあれば拒否
 拒否の理由には、パターン名とファイル名・行番号だけを出す（値は出さない）。
@@ -105,6 +107,28 @@ def git_diff(cwd: str, *args: str) -> str:
         return ""
 
 
+def stages_everything(args: list[str]) -> bool:
+    """git add の「全部」指定: -A / --all / . / ./（-Av のように束ねた短いオプションも）。"""
+    for arg in args:
+        if arg in {".", "./", "--all"}:
+            return True
+        if arg.startswith("-") and not arg.startswith("--") and "A" in arg[1:]:
+            return True
+    return False
+
+
+def is_force_push(args: list[str]) -> bool:
+    """git push の強制: --force / -f（束ねた短いオプションも）/ --force-with-lease / --force-if-includes / +refspec。"""
+    for arg in args:
+        if arg in {"-f", "--force"} or arg.startswith(("--force-with-lease", "--force-if-includes")):
+            return True
+        if arg.startswith("-") and not arg.startswith("--") and "f" in arg[1:]:
+            return True
+        if arg.startswith("+") and len(arg) > 1:
+            return True
+    return False
+
+
 def check_segment(tokens: list[str], cwd: str, diff_for: Callable[..., str]) -> Decision | None:
     program = os.path.basename(tokens[0])
     if program == "git":
@@ -119,6 +143,10 @@ def check_segment(tokens: list[str], cwd: str, diff_for: Callable[..., str]) -> 
                 return "deny", "ステージ済みの差分に秘密のパターンがあります: " + "; ".join(sorted(set(hits))[:5])
         elif sub == "push" and has_no_verify(args, short_n=False):
             return "deny", "git push の --no-verify は使いません"
+        elif sub == "push" and is_force_push(args):
+            return "ask", "git push の強制は、公開済みの履歴を書き換えます。原則しません。ユーザーが明示して頼んだときだけ、対象と理由を示してから承認を得てください"
+        elif sub == "add" and stages_everything(args):
+            return "deny", "git add -A / --all / . は使いません。ステージはパスを指定してください（CLAUDE.md）"
     elif program == "gh" and len(tokens) >= 3:
         pair = (tokens[1], tokens[2])
         writes_api = tokens[1] == "api" and any(
