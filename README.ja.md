@@ -13,7 +13,7 @@
 ## 特徴
 
 - **求人検索。** 条件（雇用形態・エリア・乗り場・職種）は URL に持ちます。同じ種類の中は OR、種類の間は AND で、条件ごとの件数を出し、選んだ条件はチップで外せます。
-- **利用者と園の別々のログイン。** アカウントも Cookie も別です。パスワードは argon2、ログインの印は HttpOnly の Cookie。権限は API が毎回 SQL の条件で確かめ、他の園の求人は 404 です。
+- **利用者と園の別々のログイン。** アカウントも Cookie も別です。利用者は Google でのログインだけ（DocuNavi と同じ。はじめてのログインで登録されます）。園はパスワード（argon2）。ログインの印は HttpOnly の Cookie。権限は API が毎回 SQL の条件で確かめ、他の園の求人は 404 です。
 - **園による画像の管理。** 求人の画像をドラッグ＆ドロップで追加（保存前にプレビュー）・並べ替え・ヒーロー指定・削除できます。検証（形式・容量・寸法）と、位置情報を除く再エンコードは API が行います（[docs/image-storage.md](docs/image-storage.md)）。
 - **画像の置き場を差し替えられる。** 本体はストレージ（開発はフォルダー、本番は S3 互換の Cloudflare R2 を想定）、求人との対応は DB に置き、途中で失敗しても食い違いを `reconcile` で報告できます。
 - **番号付き SQL のマイグレーション。** 適用済みのファイルは sha256 で改ざんを検出し、初期スキーマは指紋と照合します。
@@ -45,7 +45,8 @@ docker compose up -d --build
 
 - 画面: <http://localhost:3200>、API の文書: <http://localhost:8200/docs>
 - 止める: `docker compose down`。DB ごと消すなら `docker compose down -v`
-- ダミーのアカウント（ローカル専用）: 利用者 `hoshiniwa-user@example.com`、園 `hoshiniwa-garden@example.com`、パスワードは `star-garden-demo`。園は `/garden/login` から入ります。
+- ダミーのアカウント（ローカル専用）: 園 `hoshiniwa-garden@example.com`、パスワード `star-garden-demo`、`/garden/login` から入ります。ダミーの利用者 `hoshiniwa-user@example.com` にもパスワードはありますが、画面は Google でのログインだけなので、API とテストからしか入れません。
+- Google でのログインには、Google Cloud Console で作る OAuth クライアント（種類: ウェブ）が要ります。リダイレクト URI は `http://localhost:3200/auth/google/callback` です。`GOOGLE_CLIENT_ID` と `GOOGLE_CLIENT_SECRET` を `.env`（Git に入れない）に書き、`docker compose up -d` します。無いときは、ログイン画面に「Google でのログインは、まだ設定されていません」と出ます。シークレットは API だけに渡し、画面のコンテナには、クライアント ID だけを渡します。
 
 テスト: `cd backend && pip install -r requirements.txt -r requirements-dev.in && TEST_DATABASE_URL=<Postgres の URL> pytest` と `cd frontend && npm ci && npm test && npm run build && npm run typecheck`。`TEST_DATABASE_URL` が無いと、DB を使うテストは飛ばされます。
 

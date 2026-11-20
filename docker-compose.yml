@@ -113,6 +113,10 @@ services:
       STORAGE_S3_SECRET_ACCESS_KEY: "${STORAGE_S3_SECRET_ACCESS_KEY:-}"
       DATABASE_URL: *database_url
       CORS_ORIGINS: "http://localhost:3200"
+      # Google でのログイン。OAuth クライアントは、あなたが Google Cloud Console で作る（README）。値は .env（Git 管理外）に書く。シークレットは API だけが持つ
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-}"
       # ホスト↔コンテナ間のボリュームでファイル変更通知が届かない環境（Docker Desktop 等）向け
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
@@ -146,6 +150,9 @@ services:
       API_BASE_URL: "http://api:8000"
       # 公開画像の URL の頭。既定は /media（API が配る）。R2 に切り替えるときは .env で api と同じ値にする（next.config.ts が読む）
       IMAGE_PUBLIC_BASE_URL: "${IMAGE_PUBLIC_BASE_URL:-/media}"
+      # Google でのログイン。画面のサーバーが持つのは、クライアント ID（公開してよい値）と、戻り先だけ。シークレットは渡さない
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-}"
     volumes:
       - ./frontend:/app
       # node_modules と .next は、ホストのものと分ける（ネイティブの依存が OS ごとに違うため）

@@ -13,7 +13,7 @@ HoshiniwaJob (星庭ジョブ) is a fictional job board for botanical gardens on
 ## Features
 
 - **Job search.** Filters (employment type, area, station, occupation) live in the URL. Values of one kind are OR-ed, kinds are AND-ed; each filter shows its count, and selected filters are chips you can remove.
-- **Separate logins for job seekers and gardens.** Separate accounts and cookies. Passwords use argon2, the session is an HttpOnly cookie. The API checks permissions in SQL on every request, and another garden's job is a 404.
+- **Separate logins for job seekers and gardens.** Separate accounts and cookies. Job seekers sign in with Google only (like DocuNavi; a first sign-in registers the account). Gardens use a password (argon2). The session is an HttpOnly cookie. The API checks permissions in SQL on every request, and another garden's job is a 404.
 - **Image management by gardens.** Add images by drag and drop (with a preview before saving), reorder, set the hero image, delete. The API validates format, size and dimensions and re-encodes without location data ([docs/image-storage.md](docs/image-storage.md)).
 - **Swappable image storage.** The files live in storage (a folder in development, an S3-compatible Cloudflare R2 bucket for production), the links to jobs live in the DB, and `reconcile` reports any mismatch left by a failure.
 - **Numbered SQL migrations.** Applied files are checked by sha256 to detect edits, and the initial schema is checked against a fingerprint.
@@ -45,7 +45,8 @@ docker compose up -d --build
 
 - UI: <http://localhost:3200>, API docs: <http://localhost:8200/docs>
 - Stop: `docker compose down`. To delete the DB as well: `docker compose down -v`
-- Dummy accounts (local only): job seeker `hoshiniwa-user@example.com`, garden `hoshiniwa-garden@example.com`, password `star-garden-demo`. Gardens sign in at `/garden/login`.
+- Dummy accounts (local only): garden `hoshiniwa-garden@example.com`, password `star-garden-demo`, signing in at `/garden/login`. The dummy job seeker `hoshiniwa-user@example.com` has a password too, but the UI offers Google sign-in only, so that account is reachable only through the API (and the tests).
+- Google sign-in needs an OAuth client (type: Web) that you create in Google Cloud Console, with the redirect URI `http://localhost:3200/auth/google/callback`. Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` (not in Git), then `docker compose up -d`. Without them the login page says Google sign-in is not configured. The secret goes to the API only; the UI container gets the client ID.
 
 Tests: `cd backend && pip install -r requirements.txt -r requirements-dev.in && TEST_DATABASE_URL=<Postgres URL> pytest` and `cd frontend && npm ci && npm test && npm run build && npm run typecheck`. Without `TEST_DATABASE_URL`, the tests that need the DB are skipped.
 
