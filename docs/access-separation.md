@@ -57,10 +57,10 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 
 | 資源 | このプロジェクト専用 | 状態 |
 |---|---|---|
-| GCP プロジェクト | 組織 `dev-cloud`（975415902896）の下。フォルダー `JobNavi`: `jobnavi-app-2026`（実行用。OAuth の同意画面とクライアントもここ）、`jobnavi-ops`（運用用）。フォルダー `GenAI`: `genai-shared-2026`（全アプリ共通の生成 AI。課金あり。Gemini API だけ有効） | 作成済み（2026-11-20）。`jobnavi-app-2026`・`jobnavi-ops` は空（サービスアカウントも Secret も無い）。`genai-shared-2026` に API キー `jobnavi-images`（`generativelanguage` だけに制限）。旧 `hoshiniwa-job-app`・`hoshiniwa-job-ops` は 2026-11-20 に削除した（空で、Gemini の呼び出しは直近 14 日で 0 件。30 日以内なら `gcloud projects undelete` で戻せる）。フォルダーを作るため、組織の IAM に `roles/resourcemanager.folderAdmin` を付けた（外す予定） |
-| GCP の閲覧専用サービスアカウント | `jobnavi-viewer@jobnavi-ops`（なりすまし。`CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT`） | **未作成** |
+| GCP プロジェクト | 組織 `dev-cloud`（975415902896）の下。フォルダー `JobNavi`: `jobnavi-app-2026`（実行用。OAuth の同意画面とクライアントもここ。開発用で、公開状態は「テスト」。公開するときは、同意画面の状態がプロジェクトごとなので、本番用のプロジェクトを別に作る）、`jobnavi-ops`（運用用）。フォルダー `GenAI`: `genai-shared-2026`（全アプリ共通の生成 AI。課金あり。Gemini API だけ有効） | 作成済み（2026-11-20）。`jobnavi-app-2026` に Secret・サービスアカウントは無く、`jobnavi-ops` にあるのは `jobnavi-viewer` だけ。`genai-shared-2026` に API キー `jobnavi-images`（`generativelanguage` だけに制限）。旧 `hoshiniwa-job-app`・`hoshiniwa-job-ops` は 2026-11-20 に削除した（空で、Gemini の呼び出しは直近 14 日で 0 件。30 日以内なら `gcloud projects undelete` で戻せる）。フォルダーを作るために付けた組織の `roles/resourcemanager.folderAdmin` は、2026-11-20 に取り外した |
+| GCP の閲覧専用サービスアカウント | `jobnavi-viewer@jobnavi-ops`（なりすまし。`CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT`） | 作成済み（2026-11-20。`jobnavi-app-2026` に閲覧の 4 ロール、本人に `serviceAccountTokenCreator`。キーは作っていない）。なりすましの実機での動作は未確認（IAM の反映に数分） |
 | Infisical のプロジェクト | `jobnavi`（使うのは環境 `dev`）、`jobnavi-github-app`（環境 `prod`。GitHub App の鍵だけ） | `jobnavi`: 作成済み（2026-11-20。コンテナのユーザーのログインで `infisical sm projects create`。ID `5851ffe9-3b94-40d0-8ac1-b9ea0e8708cb`、スラッグ `jobnavi-lk3q`。環境は dev・staging・prod が既定で付いた。報告。作成時の出力）。`jobnavi-github-app`: **未作成** |
-| Infisical のマシン ID | `jobnavi-devcontainer`（`jobnavi` だけに追加。`jobnavi-github-app` には入れない。権限は開発用の秘密だけに絞る。Viewer は環境・パスで絞れない） | **未作成** |
+| Infisical のマシン ID | **作らない**（2026-11-20 の決定）。エージェントに読ませる値が必要になったら、`jobnavi` とは別の Infisical プロジェクトに置き、そのプロジェクトだけの Viewer にする（Viewer はプロジェクト全体で、環境・パスでは絞れない）。ログインの 3 つの値は `jobnavi` に残し、ホストの人間のログインだけが読む | 無料プランの上限は、人間とマシン ID を合わせて 5 つ（公式の資料どうしで食い違う点あり。未確認） |
 | GitHub App | `jobnavi-agent-actions`（`JobNavi` だけにインストール。`Actions: write`、`Metadata: read`） | **未作成** |
 | アプリの秘密（R2 の `STORAGE_S3_*` など） | 今は Git 管理外の `.env`。Infisical の `jobnavi` への移行は未実施 | ログインの 3 つ（`GOOGLE_CLIENT_ID`・`GOOGLE_CLIENT_SECRET`・`BETTER_AUTH_SECRET`）だけは、2026-11-20 に `jobnavi` の `dev` へ登録した（`scripts/login-secrets.sh`。報告。名前と文字数だけ確認。値は見ていない） |
 
@@ -145,7 +145,7 @@ done
 ### 3. Infisical: プロジェクトとマシン ID
 
 1. プロジェクト `jobnavi`（環境 `dev`）は作成済み（「現状の対応関係」）。`jobnavi-github-app`（環境 `prod`）は、まだ作っていない（手順 4 で使う）。
-2. マシン ID `jobnavi-devcontainer` を作る（Universal Auth）。Client Secret の TTL は、作成時に決める。**30 日は、このプロジェクトの計画値で、自動の設定ではない**（公式の既定は 0 で、無期限）。アクセストークンの寿命は、別の設定（「Infisical の権限と資格情報」）。
+2. （いまは作らない。「現状の対応関係」。用途が出たときの手順。）マシン ID `jobnavi-devcontainer` を作る（Universal Auth）。Client Secret の TTL は、作成時に決める。**30 日は、このプロジェクトの計画値で、自動の設定ではない**（公式の既定は 0 で、無期限）。アクセストークンの寿命は、別の設定（「Infisical の権限と資格情報」）。
    **`jobnavi` だけに追加し、権限は、開発用の秘密だけを読む範囲に絞る。** Viewer は、プロジェクト全体の読み取りなので、これだけでは絞れない（絞り方は未決）。
 3. 資格情報を、コンテナのターミナルで、画面に出さずにボリュームへ置く。
 
