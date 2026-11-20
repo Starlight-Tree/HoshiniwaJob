@@ -24,7 +24,7 @@ export default async function GardenLayout({ children }: { children: ReactNode }
             : []
         }
       >
-        {garden ? <AccountMenu name={garden.corporate} email={garden.email} honorific="御中" logout={gardenLogoutAction} /> : <AccountMenu />}
+        {garden ? <AccountMenu name={garden.corporate} email={garden.email} logout={gardenLogoutAction} /> : <AccountMenu />}
       </AppSidebar>
       <div className="app-main">
         <div className="app-content">{children}</div>

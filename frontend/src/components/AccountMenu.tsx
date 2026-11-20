@@ -13,20 +13,23 @@ type Props = {
   name?: string;
   email?: string;
   logout?: () => Promise<void>;
-  /** 敬称は、利用者は「さん」、園は「御中」。 */
-  honorific?: string;
+  /** プロフィール画像の URL。https のときだけ表示し、読めなければ人型アイコンに戻す（DocuNavi と同じ）。 */
+  image?: string | null;
   /** ログインしていない人のメニューに出す、ログイン・会員登録の行き先。 */
   loginHref?: string;
 };
 
 /**
  * サイドパネル下部のアカウント（DocuNavi と同じ形）。アバターのボタンを押すと、メニューが開く（細い帯では右へ、開いたパネルでは上へ）。パネルを開いているときは、ボタンにアバターと名前が並ぶ。
- * ログイン中は、名前・メールアドレス・テーマ（ライト / ダーク / システム）・ログアウト。ログインしていなければ、テーマと、ログインの入口。
+ * ログイン中は、メールアドレス（先頭）・テーマ（ライト / ダーク / システム）・ログアウト（名前は、パネルを開いているときのボタンに出る）。ログインしていなければ、テーマと、ログインの入口。
  * 開いたら先頭の項目にフォーカスを置く。↑↓ で移動、Esc で閉じてボタンへ戻る。メニューの外を押しても閉じる。
  * テーマを選ぶと localStorage に保存し、以後は OS より優先する（「システム」で OS に従う状態へ戻す）。保存値は、開いたときに読む（サーバーの出力とずれないよう、描画の最初には読まない）。
  */
-export function AccountMenu({ name, email, logout, honorific = 'さん', loginHref }: Props) {
+export function AccountMenu({ name, email, logout, image, loginHref }: Props) {
   const signedIn = name !== undefined && email !== undefined && logout !== undefined;
+  // 読み込みに失敗した URL は覚えて、人型アイコンに戻す（URL が変わったら、また試す）
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const avatarUrl = signedIn && image && image.startsWith('https://') && image !== failedImage ? image : null;
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<Theme | 'system'>('system');
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -65,12 +68,7 @@ export function AccountMenu({ name, email, logout, honorific = 'さん', loginHr
       {open ? (
         <div ref={menuRef} id={menuId} role="menu" aria-label={signedIn ? 'アカウント' : 'メニュー'} className="account-menu" onKeyDown={handleKeyDown}>
           {signedIn ? (
-            <div className="account-who">
-              <p className="account-name">
-                {name} {honorific}
-              </p>
-              <p className="account-email">{email}</p>
-            </div>
+            <p className="account-who">{email}</p>
           ) : null}
           <div role="group" aria-label="テーマ" className="account-theme">
             <span className="account-theme-label" aria-hidden="true">
@@ -122,14 +120,20 @@ export function AccountMenu({ name, email, logout, honorific = 'さん', loginHr
         onClick={() => setOpen((v) => !v)}
       >
         <span className="account-avatar" aria-hidden="true">
-          {signedIn ? <PersonIcon /> : '≡'}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setFailedImage(avatarUrl)} />
+          ) : signedIn ? (
+            <PersonIcon />
+          ) : (
+            '≡'
+          )}
         </span>
         {/* 名前と矢印は、サイドパネルを開いているときだけ CSS が見せる（閉じた帯では隠す） */}
         <span className="account-label" aria-hidden="true">
           {signedIn ? name : 'メニュー'}
         </span>
         <span className="account-caret" aria-hidden="true">
-          ▲
+          ▴
         </span>
       </button>
     </div>
