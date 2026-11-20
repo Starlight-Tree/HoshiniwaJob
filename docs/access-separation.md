@@ -65,12 +65,13 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 ## 分離済み（docunavi との R2。2026-11-20）
 
 - **docunavi のヒーロー画像用の R2: 2026-11-20 に、専用のバケット `docunavi-hero` に分離した（報告。[台帳](image-gen-resources.md) 3.4）。** 2026-11-02 の決定から、この日まで（実際の開始日は未確認。親の鍵の版 5 の作成は 11-01）は、星庭ジョブのバケット `hoshiniwa-images` の prefix `docunavi-hero/` を共用していた。
-  - 今: バケットの共用は、解消した（報告）。docunavi の親トークン `docunavi-hero-parent` の範囲は、`docunavi-hero` だけ（Object Read & Write、期限 2027-05-20）。旧バケットへの HEAD は、親の鍵でも、旧バケット向けの一時キーでも 403 だった（報告。Put・Get・Delete・一覧は未試験）。方針 5（権限を絞る）の例外は、解消したと読める。ホストは、`hoshiniwa-images` とトークン `hoshiniwa-images-rw` を、星庭ジョブ専用に戻ったものとして扱う。
+  - 今: バケットの共用は、解消した（報告）。docunavi の親トークン `docunavi-hero-parent` の範囲は、`docunavi-hero` だけ（Object Read & Write、期限 2027-05-20）。旧バケット内の存在しないオブジェクト（`docunavi-hero/_nonexistent_probe`）への HEAD は、親の鍵でも、旧バケット向けの write の一時キーでも 403 だった（報告。バケット自体への HEAD ではない。Put・Get・Delete・一覧は未試験。台帳 3.4）。方針 5（権限を絞る）の例外は、docunavi 側の親トークンの範囲については解消したと読めるが、版 5 の件（下の未確認）が分かるまで、言い切れない。ホストは、`hoshiniwa-images` とトークン `hoshiniwa-images-rw` を、星庭ジョブ専用に戻ったものとして扱う。
   - 方針 1（資格情報を再利用しない）の例外が解消したかは、版 5 の件が分かるまで確認できない（下の未確認）。「解消した」とは書かない。
+  - 決定（2026-11-20、ユーザー。ホストが依頼文で伝えた）: `hoshiniwa-images-rw` は**失効しない。残す**。理由（決定文）: 範囲は星庭ジョブ自身のバケット `hoshiniwa-images` だけ（分離済み）／版 5 は Secret 側で無効化済み・Secret の IAM は空／失効すると星庭ジョブの利用が止まる。版 5 の持ち主は未確認のまま（推定）。版 5 の鍵は、午後（日付・時刻は原文に無い。回答は 2026-11-20）の確認では R2 で有効だった。トークンを失効しないので、版 5 が `hoshiniwa-images-rw` の鍵なら、R2 では有効なまま残ると推定する（今の有効性は再確認していない。Secret 側の無効化は R2 側の鍵を失効させず、`enable` で戻せる。Secret の IAM が空だったのも午後の確認の時点で、プロジェクト全体の権限による読み取りとアクセスログは未確認）。版 5 の Secret Manager 上の破棄は、決定 1〜3 のどれにも含まれない（ホストの回答 f の「破棄」が何を指すかは未確認）。
   - 経緯: 2026-11-02 の決定では、親に `hoshiniwa-images-rw` を使う設計だった。2026-11-20 に、親は docunavi 専用の `docunavi-hero-parent`（Secret の版 6）に替わり、その後に、バケットを分けた。旧バケットの `docunavi-hero/` にあった 8 件は削除済み（`images/` は残っている）。
   - 影響: `docunavi-hero-parent` の再発行は、docunavi 側の Secret に及ぶ（確認できた範囲。ほかの利用者の有無は未確認）。`hoshiniwa-images-rw` の再発行は、星庭ジョブの `STORAGE_S3_*` に及ぶ。版 5 が `hoshiniwa-images-rw` の鍵なら、その写しも使えなくなる（未確認）。
-  - 見直し: `docunavi-hero-parent` の期限（2027-05-20）の前。
-  - 未確認: 版 5 の持ち主（`hoshiniwa-images-rw` は推定）。版 5 は Secret Manager 上で無効化しただけで、破棄していない。R2 のトークンは失効しておらず、版 5 が `hoshiniwa-images-rw` の鍵なら、その写しが docunavi 側の Secret に残り、R2 で有効なままの可能性がある。鍵の失効（トークンの再発行）や破棄をするかは、未決。版 6 の鍵と Cloudflare 側のトークン ID の突き合わせ。docunavi 側の画像ジョブが版 6 の親を使うこと。read 用の一時キーが prefix の外を読めないこと。新バケットのバケットロックの有無。旧 `docunavi-hero/` の 8 件が、削除前に `r2.dev` の公開 URL で読めたか（台帳 3.4）。分離後の新バケットでの、画像生成の通し実行。
+  - 見直し: 期限の前。先に来るのは `hoshiniwa-images-rw`（画面の表示が 2027-04-28、台帳の記録が 2027-04-27。時差の可能性があるが、理由は未確認。確かめるまで台帳の値は変えない）、次が `docunavi-hero-parent`（2027-05-20）。
+  - 未確認: 版 5 の持ち主（`hoshiniwa-images-rw` は推定）。版 5 の鍵が今も R2 で有効か（午後は有効。再確認していない）。版 5 の Secret Manager 上の破棄は、決定に含まれない（回答 f の「破棄」の指す対象は未確認。トークンの失効はしないと決めた）。版 6 の鍵と Cloudflare 側のトークン ID の文字列の突き合わせ（ホストは、動作で、範囲の変更に鍵が追従したことを確認したと報告した。台帳 3.4）。docunavi 側の画像ジョブが版 6 の親を使うこと。read 用の一時キーが prefix の外を読めないこと（write の一時キーでの、prefix の外の Put は 403）。新バケットのバケットロックの有無（作成時に設定せず、画面でも未確認）。旧 `docunavi-hero/` の 8 件が、削除前に `r2.dev` の公開 URL で読めたか（削除済みで確かめられない。docunavi のコードは `hoshiniwa-images` を参照しないと、ホストはコードを読んで回答した。台帳 3.4）。分離後の新バケットでの、画像生成の通し実行。
 
 ## 作成の手順
 
