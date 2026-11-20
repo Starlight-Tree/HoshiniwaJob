@@ -7,7 +7,7 @@
 既存のジョブを、ここのコード（`6c01342` を R2 に書き換えたもの）で上書きしない。デプロイ・モデルの変更・保存先の変更をしたら、台帳の更新までが完了条件。
 
 `main.py` 1 本と `Dockerfile` と `test_main.py`。Vertex AI の `google-genai` で、承認済みの plan（環境変数 `PLAN_JSON`）の自分のタスク番号の行（`document_id` `prompt` `aspect_ratio`）から 1 枚を生成し、
-**Cloudflare R2**（S3 互換 API、`boto3`）の既存バケットへ `docunavi-hero/<資料ID>/<plan のハッシュ先頭 16 文字>.png` で書く。保存先は R2 が正規で、GCS は使わない（2026-11-02 の決定）。
+**Cloudflare R2**（S3 互換 API、`boto3`）のバケット（環境変数 `R2_BUCKET`。2026-11-20 に、専用の `docunavi-hero` へ分離したと報告された。[台帳](../../docs/image-gen-resources.md) 3.4）へ `docunavi-hero/<資料ID>/<plan のハッシュ先頭 16 文字>.png` で書く。保存先は R2 が正規で、GCS は使わない（2026-11-02 の決定）。
 docunavi の `plan` が作る plan.json を使う（docunavi の `docs/image-generation-design.md`）。
 環境変数: `GOOGLE_CLOUD_PROJECT` `GOOGLE_CLOUD_LOCATION`（既定 `global`）`CLOUD_RUN_TASK_INDEX`（任意）。
 必須: `PLAN_JSON` `PLAN_SHA256`（`PLAN_JSON` の UTF-8 バイト列の SHA-256）`R2_BUCKET` `R2_ACCOUNT_ID`（32 桁の 16 進）`R2_TEMP_CREDENTIALS`（JSON: `access_key_id` `secret_access_key` `session_token` `expires_at`。`scripts/issue-r2-temp-credentials.py` が作る。残りが 5 分未満なら、生成の前に止まる）。
