@@ -22,7 +22,7 @@ Next.js 16（App Router）、React 19、TypeScript 7、Vitest 5。Node 24（`eng
 
 - **API はサーバー側（サーバーアクション・Server Component）から呼ぶ。** ブラウザーは API を直接呼ばないので、CORS に頼らない。ログインの印は Better Auth の HttpOnly の Cookie で、ブラウザーの JavaScript に渡さない。API へ渡すのは、そこから取る 15 分の JWT。園のログインは別（`hj_garden_session`。トークンは HttpOnly の Cookie）。
 - **`NEXT_PUBLIC_*` に秘密を入れない。** 今は 1 つも使っていない。バンドルに埋め込まれ、誰でも読める。環境変数は `API_BASE_URL` `IMAGE_PUBLIC_BASE_URL` `SESSION_COOKIE_SECURE` と、ログイン（Better Auth。画面のサーバーだけが読む）の `BETTER_AUTH_URL` `BETTER_AUTH_SECRET` `GOOGLE_CLIENT_ID` `GOOGLE_CLIENT_SECRET` `DATABASE_URL`（api・migrate と同じ資格情報。表ごとの権限分けはしていないので、`auth_` の表だけを使うのは、コードの上の約束）。**どれも `NEXT_PUBLIC_` を付けない。画面のコンテナが DB を使うのは、ログインのためだけで、求人などのデータは API 経由で読む。**
-  `BETTER_AUTH_SECRET` は、決めたら変えない（DB の署名鍵と Google のトークンの暗号化に使っている。変えると全員がログアウトに見える）。migrate の前に画面を使うと、画面を再起動するまで直らない。握りつぶす例外は `lib/auth-log.ts` でログに 1 行出す。Cookie 名の接頭辞は `hoshiniwajob`（既定の `better-auth` だと、同じ localhost の DocuNavi と取り合う）。
+  `BETTER_AUTH_SECRET` は、決めたら変えない（理由と、変えたときの直し方はルートの `CLAUDE.md`）。migrate の前に画面を使うと、画面を再起動するまで直らない。握りつぶす例外は `lib/auth-log.ts` でログに 1 行出す。Cookie 名の接頭辞は `hoshiniwajob`（既定の `better-auth` だと、同じ localhost の DocuNavi と取り合う）。
 - **`IMAGE_PUBLIC_BASE_URL` は API と同じ値にする。** `next.config.ts` が、外部画像の許可（`remotePatterns`）を、その配信元の `images/` だけに限る。広げない。
 - **`next.config.ts` の `agentRules: false` を外さない**（`next dev` が `AGENTS.md` を自動で作るのを止めている）。`logging.serverFunctions: false` も、メールなどを端末に出さないための設定。
 - **テーマ（ライト / ダーク / システム）は `src/lib/theme.ts` に集約する。** 色は `app/globals.css` の変数だけで決め、本体に色（`#xxxxxx`・`rgba`）を直書きしない（`theme.test.ts` が落とす）。ダークの値は、OS 追従（`@media`）と `:root[data-theme='dark']` の 2 か所に同じ内容で書く（これも `theme.test.ts` が一致を確かめる）。新しい色の変数は、ライトとダークの両方に足し、文字は WCAG AA（4.5:1）を満たす。保存先のキーは `hoshiniwajob-theme`。描画前のスクリプト（`app/layout.tsx`）が同じキーを読む。
@@ -34,6 +34,7 @@ Next.js 16（App Router）、React 19、TypeScript 7、Vitest 5。Node 24（`eng
 ## テストと検査
 
 ```bash
+# ホストで実行する（開発コンテナの作業ツリーでは npm ci しない。下の注意）
 cd frontend
 npm ci
 npm test            # vitest（jsdom）。テストは src/ に同居（*.test.ts / *.test.tsx）

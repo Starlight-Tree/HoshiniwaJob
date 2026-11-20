@@ -29,7 +29,7 @@ FastAPI + psycopg3（生の SQL。ORM・Alembic は使わない）。Python 3.13
 - **権限の確認は API の SQL の条件で行う。** 画面を信用しない。他の園のものは 404。
 - **求職者の ID は、検証に通った JWT の `sub`（`users.auth_user_id`）だけから取る。** 画面・クライアントが送った別の値は使わない。署名は JWKS の公開鍵（ES256 / RS256）だけで検証し、共有秘密（HS256）や `alg=none` へは切り替えない（`jwt_auth.py`）。
 - `DEMO_DATA`、`STORAGE_S3_*` などの認証情報は、環境変数だけで受け取る。ログ・例外に出さない。
-- 新しい依存は `requirements.in` に足して `requirements.txt` を作り直す（README に「uv が使える環境では `uv pip compile`」とある）。作り直しは差分が大きくなるので、先に確認する。
+- 新しい依存は `requirements.in` に足して `requirements.txt` を作り直す（`requirements.txt` の 1 行目に、uv が使える環境では `uv pip compile` で作り直してよいとある）。作り直しは差分が大きくなるので、先に確認する。
 
 ## テスト（`tests/`）
 

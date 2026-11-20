@@ -7,7 +7,7 @@
 | 知りたいこと | 文書 |
 |---|---|
 | 画像生成（Vertex AI のジョブ）の、デプロイ済みの設定・成功した実行・モデル・保存先・完了条件 | [image-gen-resources.md](image-gen-resources.md)（**台帳。正本**） |
-| 台帳の根拠になる、確認の出力の置き場（2026-11-20 時点は README だけ） | [image-gen-evidence/](image-gen-evidence/README.md) |
+| 台帳の根拠になる、確認の出力の置き場（中身の状況は、その README と台帳） | [image-gen-evidence/](image-gen-evidence/README.md) |
 | 求人・法人の画像の保存の仕組み（オブジェクトストレージ・DB・バックアップ・マイグレーション）。画像生成ジョブの出力先は台帳 | [image-storage.md](image-storage.md) |
 | 資格情報・権限・MCP をプロジェクトごとに分ける方針と、その現状 | [access-separation.md](access-separation.md) |
 | ローカルの開発・テスト・検査・ダミーデータ・CI | [development.md](development.md) |
