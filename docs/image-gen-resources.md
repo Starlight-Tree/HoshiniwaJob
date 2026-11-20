@@ -3,7 +3,7 @@
 Vertex AI で画像を生成する Cloud Run Job について、**何が・どこに・どの設定でデプロイされ、何が成功したか**の記録。
 このジョブは、docunavi のヒーロー画像のために作った試作で、星庭ジョブのアプリ本体（`backend/` `frontend/`）からは使っていない。星庭ジョブで画像生成を使うときの土台として残してある。
 
-- 最終更新: 2026-11-20（親トークンの Secret の版と、実 R2 での確認の報告を反映。3.3。ジョブを変更・実行した報告は無い。2 節の他の行は 2026-11-02 の報告のままで、再確認していない）
+- 最終更新: 2026-11-20（親トークンの Secret の版と実 R2 での確認の報告（3.3）、保存先のバケットを `docunavi-hero` に分離した報告（3.4）を反映。Job の環境変数 `R2_BUCKET` を変更した報告はある。2026-11-20 の報告に、画像生成の実行は含まれない（実行は 3.2 の 2026-11-02 まで。分離後の新バケットでの通し実行は未実施）。2 節で 2026-11-20 の報告に基づくのは、`R2_BUCKET` の値、2 つの Secret の行、出力先、generation の行だけ。ほかの行は 2026-11-02 の報告のままで、generation 13 では読み直していない）
 - 各行の「状態」に、確認の根拠を書く。**確認できていないことは「未確認」と書く**（推測で埋めない）。
 - 秘密情報（キー・トークン・DB の接続文字列）、資料の本文、機密を含むプロンプトは書かない。プロジェクト ID やリソース名は秘密ではないので書く。
 
@@ -40,10 +40,11 @@ Vertex AI で画像を生成する Cloud Run Job について、**何が・ど�
 | 実行サービスアカウント（成功した実行の時点。復旧用） | 既定の Compute Engine サービスアカウント。`roles/aiplatform.user` と `roles/editor` を持つ（権限は変えていない） | 報告 |
 | タスク数・再試行（成功した実行） | `taskCount: 2`、`maxRetries: 1` | 報告 |
 | タスク数・再試行（現在） | `taskCount: 5`、`maxRetries: 0`、並列数は未設定（既定） | 報告（2026-11-02）。変更の日時と操作は未確認 |
-| 環境変数・Secret（現在） | 名前: `GOOGLE_CLOUD_PROJECT`、`GOOGLE_CLOUD_LOCATION`、`R2_BUCKET`、`R2_ACCOUNT_ID`、`R2_TEMP_CREDENTIALS`。うち `R2_TEMP_CREDENTIALS` は Secret `r2-docunavi-hero-write-temp`（版 `latest`）への参照。`PLAN_JSON` と `PLAN_SHA256` はジョブの定義に無く、実行時に `--update-env-vars` で渡す | 報告（値は出していない） |
-| Secret Manager（親トークン用） | Secret `r2-docunavi-hero-parent`。報告にある版は、版 5（無効化済み）と版 6（有効）。版 1〜4 の有無・状態は未報告（未確認）。2026-11-02 の記録は「版なし」だったが、報告では版 5 が 2026-11-01 16:27 UTC に作られており、食い違う（理由は未確認）。誰にも `secretAccessor` を付けない方針で、Secret 自体への IAM 付与は無かった（報告）。版 6 は、docunavi 専用の新しいトークン `docunavi-hero-parent` の鍵として入れた（手順と access_key_id の違いが根拠。Cloudflare 側のトークン ID との突き合わせは未）。版 5 の持ち主は**推定**（`hoshiniwa-images-rw`。未確認） | 報告（2026-11-20。3.3）。生の出力は未受領 |
-| 出力先・回収 | **Cloudflare R2**（バケット `hoshiniwa-images`、prefix `docunavi-hero/<資料 ID>/<plan ハッシュ先頭 16 文字>.png`。名前は `.png` だが中身は JPEG の場合がある）。書き込みは `If-None-Match: *` で、既存は上書きしない。回収は、読み取り専用の一時キーで取り出す（3.2）。**3.1 の動作確認の実行の時点では、コンテナ内のファイルだけで、画像は失われた** | 3.2 の実行で保存と回収を確認。生のログは未受領 |
-| ジョブの現在の最新の版（generation） | **未確認** | |
+| 環境変数・Secret（現在） | 名前: `GOOGLE_CLOUD_PROJECT`、`GOOGLE_CLOUD_LOCATION`、`R2_BUCKET`、`R2_ACCOUNT_ID`、`R2_TEMP_CREDENTIALS`。うち `R2_TEMP_CREDENTIALS` は Secret `r2-docunavi-hero-write-temp`（版 `latest`）への参照。`PLAN_JSON` と `PLAN_SHA256` はジョブの定義に無く、実行時に `--update-env-vars` で渡す。`R2_BUCKET` の値は `docunavi-hero`（2026-11-20 に `hoshiniwa-images` から変更。3.4） | 報告（秘密の値は出していない。`R2_BUCKET` の値だけ 2026-11-20 の報告で、名前の一覧と Secret 参照は 2026-11-02 の報告のまま。3.4） |
+| Secret Manager（親トークン用） | Secret `r2-docunavi-hero-parent`。報告にある版は、版 5（無効化済み）と版 6（有効）。版 1〜4 の有無・状態は未報告（未確認）。2026-11-02 の記録は「版なし」だったが、報告では版 5 が 2026-11-01 16:27 UTC に作られており、食い違う（理由は未確認）。誰にも `secretAccessor` を付けない方針で、Secret 自体への IAM 付与は無かった（報告）。版 6 は、docunavi 専用の新しいトークン `docunavi-hero-parent` の鍵として入れた（手順と access_key_id の違いが根拠。Cloudflare 側のトークン ID との突き合わせは未）。このトークンの範囲は、2026-11-20 に `hoshiniwa-images` から `docunavi-hero` に変更した（鍵の値は変わらず、版 6 のまま。3.4）。版 5 の持ち主は**推定**（`hoshiniwa-images-rw`。未確認） | 報告（2026-11-20。3.3・3.4）。生の出力は未受領 |
+| Secret Manager（書き込み用の一時キー） | Secret `r2-docunavi-hero-write-temp`。報告（2026-11-20）では、版 1・2 は enabled、版 3（当時の `latest`）は DESTROYED。版 4 を足した。版 4 は破棄していない（一時キーは 15 分で期限切れ）。版 1・2 が enabled のままであることと、3.2 の手順 4（終了時に追加した版を破棄する）の関係は未確認 | 報告（2026-11-20。3.4）。生の出力は未受領 |
+| 出力先・回収 | **Cloudflare R2**（バケット `docunavi-hero`、prefix `docunavi-hero/<資料 ID>/<plan ハッシュ先頭 16 文字>.png`。2026-11-20 に、星庭ジョブのバケット `hoshiniwa-images` から分離した（3.4）。名前は `.png` だが中身は JPEG の場合がある）。書き込みは `If-None-Match: *` で、既存は上書きしない。回収は、読み取り専用の一時キーで取り出す（3.2）。**3.1 の動作確認の実行の時点では、コンテナ内のファイルだけで、画像は失われた** | 3.2 の実行で、旧バケット `hoshiniwa-images` への保存と回収を確認。分離後（`docunavi-hero`）は、ジョブでの保存と回収は未実施（3.4）。生のログは未受領 |
+| ジョブの現在の最新の版（generation） | 13（2026-11-20 の報告。`R2_BUCKET` の変更で 12 → 13 になった直後の値。その後の変更の有無と、generation 13 のイメージのダイジェストは未確認） | 報告（3.4） |
 | 成功したイメージが Artifact Registry に残っているか | **未確認** | 掃除のルールで消えていないか（5 節の手順 5） |
 
 ### 2.1 モデルの 3 区分（混ぜない）
@@ -88,10 +89,12 @@ Vertex AI で画像を生成する Cloud Run Job について、**何が・ど�
 
 ### 3.2 R2 へ保存した実行（2026-11-02）
 
+保存先は、旧バケット `hoshiniwa-images` の `docunavi-hero/`（1 回目は報告に明記。2 回目の 5 枚は、`R2_BUCKET` の旧値からの推定）。2026-11-20 に、バケットを `docunavi-hero` に分離し、旧バケットの `docunavi-hero/` にあった 8 件（画像 6 枚と確認用 2 件）を削除した。この 6 枚が 3.2 の 6 枚と同じかは、枚数が合うだけで、1 枚ずつの照合は無い（3.4）。
+
 | 回 | 内容 | 結果 |
 |---|---|---|
-| 1 回目（ヒーロー 1 枚） | docunavi の資料 4 の画像。実行 ID `image-generation-job-z6fgz`。R2 のオブジェクトは `docunavi-hero/4/1179505c52d20892.png` | 保存に成功し、docunavi の DB に取り込んで承認し、本番に表示された |
-| 2 回目（5 枚） | 資料 1・2・3・5・6。`max_images: 5`、モデル `gemini-3.1-flash-lite-image`、16:9。plan の SHA-256 先頭は `3200171cc78f8b84` | ジョブ成功、5 枚すべてが R2 に保存、エラーなし、生成呼び出しは 5 回。取り出したファイルの大きさはログと一致し、先頭バイトは 5 枚とも JPEG。目で確かめ、docunavi に取り込んで承認した |
+| 1 回目（ヒーロー 1 枚） | docunavi の資料 4 の画像。実行 ID `image-generation-job-z6fgz`。R2 のオブジェクトは、旧バケット `hoshiniwa-images` の `docunavi-hero/4/1179505c52d20892.png`（旧バケットの 8 件の削除に含まれると推定。枚数の一致のみ。docunavi の `docunavi-documents` の `hero/` に写しがあると報告されたが、大きさの一致だけで、このオブジェクトとの照合と内容の一致は未確認。3.4） | 保存に成功し、docunavi の DB に取り込んで承認し、本番に表示された |
+| 2 回目（5 枚） | 資料 1・2・3・5・6。`max_images: 5`、モデル `gemini-3.1-flash-lite-image`、16:9。plan の SHA-256 先頭は `3200171cc78f8b84` | ジョブ成功、5 枚すべてが R2 に保存、エラーなし、生成呼び出しは 5 回。取り出したファイルの大きさはログと一致し、先頭バイトは 5 枚とも JPEG。目で確かめ、docunavi に取り込んで承認した。保存先は旧バケットと推定（`R2_BUCKET` の旧値から）。削除は上のとおり（3.4） |
 
 **実行の手順（運用者がホストで行う）**
 
@@ -99,32 +102,79 @@ Vertex AI で画像を生成する Cloud Run Job について、**何が・ど�
 2. 一時キーを、Secret `r2-docunavi-hero-write-temp` の**新しい版**として追加する（ジョブは `latest` を参照する）。
 3. `gcloud run jobs execute image-generation-job --wait --update-env-vars` で、`PLAN_JSON` と `PLAN_SHA256` を渡して実行する。
 4. 終了時に、追加した版を破棄する（失敗しても破棄する）。
+   （2026-11-20 の報告: `R2_BUCKET` の変更の直後に、Job は Ready=False（`SecretsAccessCheckFailed`）だった。`latest`（版 3）が DESTROYED だったため。手順 2 で新しい版を足すと、Ready=True に回復した。手順 4 のとおり破棄すると、`latest` は再び DESTROYED になりうる。手順 4 と Ready の維持の両立は未決。Ready=False のままで `execute` が通るかは未確認。3.4）
 
 取り出しは、`--kind read`（`--ttl 900`）で署名した一時キーを、使い捨てのコンテナに環境変数で渡して行う。保存済みの資料は、再実行しても生成を呼ばない（保存の有無を先に確かめる）。
 **未確認:** 1 枚あたりの単価と請求額、一時キーの版が破棄されたことの確認出力、`taskCount` を 5 にした操作。この実行で使った親の鍵の版は、記録が無い（版 5 に当たると読めるが、未確認。版 6 の作成は 2026-11-20 で、この実行より後）。
 
 ### 3.3 親の鍵の版の切り替えと、実 R2 での確認（報告 2026-11-20）
 
-ジョブを変更・実行した報告は無い。これは、親の鍵（Secret `r2-docunavi-hero-parent`）の版の整理と、R2 への直接の書き込み・読み取りの確認。デプロイ・実行・生成成功・保存と回収・画面表示の 5 段階は、どれも進めていない（直接の PutObject・GetObject は、ジョブの保存と回収の記録ではない）。値は出していない（運用者の報告）。
+この節の報告（バケット分離の前）には、ジョブの変更・実行は含まれない（同じ日の `R2_BUCKET` の変更は 3.4）。これは、親の鍵（Secret `r2-docunavi-hero-parent`）の版の整理と、R2 への直接の書き込み・読み取りの確認。デプロイ・実行・生成成功・保存と回収・画面表示の 5 段階は、どれも進めていない（直接の PutObject・GetObject は、ジョブの保存と回収の記録ではない）。値は出していない（運用者の報告）。この節の確認は、当時のトークンの範囲（`hoshiniwa-images` だけ）からの推定で、バケット分離の前の確認と読める（報告にバケット名の明記は無い）。分離後の確認は 3.4。
 
-**版 6 の鍵:** docunavi 専用に新しく作った Account API token `docunavi-hero-parent`。作成日 2026-11-20、権限は Object Read & Write、範囲はバケット `hoshiniwa-images` だけ、期限 2027-05-20（6 か月）、IP 制限なし。
-報告では、作成画面に prefix の制限は無かった。設定上は、親の鍵でバケット全体を読み書き・削除できると読める。ただし、実際に試したのは、確認用の 1 件（`docunavi-hero/` 内）の DeleteObject（204）だけで、バケット全体への実アクセスは試していない。
+**版 6 の鍵:** docunavi 専用に新しく作った Account API token `docunavi-hero-parent`。作成日 2026-11-20、権限は Object Read & Write、作成時の範囲はバケット `hoshiniwa-images` だけ（同じ日のうちに `docunavi-hero` だけに変更した。3.4）、期限 2027-05-20（6 か月）、IP 制限なし。
+報告では、作成画面に prefix の制限は無かった。当時（範囲が `hoshiniwa-images` のとき）は、設定上、親の鍵でバケット全体を読み書き・削除できると読めたが、試したのは、確認用の 1 件（`docunavi-hero/` 内）の DeleteObject（204）だけだった。その後、範囲を専用バケット `docunavi-hero` に変えたので、星庭ジョブの画像には及ばないと読める（根拠は、旧バケットへの HEAD が親の鍵でも 403 だったこと。Put・Get・Delete・一覧は未試験。3.4）。
 版 6 がこのトークンの鍵だとする根拠は、作成直後の画面から値を表示せずに版 6 として入れたことと、版 5 との access_key_id の違い（比較だけで、値は見ていない）。access_key_id が違うことだけでは、新トークンの鍵の証明にならない。Cloudflare 側のトークン ID との突き合わせは未（下の未確認）。
 
 | 項目 | 結果 |
 |---|---|
-| 確認に使った鍵 | 版 6 の親（上の `docunavi-hero-parent`）から署名した一時キー |
+| 確認に使った鍵 | 版 6 の親（上の `docunavi-hero-parent`）から署名した一時キー。確認の対象は、分離前のバケット `hoshiniwa-images` と推定（報告に明記は無い） |
 | write の一時キー | `docunavi-hero/` への PutObject → 200 |
 | read の一時キー | GetObject → 200（内容一致）、HeadObject → 200 |
 | 後片付け | 確認用に置いた 1 件だけを、親の鍵で DeleteObject（204）。HeadObject は 404 で、残っていない。確認用のスクリプトも削除した（リポジトリの `scripts/probe-r2-temp-credentials.py` と同じものかは、報告から分からない） |
-| 版 5 | 2026-11-01 16:27 UTC に作られた。版 6 とは別の鍵で、R2 では有効だった。持ち主は**推定**で `hoshiniwa-images-rw`（Cloudflare 側の ID と未突合）。Secret 自体への IAM 付与は無かった（プロジェクト全体の権限による読み取りと、アクセスログは未確認）。2026-11-20 に、Secret Manager 上で無効化した（`gcloud secrets versions enable` で戻せる）。R2 側のトークンの失効ではなく、版 5 の鍵が今も R2 で有効かは未確認。有効なのは版 6 だけ |
+| 版 5 | 2026-11-01 16:27 UTC に作られた。版 6 とは別の鍵で、R2 では有効だった。持ち主は**推定**で `hoshiniwa-images-rw`（Cloudflare 側の ID と未突合）。Secret 自体への IAM 付与は無かった（プロジェクト全体の権限による読み取りと、アクセスログは未確認）。2026-11-20 に、Secret Manager 上で無効化した（`gcloud secrets versions enable` で戻せる）。R2 側のトークンの失効ではなく、版 5 の鍵が今も R2 で有効かは未確認。Secret Manager 上で有効なのは版 6 だけ |
 
 **未確認:**
 - 版 6 の access_key_id と、Cloudflare 側のトークン ID の突き合わせ。版 5 の持ち主（`hoshiniwa-images-rw` は推定）。版 5 の鍵が今も R2 で有効か（Secret の無効化だけで、トークンは失効していない）。版 1〜4 の状態。
-- 一時キーが `docunavi-hero/` の外へ書けないこと（実 R2 での拒否は試していない）。
-- `hoshiniwa-images-rw` の扱い（決定待ち）。
-- docunavi の画像ジョブが、版 6 の親を使うこと。
+- 版 5 が `hoshiniwa-images-rw` の鍵なら、その写しが Secret Manager の版 5 に入っている。R2 側のトークンは失効しておらず、鍵が有効なままの可能性がある（未確認。`enable` で戻せる）。鍵の失効（トークンの再発行）や破棄をするかは、未決。
+- docunavi 側の画像ジョブ（3.2 手順 1 の署名）が、版 6 の親を使うこと。
+- 分離後の新バケットでの、画像生成の通し実行（3.4）。
 - 生の出力は未受領（8 節）。
+
+### 3.4 バケットの分離と、Job の環境変数の変更（報告 2026-11-20）
+
+ホストが実施・確認した内容の報告。生の出力は未受領（8 節）。値・鍵は書かない。**この変更の後の、画像生成の実行はしていない**（3.2 の実行は 2026-11-02 で、旧バケット向け）。保存先の変更なので（6 節）、5 段階を分けて書く。
+
+| 段階 | 結果 |
+|---|---|
+| デプロイした | Job の設定変更だけ（イメージを変えた報告は無い）。Job `image-generation-job`（`imagen-app-2026`、`asia-northeast1`）の環境変数 `R2_BUCKET` を `hoshiniwa-images` → `docunavi-hero` に変更した（generation 12 → 13）。prefix `docunavi-hero/` は変えていない。2 節の「現在」のダイジェストは 2026-11-02 の報告のままで、generation 13 のダイジェストと、ソースコミットは未確認 |
+| 実行した | この変更の後は、していない（実行 ID は無い） |
+| 画像生成に成功した | この変更の後は、していない |
+| 画像を保存・回収できた | ジョブでは未実施。下の PutObject・GetObject は、運用者の直接の呼び出しで、ジョブの保存と回収の記録ではない |
+| 画面に表示できた | この変更の後は、未 |
+
+**変更の内容（報告）:**
+
+- Cloudflare R2 に、バケット `docunavi-hero` を作成した（Public Access 無効、Standard、Location は Automatic）。
+- Account API token `docunavi-hero-parent` の範囲を、`hoshiniwa-images` から `docunavi-hero` に変更した（Object Read & Write、期限 2027-05-20、IP 制限なしのまま）。鍵の値は変わらないので、Secret `r2-docunavi-hero-parent` の版 6 はそのまま。
+- 旧バケット `hoshiniwa-images` の `docunavi-hero/` にあった 8 件（画像 6 枚と、確認用の test 2 件）を、ユーザーの承認のもと、Cloudflare の画面で削除した。`images/` の 11 件は残っている。画像 6 枚は、docunavi が `docunavi-documents` の `hero/` に入れ直した写しと、大きさが一致した（内容の一致は未確認）。3.2 で保存した 6 枚（1 回目の 1 枚、2 回目の 5 枚）と数は合うが、1 枚ずつの照合は報告に無い。
+
+**ホストの依頼文の記述（報告の事実の一覧には無い）:** `hoshiniwa-images` と、トークン `hoshiniwa-images-rw` は、星庭ジョブ専用に戻ったものとして扱う。間接の根拠は、旧バケットへの親の HEAD が 403 だったこと。docunavi 側が `hoshiniwa-images-rw` を使わないことの実測は無い（下の未確認）。
+
+**実 R2 の検証（版 6 から署名した一時キー。報告）:**
+
+| 項目 | 結果 |
+|---|---|
+| 新バケット `docunavi-hero`、prefix `docunavi-hero/` の中 | PutObject 200、GetObject 200（内容一致）、HeadObject 200 |
+| prefix の外（`other-prefix/`）への Put | 403（試した一時キーの種類は報告に無い。write の一時キーなら、「write の一時キーは prefix の外へ書けない」の確認。1 パス・1 回のみ） |
+| 旧バケット `hoshiniwa-images` への HEAD | 403（親の鍵でも、旧バケット向けの一時キーでも。HEAD の対象がバケットかオブジェクトかは、報告に無い。Put・Get・Delete・一覧は未試験） |
+| 後片付け | 確認用の 2 件を、親の鍵で DeleteObject（204）。削除後の HEAD は 404 |
+
+**Job の状態:** `R2_BUCKET` を変えた直後は、Ready=False（理由 `SecretsAccessCheckFailed`）だった。Secret `r2-docunavi-hero-write-temp` の `latest`（版 3）が DESTROYED だったため（版 1・2 は enabled）。新しい版（版 4）を足すと、Ready=True に自動で回復した（確認した時点の記録。現在の Ready は未確認）。
+Ready=True は、`latest`（版 4）が破棄されていないことの表示で、実行できる状態ではない。版 4 の鍵は 15 分で期限切れ（3.2 手順 1 の `--ttl 1200` とは別の鍵）で、次の実行の前に、新しい版を足す必要がある。3.2 手順 4 のとおり破棄すると、`latest` は再び DESTROYED になりうる。手順 4 と Ready の維持の両立は、未決。Ready=False のままで `execute` が通るかは未確認。
+
+**未確認:**
+
+- この変更の後の、画像生成の通し実行（ジョブによる生成・保存・回収・画面表示）。ジョブのコードの経路（`If-None-Match: *` の Put、期限が 5 分未満なら止まる検査）での、新バケットへの Put。
+- docunavi 側の画像ジョブ（3.2 手順 1 の署名）が、版 6 の親を使うこと。版 6 から署名した一時キーが新バケットで通ったことは確認済みだが、docunavi の運用経路で版 6 を使う確認ではない。
+- read の一時キーでの、prefix の外の読み取りの拒否。新バケットのバケットロックの有無（Public Access 無効は報告にある）。
+- 旧バケットの 8 件を削除する前に、その画像が `r2.dev` の公開 URL で読めたか。旧バケットは `r2.dev` が有効（`docs/image-storage.md`）なので、読めた可能性がある。削除済みで、今は確認できない。3.2 の「本番に表示された」が、旧バケットの URL に依存していたかも未確認。
+- 写し（`docunavi-documents` の `hero/`）の内容が、削除した 6 枚と同じか（大きさの一致だけ）。旧バケットに残っていた確認用の test 2 件が、3.3 のどの確認の残りか（3.3 は 1 件を削除と報告）。
+- 版 6 とトークン ID の突き合わせ、版 5 の持ち主、版 5 の鍵が今も R2 で有効か、親の Secret の版 1〜4 の状態（3.3 のまま）。版 5 が `hoshiniwa-images-rw` の鍵なら、その写しが Secret Manager の版 5 に入っており、R2 では有効なままの可能性がある（`enable` で戻せる）。鍵の失効（トークンの再発行）や破棄をするかは、未決。
+- Secret `r2-docunavi-hero-write-temp` の版 1・2 が enabled のまま残っていることと、3.2 の手順 4（終了時に破棄）の関係。版 4 の鍵が、どのバケット向けか。
+
+**変更していないもの:** 星庭ジョブ自身の `hoshiniwa-images` の使用（`.env.example` の `STORAGE_S3_BUCKET` を確認した。実環境の `.env` は読まない）。
+
+**6 節の完了条件の現状（完了とは判断しない）:** 条件 1: 2 節の該当行（出力先・環境変数・Secret・generation）を更新した。条件 2: 未了（generation 13 のダイジェストとソースコミットは未確認）。条件 3: 実行 ID は無い（この変更の後は実行していない）。条件 4: 上の表。条件 5: 上の未確認。条件 6: 7 節に案を追記した（実行していない）。条件 7: 未了（生の出力は未受領。`docs/image-gen-evidence/` には README.md だけがある）。
 
 ## 4. ソースとデプロイの関係（混ぜない）
 
@@ -132,12 +182,14 @@ Vertex AI で画像を生成する Cloud Run Job について、**何が・ど�
 |---|---|---|---|
 | `71bb2c5` | 2026-10-31 | `jobs/image-gen/` の最初のコミット。モデル `gemini-3.1-flash-lite-image`、プロジェクトの既定 `imagen-app-2026`、場所の既定 `global`、縦横比 1:1、出力はコンテナ内のファイルだけ | **未確認**（成功した実行は 10-29 で、このコミットより前） |
 | `6c01342` | 2026-11-01 | 承認済みの `plan.json`（GCS）を読み、PNG を GCS へ書く版 | していない |
-| R2 版（現在の `jobs/image-gen/`） | 2026-11-02 | `6c01342` の GCS を、Cloudflare R2（S3 互換 API、`boto3`）に書き換えた版。偽の S3・偽の genai のテストが通る（実 API・実 R2・通信なし） | **デプロイ済みと読める（報告）**。現在のジョブ（`docunavi-hero-job`）は、この版だけが読む環境変数を使い、3.2 の実行で R2 への保存と回収を確認した。**ただし、ビルド元のコミットが無く**、デプロイしたイメージとこの版が同一かは、イメージ内の `/app/main.py` を読むまで未確認 |
+| R2 版（現在の `jobs/image-gen/`） | 2026-11-02 | `6c01342` の GCS を、Cloudflare R2（S3 互換 API、`boto3`）に書き換えた版。偽の S3・偽の genai のテストが通る（実 API・実 R2・通信なし） | **デプロイ済みと読める（報告）**。現在のジョブ（`docunavi-hero-job`）は、この版だけが読む環境変数を使い、3.2 の実行で、旧バケット `hoshiniwa-images` への保存と回収を確認した（新バケット `docunavi-hero` では、ジョブでの保存と回収は未実施。3.4）。**ただし、ビルド元のコミットが無く**、デプロイしたイメージとこの版が同一かは、イメージ内の `/app/main.py` を読むまで未確認 |
 
-**保存先の決定（2026-11-02）:** R2 が正規で、GCS は使わない。既存バケット `hoshiniwa-images`、prefix `docunavi-hero/`、バケットロックなし、r2.dev は使わない。
+**保存先の決定（2026-11-02。2026-11-20 に、バケットを分離した。下の「保存先の分離」）:** R2 が正規で、GCS は使わない。既存バケット `hoshiniwa-images`、prefix `docunavi-hero/`、バケットロックなし、r2.dev は使わない。
 ジョブには親トークンを渡さず、親から署名した一時キー（書き込み用: `PutObject` + `HeadObject`、取得用: `GetObject` + `HeadObject`。どちらも `docunavi-hero/`、15〜30 分）だけを渡す。
 （2026-11-02 の決定時点の記述）親は、既存の Account API token `hoshiniwa-images-rw`（`hoshiniwa-images` のみ、期限 2027-04-27）。**既存トークンなので、作業後に削除はできない**（同じキーを使う星庭ジョブの画像の保存が止まる）。漏えいの疑いがあるときは、このトークンを再発行（roll）し、`STORAGE_S3_*` も差し替える。2026-11-20 以降、親の鍵が漏れたときは、`docunavi-hero-parent` を再発行して Secret に新しい版を足す手順になる（手順は未整備。3.3）。
-2026-11-20 の報告で、親の鍵は Secret の版 6（docunavi 専用の新しいトークン `docunavi-hero-parent`）に替わり、版 5 は無効化された（3.3）。上の「親は `hoshiniwa-images-rw`」は 2026-11-02 の決定時点の記述で、版 5 の持ち主は推定（未確認）。`hoshiniwa-images-rw` の扱いは、決定待ち。
+2026-11-20 の報告で、親の鍵は Secret の版 6（docunavi 専用の新しいトークン `docunavi-hero-parent`）に替わり、版 5 は無効化された（3.3）。上の「親は `hoshiniwa-images-rw`」は 2026-11-02 の決定時点の記述で、版 5 の持ち主は推定（未確認）。`hoshiniwa-images-rw` は、バケットの分離で星庭ジョブ専用に戻ったと、ホストは扱う（版 5 の件が未確認。3.4）。
+
+**保存先の分離（2026-11-20。報告）:** 保存先のバケットを、専用の `docunavi-hero` に分けた（prefix `docunavi-hero/` は同じ）。2026-11-02 の決定（既存バケット `hoshiniwa-images`）は、この日までの記録として残す。親トークン `docunavi-hero-parent` の範囲も、`docunavi-hero` だけにした。ホストは、`hoshiniwa-images` と `hoshiniwa-images-rw` を、星庭ジョブ専用に戻ったものとして扱う（新バケットのバケットロックは未報告。詳細と未確認は 3.4）。
 
 成功した実行（2026-10-29）は `71bb2c5` より前で、イメージ名（`imagen-fast-job`）もこのリポジトリのパスと一致しない。したがって、リポジトリのコードは**成功したイメージの元のコードとは限らない**。既存ジョブを `6c01342` で上書きしない。
 
@@ -184,8 +236,13 @@ gcloud run jobs update image-generation-job --region=asia-northeast1 --project=i
 ```
 
 - 前提: そのダイジェストが Artifact Registry に残っていること（2 節の最後の行は**未確認**）。
-- 実行時の環境変数・サービスアカウント・タスク数は、このコマンドでは戻らない。2 節が埋まっていないうちは、戻した結果が成功した実行と同じになる保証は無い。
+- 保存先のバケットの変更（2026-11-20。`R2_BUCKET` を `docunavi-hero` に変更）を戻す場合は、`R2_BUCKET` を戻し、親トークン `docunavi-hero-parent` の範囲に `hoshiniwa-images` を足す必要がある（どちらも書き込み。権限を持つ人が行う）。**戻すと、docunavi との共用が復活し、親トークンの範囲が広がる**（access-separation.md の方針 1・5 の例外が復活する）。実行の前に、ユーザーの承認を得る。旧バケットの `docunavi-hero/` にあった 8 件は削除済みで、復元の手段は未確認（写し: `docunavi-documents` の `hero/`）。
+  （案。実行していない。）
+  ```bash
+  gcloud run jobs update image-generation-job --region=asia-northeast1 --project=imagen-app-2026 --update-env-vars=R2_BUCKET=hoshiniwa-images
+  ```
+- 実行時の環境変数・サービスアカウント・タスク数は、上のイメージの復旧コマンドでは戻らない。2 節が埋まっていないうちは、戻した結果が成功した実行と同じになる保証は無い。
 
 ## 8. 証跡の保存
 
-`docs/image-gen-evidence/` に、秘密とプロンプト本文を除いた確認の出力を、日付つきで置く。**2026-11-02 時点では空**（ジョブの設定・成功した実行の生の出力・ログは、まだ受け取っていない。上の「報告」は要約で、生の出力ではない）。保存する前に、秘密が無いか目で確かめる。
+`docs/image-gen-evidence/` に、秘密とプロンプト本文を除いた確認の出力を、日付つきで置く。**2026-11-02 時点では空（2026-11-20 時点でも README.md だけ）**（ジョブの設定・成功した実行の生の出力・ログは、まだ受け取っていない。上の「報告」は要約で、生の出力ではない）。保存する前に、秘密が無いか目で確かめる。
