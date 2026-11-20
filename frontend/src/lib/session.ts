@@ -2,7 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 import { fetchGardenMe, fetchMe } from './api';
 import { getAuth } from './auth';
-import { logAuthError } from './auth-log';
+import { isUnauthorized, logAuthError } from './auth-log';
 import type { Garden, User } from './types';
 
 // 求職者のログインの印は、Better Auth の Cookie（HttpOnly。画面のサーバーだけが読む。lib/auth.ts）。API へは、そこから取る短命の JWT を渡す。
@@ -31,8 +31,9 @@ export const userToken = cache(async (): Promise<string | null> => {
   try {
     return (await auth.api.getToken({ headers: await headers() }))?.token ?? null;
   } catch (error) {
-    // 画面は「ログアウト」に見える。原因（migrate の前に使った・BETTER_AUTH_SECRET を変えた）は、ここにしか残らない
-    logAuthError('userToken', error);
+    // ログインしていない（401）は普通の状態なので記録しない。それ以外は画面では「ログアウト」に見える。
+    // 原因（migrate の前に使った・BETTER_AUTH_SECRET を変えた）は、ここにしか残らない
+    if (!isUnauthorized(error)) logAuthError('userToken', error);
     return null;
   }
 });

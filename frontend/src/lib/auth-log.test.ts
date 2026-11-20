@@ -1,7 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { logAuthError } from './auth-log';
+import { APIError } from 'better-auth/api';
+import { isUnauthorized, logAuthError } from './auth-log';
 
 afterEach(() => vi.restoreAllMocks());
+
+describe('isUnauthorized', () => {
+  it('Better Auth の 401（ログインしていない）だけを true にする', () => {
+    expect(isUnauthorized(new APIError('UNAUTHORIZED'))).toBe(true);
+  });
+
+  it('ほかの失敗は false（500・普通の例外・値でないもの）', () => {
+    expect(isUnauthorized(new APIError('INTERNAL_SERVER_ERROR'))).toBe(false);
+    expect(isUnauthorized(new Error('Failed to decrypt private key'))).toBe(false);
+    expect(isUnauthorized('401')).toBe(false);
+    expect(isUnauthorized(null)).toBe(false);
+  });
+});
 
 describe('logAuthError', () => {
   it('場所・名前・本文を 1 行で出す（改行は 1 つの空白にし、200 文字で切る）', () => {
