@@ -27,7 +27,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 | `db/` | 初期スキーマ（`schema.sql`）とマスタ（`seed_codes.sql`）。空のボリュームで初めて起動したときだけ流れる | Postgres 17 |
 | `jobs/image-gen/` | 画像生成の Cloud Run Job のコード（試作。テスト・CI なし）。**デプロイ済みのジョブとは別物のことがある。正本は [台帳](docs/image-gen-resources.md)** | Python 3.11（**揃えていない。保留中**） |
 | `.devcontainer/` | 開発コンテナと、Docker のソケットプロキシ | |
-| `_legacy/` `backups/` | 旧 PHP の資料と DB のバックアップ。Git 管理外 | |
+| `backups/` | DB のバックアップ。Git 管理外 | |
 
 版は 1 か所で決めず、`.python-version`（3.13）と `.node-version`（24）を基準にして、`backend/Dockerfile`、`docker-compose.yml` の `frontend`（`node:24-slim`）、
 `frontend/package.json` の `engines`、CI が合っているかを `scripts/check-versions.sh` が確かめる。
@@ -35,7 +35,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 
 ## 守ること（コードを書く前に）
 
-- **`.env`・`_legacy/`・`backups/` は読まない。** `.env` には R2 の認証情報が入りうる。`backups/` は個人情報を含みうる DB のダンプ、`_legacy/` は旧システムの資料。
+- **`.env`・`backups/` は読まない。** `.env` には R2 の認証情報が入りうる。`backups/` は個人情報を含みうる DB のダンプ。旧 PHP の資料は 2026-11-20 に削除済みで、残す参考は [docs/legacy-reference.md](docs/legacy-reference.md)。
   `grep -r .` や `find .` で潜らない（`git grep` / `git ls-files` を使う）。値を表示・ログ・コミットしない。
 - **認証情報は環境変数で渡す。** コード・文書・コミット・スクリーンショットに書かない。`STORAGE_S3_*` の値は特に。画面（`frontend/`）に渡してよいのは公開用の値だけ。
 - **ダミーデータの投入は `DEMO_DATA=allow` を渡した開発・テストの環境だけ。** `seed` と `seed-images` を本番の DB に向けない。Compose の `tools` の道具は `up` で起動しない。

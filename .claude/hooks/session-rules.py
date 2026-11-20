@@ -15,7 +15,7 @@ RULES = """【再注入: 星庭ジョブの重要ルール】
 3. 実 API・課金（Gemini Batch など）、R2 への書き込み、本番の DB・デプロイ: 件数・回数・概算費用を先に示す。マイグレーションの適用の前は、DB のバックアップ。
 4. git push、git reset / restore、フック・権限・CLAUDE.md の変更: 差分を示してから。止められたら回避せず報告する。
 ■禁止
-5. .env・backups/・_legacy/ を読まない。認証情報（STORAGE_S3_* など）は、表示・記録・コミットをしない。
+5. .env・backups/ を読まない。認証情報（STORAGE_S3_* など）は、表示・記録・コミットをしない。
 6. seed / seed-images を本番の DB に向けない。適用済みのマイグレーションを書き換えない。DROP / TRUNCATE を足さない。
 詳細は CLAUDE.md と台帳。"""
 
