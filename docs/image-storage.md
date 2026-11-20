@@ -126,7 +126,8 @@ DNS・独自ドメインは未設定。
   `r2.dev` の無効化は、`PUT /accounts/{account_id}/r2/buckets/hoshiniwa-images/domains/managed` に `{"enabled": false}`。
 - 作るもの（星庭ジョブ専用。ほかのプロジェクトのバケット・設定・認証情報は流用しない）: バケット 1 つ。公開設定にして、画像を公開 URL から読めるようにする。
 - 共用の記録: バケット `hoshiniwa-images` は星庭ジョブ側で作ったもので、docunavi のヒーロー画像用の prefix `docunavi-hero/` もある（保存先の決定 2026-11-02。[docs/image-gen-resources.md](image-gen-resources.md) の「保存先の決定」を参照）。
-  台帳によると、トークン `hoshiniwa-images-rw` は docunavi の一時キーの親にも使われる。星庭ジョブ側が docunavi の資格情報を使った記録は台帳に無い。方針 1（[access-separation.md](access-separation.md)）との関係は未決。このバケットの設定・トークンを変えるときは、その影響を確かめる。
+  台帳によると、docunavi の一時キーの親は、2026-11-20 に docunavi 専用のトークン `docunavi-hero-parent`（設定上、バケット全体の読み書き。実アクセスは未実測）に替わった（報告）。2026-11-02 の決定では、星庭ジョブのトークン `hoshiniwa-images-rw` を親に使う設計だった。
+  星庭ジョブ側が docunavi の資格情報を使った記録は台帳に無い。共用はバケットで、方針との関係は [access-separation.md](access-separation.md) の「既知の例外」に記録した。このバケットの設定・トークンを変えるときは、その影響を確かめる。
 - API トークン: R2 の **Object Read & Write** を、**そのバケットだけ**に絞って作る（Admin 権限は使わない）。作成直後にだけ表示される Secret Access Key は、会話・Git・ログ・スクリーンショットに出さず、環境変数かシークレット管理へ直接入れる。
 - 費用の見積もり条件（出典: Cloudflare 公式の料金ページ。等級 B）: Standard ストレージ 10 GB-月・Class A（書き込み・一覧）100 万回/月・Class B（読み取り）1000 万回/月が無料枠、超過分は $0.015/GB-月・Class A $4.50/百万回・Class B $0.36/百万回、**外向きの転送（egress）は無料**。現在の画像は約 10MB で、無料枠に収まる見込み。支払い方法の登録が要るかは、公式ページに記載がなく未確認。
 - 出典: <https://developers.cloudflare.com/r2/pricing/> / <https://developers.cloudflare.com/r2/buckets/public-buckets/> / <https://developers.cloudflare.com/r2/api/tokens/>

@@ -62,6 +62,15 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 | GitHub App | `hoshiniwajob-agent-actions`（`HoshiniwaJob` だけにインストール。`Actions: write`、`Metadata: read`） | **未作成** |
 | アプリの秘密（R2 の `STORAGE_S3_*` など） | 今は Git 管理外の `.env`。Infisical の `hoshiniwajob` への移行は未実施 | |
 
+## 既知の例外
+
+- **docunavi のヒーロー画像用の R2: バケット `hoshiniwa-images` の共用（保存先の決定 2026-11-02。[台帳](image-gen-resources.md)）。** docunavi の画像ジョブが、このバケットの `docunavi-hero/` に画像を保存する。ジョブには、`docunavi-hero/` だけに限る設計の短命キー（15〜30 分）を渡し、親は渡さない（範囲外への拒否は未実測）。
+  2026-11-02 の決定では、親に星庭ジョブのトークン `hoshiniwa-images-rw` を使う設計だった。2026-11-20 の報告で、親は docunavi 専用の新しいトークン `docunavi-hero-parent` に替わった（台帳 3.3）。方針 1（資格情報を再利用しない）の例外は、解消に向かっている（版 5 を無効化した）。ただし、版 5 の持ち主と、docunavi のジョブが版 6 を使うことは未確認で、版 5 は破棄していない（`enable` で戻る）。残る共用は**バケット**で、親の鍵が絞られていない点で、方針 5（権限を絞る）から外れる。
+  - 範囲: バケット `hoshiniwa-images`。親の `docunavi-hero-parent` は、設定上、バケット全体の読み書き・削除ができると読める（作成画面に prefix の制限が無かった。実測は、確認用 1 件（`docunavi-hero/` 内）の DeleteObject だけで、バケット全体への実アクセスは未実測）。`docunavi-hero/` に限るのは、設計上、短命キーだけ。親の鍵が漏れると、星庭ジョブの画像も、読み書き・削除されうる（推論）。
+  - 影響: `docunavi-hero-parent` の再発行は、docunavi 側の Secret に及ぶ。`hoshiniwa-images-rw` の再発行は、星庭ジョブの `STORAGE_S3_*` に及ぶ。
+  - 見直し: `docunavi-hero-parent` の期限（2027-05-20）の前。または、docunavi 専用のバケットを作るとき（そのとき、この例外は消す）。
+  - 未確認: 版 5 の持ち主（`hoshiniwa-images-rw` は推定）。版 6 の鍵と Cloudflare 側のトークン ID の突き合わせ。短命キーが `docunavi-hero/` の外へ書けないこと（拒否の実測）。docunavi の画像ジョブが版 6 の親を使うこと。`hoshiniwa-images-rw` の扱い（決定待ち）。
+
 ## 作成の手順
 
 作成は、利用者が自分の端末で行います。秘密の値は、画面にも、会話にも、ログにも出しません。
