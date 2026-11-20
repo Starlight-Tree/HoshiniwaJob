@@ -1,27 +1,28 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { gardenLogoutAction } from '../../src/actions/garden';
 import { AccountMenu } from '../../src/components/AccountMenu';
+import { AppSidebar } from '../../src/components/AppSidebar';
+import { SiteFooter } from '../../src/components/SiteFooter';
 import { currentGarden } from '../../src/lib/session';
 
-// 園の管理の画面。求職者の画面（(site)・(auth)）とは別のヘッダーで、ログインの印（Cookie）も別
+// 園の管理の画面。求職者の画面（(site)・(auth)）とは別のサイドパネルで、ログインの印（Cookie）も別。ログインしていない間（/garden/login）は、行き先もアカウントも出さない
 export default async function GardenLayout({ children }: { children: ReactNode }) {
   const garden = await currentGarden();
   return (
-    <>
-      <header className="site-header">
-        <div className="inner">
-          <Link href="/garden" className="logo">
-            星庭ジョブ <span className="logo-sub">園の管理</span>
-          </Link>
-          <nav aria-label="園のメニュー">
-            {garden ? (
-              <AccountMenu name={garden.corporate} email={garden.email} honorific="御中" logout={gardenLogoutAction} />
-            ) : null}
-          </nav>
-        </div>
-      </header>
-      {children}
-    </>
+    <div className="app-shell">
+      <AppSidebar
+        brand="星庭ジョブ"
+        brandHref="/garden"
+        brandSub="園の管理"
+        navLabel="園のメニュー"
+        items={garden ? [{ href: '/garden', label: 'ダッシュボード' }, { href: '/', label: '公開画面を見る' }] : []}
+      >
+        {garden ? <AccountMenu name={garden.corporate} email={garden.email} honorific="御中" logout={gardenLogoutAction} /> : null}
+      </AppSidebar>
+      <div className="app-main">
+        <div className="app-content">{children}</div>
+        <SiteFooter />
+      </div>
+    </div>
   );
 }

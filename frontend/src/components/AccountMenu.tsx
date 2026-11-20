@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 type Props = { name: string; email: string; logout: () => Promise<void>; honorific?: string };
 
-/** ヘッダーのアカウントのメニュー。名前・メールアドレス・ログアウト。外を押す・Esc で閉じる。敬称は、利用者は「さん」、園は「御中」。 */
+/** アカウントのメニュー（サイドパネルの下部。サイドパネルは下から上に開く）。名前・メールアドレス・ログアウト。外を押す・Esc で閉じる。敬称は、利用者は「さん」、園は「御中」。 */
 export function AccountMenu({ name, email, logout, honorific = 'さん' }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
