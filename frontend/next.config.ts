@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { securityHeaders } from './src/lib/security-headers';
 
 // 公開画像の URL の頭。本番は CDN の独自ドメイン（https://…）、ローカル保存の開発は /media（API が配る）。
 const publicBase = process.env.IMAGE_PUBLIC_BASE_URL ?? '/media';
@@ -24,10 +25,16 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   // 開発サーバーが、サーバーアクションの引数（メール・名前など）を端末に出すのを止める
   logging: { serverFunctions: false },
+  // 応答に X-Powered-By: Next.js を付けない（使っている技術を、わざわざ教えない）
+  poweredByHeader: false,
   // 画像は JPEG などで置き、ブラウザーが対応していれば AVIF、次に WebP で配信する。求人の画像は API が返す公開 URL から取る
   images: { formats: ['image/avif', 'image/webp'], remotePatterns },
   // 園の画像のアップロード（サーバーアクション）の本文の上限。API 側の上限（既定 5MB）より少し大きくしておく
   experimental: { serverActions: { bodySizeLimit: '6mb' } },
+  // セキュリティヘッダー（中身と理由は src/lib/security-headers.ts）。CSP と HSTS は、本番のビルドだけに付く
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders({ production: process.env.NODE_ENV === 'production' }) }];
+  },
   // ローカル保存のときだけ、/media を API へ渡す（ブラウザーと next/image の取得の両方が、同じ画面のオリジンで済む）
   async rewrites() {
     if (publicUrl) return [];
