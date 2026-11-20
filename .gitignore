@@ -28,3 +28,6 @@ backups/
 # Claude Code のローカル設定（個人用。コミットしない）
 .claude/settings.local.json
 .claude/settings.json.bak-*
+
+# ローカルの作業メモ・指示書の置き場（個人用。他のリポジトリから写す。コミットしない）
+/.dev-local/
