@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ログイン（Google）の秘密 3 つを、Infisical に登録する。ユーザーが自分の端末（ホスト）で実行する（エージェントは実行しない・値を見ない）。
+# ログイン（Google）の秘密 3 つを、Infisical に登録する。ユーザーが自分の端末（開発コンテナのターミナル。ホストには Infisical CLI が無い）で実行する（エージェントは実行しない・値を見ない）。
 #
 #   scripts/login-secrets.sh <Infisical のプロジェクト ID> [環境名。既定 dev]
 #
@@ -36,11 +36,16 @@ trap 'rm -f "$tmp" "$tmp.err"' EXIT
 
 echo "登録先: Infisical プロジェクト ${project} / 環境 ${env_name} / パス /"
 
-# すでに BETTER_AUTH_SECRET があれば作り直さない（値は /dev/null に捨てる。あるかどうかだけを終了コードで見る）
+# すでに BETTER_AUTH_SECRET があれば作り直さない。`secrets get` は、存在しないキーでも終了コード 0 を返す
+# （CLI 0.44.11。ホストが 2026-11-20 に実測）ので使わない。`export` の出力（値は変数に入るだけで表示しない）で、名前と値の有無を見る。
+# 取得に失敗したら中止する（失敗を「無い」と読むと、すでにある BETTER_AUTH_SECRET を作り直してしまう）。
+existing="$(infisical export --projectId "$project" --env "$env_name" --path / --format=dotenv 2>/dev/null)" \
+  || { echo "既存の秘密を確認できませんでした（infisical login 済みか、プロジェクトの権限があるかを確かめてください）。中止しました。" >&2; exit 1; }
 have_auth_secret=false
-if infisical secrets get BETTER_AUTH_SECRET --projectId "$project" --env "$env_name" --path / --plain --silent >/dev/null 2>&1; then
+if grep -Eq '^BETTER_AUTH_SECRET=.+' <<<"$existing"; then
   have_auth_secret=true
 fi
+unset existing
 
 read -r -s -p "GOOGLE_CLIENT_ID（入力は表示されません）: " gid
 echo
