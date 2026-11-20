@@ -8,9 +8,9 @@ Next.js 16（App Router）、React 19、TypeScript 7、Vitest 5。Node 24（`eng
 
 | 場所 | 役割 |
 |---|---|
-| `app/(site)/` | 公開側。求人検索（`page.tsx`）と求人詳細（`recruits/[id]`）。左のサイドパネル（`AppSidebar`） |
-| `app/(auth)/` | 利用者の登録・ログイン。サイドパネルは出さず、上の帯に「← 求人を探す」とテーマの切り替えだけ |
-| `app/garden/` | 園。ログイン、ダッシュボード、求人ごとの画像の管理（`recruits/[id]/images`）。サイドパネルは `(site)` と同じ部品（ログイン前は行き先とアカウントを出さない） |
+| `app/(site)/` | 公開側。求人検索（`page.tsx`）と求人詳細（`recruits/[id]`）。左の細い帯（`AppSidebar`。DocuNavi の閉じたサイドバーと同じ形）と、アカウントのメニュー（`AccountMenu`。テーマの切り替えもここ） |
+| `app/(auth)/` | 利用者の登録・ログイン。細い帯は出さず、上の帯に「← 求人を探す」とテーマの切り替えだけ |
+| `app/garden/` | 園。ログイン、ダッシュボード、求人ごとの画像の管理（`recruits/[id]/images`）。細い帯は `(site)` と同じ部品（ログイン前は行き先を出さず、アカウントのメニューはテーマだけ） |
 | `src/actions/` | サーバーアクション（`'use server'`）。フォームの受け口で、検証してから API を呼ぶ |
 | `src/lib/` | `api.ts`（API の呼び出し。サーバー側だけ）、`session.ts`（Cookie）、`search.ts`（URL の条件）、`validation.ts` ほか |
 | `src/components/` | 部品。テストは同じ場所の `*.test.tsx` |

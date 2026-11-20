@@ -107,18 +107,6 @@ h1, h2 { line-height: 1.4; }
 .logo { flex-grow: 1; font-size: 16.8px; font-weight: 700; color: var(--text); text-decoration: none; letter-spacing: 0.02em; }
 .site-header nav { display: flex; gap: 24px; align-items: center; }
 .site-header nav a { color: var(--text); font-size: 14px; font-weight: 700; text-decoration: none; }
-.header-cta { display: block; background: var(--primary); color: var(--on-primary); padding: 8px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; }
-.header-cta:hover { background: var(--primary-dark); color: var(--on-primary); }
-
-/* アカウントのメニュー */
-.account { position: relative; }
-.account-button { min-height: 40px; padding: 0 16px; border: 1.5px solid var(--primary); border-radius: 10px; background: var(--tag-bg); color: var(--tag-text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.account-menu { position: absolute; right: 0; top: 48px; z-index: 2; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 6px 20px var(--shadow); padding: 14px 16px; }
-.account-name { margin: 0; font-size: 14px; font-weight: 700; }
-.account-email { margin: 0 0 10px; font-size: 12px; color: var(--muted); word-break: break-all; }
-.account-menu form { border-top: 1px solid var(--border-soft); padding-top: 10px; }
-.logout-button { width: 100%; min-height: 40px; border: 1.5px solid var(--primary); border-radius: 8px; background: var(--surface); color: var(--primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.logout-button:hover { background: var(--tag-bg); }
 
 
 /* 園の管理 */
@@ -289,23 +277,44 @@ h1, h2 { line-height: 1.4; }
 .image-preview-actions .primary-button { margin-top: 0; }
 .image-ok { margin: 0; padding: 12px 16px; border: 1px solid var(--primary); border-radius: var(--radius); background: var(--tag-bg); }
 
-/* サイドパネル（公開側と園の管理）。ログイン・会員登録（(auth)）は、上の帯（.site-header）だけ */
+/* サイドパネル（公開側と園の管理）。DocuNavi の閉じたサイドバーと同じ、アイコンだけの細い帯（3.5rem）。ログイン・会員登録（(auth)）は、上の帯（.site-header）だけ */
 .app-shell { display: flex; align-items: flex-start; }
 .app-main { flex: 1 1 0; min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
 .app-content { flex: 1 0 auto; }
-.app-sidebar { flex: 0 0 248px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 16px; overflow-y: auto; }
-.app-sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-.app-brand { display: flex; flex-direction: column; font-size: 16.8px; font-weight: 700; line-height: 1.3; letter-spacing: 0.02em; color: var(--text); text-decoration: none; }
-.app-brand-sub { font-size: 13px; letter-spacing: 0; color: var(--muted); }
-.app-sidebar-toggle { display: none; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--primary); border-radius: 10px; background: var(--surface); color: var(--primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.app-sidebar-body { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
-.app-nav { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-.app-nav a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--text); font-size: 14px; font-weight: 700; text-decoration: none; }
-.app-nav a:hover { background: var(--tag-bg); color: var(--tag-text); }
-.app-nav a[aria-current='page'] { background: var(--tag-bg); color: var(--tag-text); box-shadow: inset 3px 0 0 var(--primary); }
-.app-sidebar-foot { margin-top: auto; padding-top: 20px; display: grid; gap: 12px; }
-.app-sidebar .account-button { width: 100%; text-align: left; }
-.app-sidebar .account-menu { top: auto; bottom: 48px; left: 0; right: auto; width: 100%; }
+/* アカウントのメニューとツールチップが、右の本文の上に重なって見えるよう、重なり順を上げる */
+.app-sidebar { flex: 0 0 3.5rem; position: sticky; top: 0; z-index: 1; isolation: isolate; height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 0.75rem 0.5rem; background: var(--surface); border-right: 1px solid var(--border); }
+.app-rail { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+.app-rail-foot { margin-top: auto; display: flex; justify-content: center; }
+.app-rail-btn { position: relative; display: grid; width: 2.5rem; height: 2.5rem; flex: none; place-items: center; border: 0; border-radius: 0.6rem; background: transparent; color: var(--muted); text-decoration: none; cursor: pointer; }
+.app-rail-btn:hover, .app-rail-btn:focus-visible { background: var(--surface-muted); color: var(--text); }
+.app-rail-btn[aria-current='page'] { background: var(--tag-bg); color: var(--primary); box-shadow: inset 3px 0 0 var(--primary); }
+.app-rail-logo { color: var(--text); }
+/* 項目の名前は、画面には出さない文字で持つ（読み上げの名前になる）。狭い画面では見せる */
+.app-rail-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+/* ツールチップ（ホバーとキーボードのフォーカスで、アイコンの右に出す） */
+.app-sidebar [data-tip]::after { position: absolute; z-index: 20; top: 50%; left: calc(100% + 0.5rem); padding: 0.25rem 0.5rem; border-radius: 0.4rem; background: var(--text); color: var(--bg); font-size: 12.5px; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(-50%); content: attr(data-tip); }
+.app-sidebar [data-tip]:hover::after, .app-sidebar [data-tip]:focus-visible::after { opacity: 1; }
+/* メニューを開いている間は、ツールチップを出さない（メニューに重なるため） */
+.app-sidebar [data-tip][aria-expanded='true']::after { display: none; }
+
+/* アカウント（DocuNavi と同じ。アバターのボタンを押すと、右へメニューが開く） */
+.account { position: relative; }
+.account-button { position: relative; display: grid; width: 2.5rem; height: 2.5rem; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 0.6rem; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.account-button:hover, .account-button[aria-expanded='true'] { border-color: var(--border); background: var(--surface-muted); }
+.account-avatar { display: grid; width: 1.9rem; height: 1.9rem; place-items: center; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.account-menu { position: absolute; z-index: 10; bottom: 0; left: calc(100% + 0.5rem); width: 14rem; padding: 0.4rem; border: 1px solid var(--border); border-radius: 0.9rem; background: var(--surface); box-shadow: 0 8px 24px var(--shadow); font-size: 14.4px; font-weight: 400; line-height: 1.4; }
+.account-who { margin: 0 0 0.3rem; padding: 0.5rem 0.75rem 0.65rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.account-name { margin: 0; font-size: 13.6px; font-weight: 700; }
+.account-email { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.account-theme { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.3rem 0.75rem; }
+.account-theme-options { display: flex; gap: 0.1rem; }
+.account-theme-option { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 0; border-radius: 0.5rem; background: transparent; color: var(--muted); cursor: pointer; }
+.account-theme-option:hover { color: var(--text); }
+.account-theme-option[aria-checked='true'] { background: var(--surface-muted); color: var(--text); }
+.account-theme-option:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.account-item { display: block; width: 100%; padding: 0.6rem 0.75rem; border: 0; border-radius: 0.6rem; background: transparent; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.account-item:hover, .account-item:focus-visible { background: var(--surface-muted); }
 
 /* テーマの切り替え（ライト / ダーク / システム） */
 .theme-switch { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -315,17 +324,17 @@ h1, h2 { line-height: 1.4; }
 .theme-switch-option:hover { color: var(--text); }
 .theme-switch-option[aria-pressed='true'] { background: var(--tag-bg); color: var(--tag-text); box-shadow: inset 0 0 0 1.5px var(--primary); }
 
-/* 狭い画面（1167px 以下）: サイドパネルは上の帯になり、「メニュー」ボタンで開閉する。
-   境目の 1168px は、求人検索の「しぼり込み」と結果が横に並ぶ幅（280+32+560=872px に、.page の左右の余白 48px と、サイドパネル 248px を足した値）。
-   サイドパネルの幅や .filter・.results の基準を変えるときは、この値も変える */
-@media (max-width: 1167px) {
+/* 狭い画面（975px 以下）: 細い帯は、上の横の帯になり、名前を文字で見せる。メニューは下へ開く。
+   境目の 976px は、求人検索の「しぼり込み」と結果が横に並ぶ幅（280+32+560=872px に、.page の左右の余白 48px と、細い帯 56px を足した値）。
+   帯の幅や .filter・.results の基準を変えるときは、この値も変える */
+@media (max-width: 975px) {
   .app-shell { display: block; }
   .app-main { min-height: 0; }
-  .app-sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 12px 16px; overflow: visible; }
-  .app-sidebar-head { margin-bottom: 0; }
-  .app-sidebar-toggle { display: inline-flex; align-items: center; }
-  .app-sidebar-body { display: none; padding-top: 16px; }
-  .app-sidebar[data-open='true'] .app-sidebar-body { display: flex; }
-  .app-sidebar-foot { margin-top: 16px; }
-  .app-sidebar .account-menu { position: static; margin-top: 8px; box-shadow: none; }
+  .app-sidebar { position: static; height: auto; flex-direction: row; align-items: center; gap: 0.25rem; padding: 0.5rem 1rem; border-right: 0; border-bottom: 1px solid var(--border); }
+  .app-rail { flex-direction: row; gap: 0.25rem; }
+  .app-rail-foot { margin-top: 0; margin-left: auto; }
+  .app-rail-btn { display: inline-flex; width: auto; gap: 0.5rem; padding: 0 0.75rem; }
+  .app-rail-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; font-size: 14px; font-weight: 700; }
+  .app-sidebar [data-tip]::after { display: none; }
+  .account-menu { top: calc(100% + 0.35rem); right: 0; bottom: auto; left: auto; }
 }

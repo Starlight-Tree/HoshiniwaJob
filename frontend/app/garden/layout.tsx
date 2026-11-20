@@ -11,13 +11,20 @@ export default async function GardenLayout({ children }: { children: ReactNode }
   return (
     <div className="app-shell">
       <AppSidebar
-        brand="星庭ジョブ"
+        brand="HoshiniwaJob"
         brandHref="/garden"
         brandSub="園の管理"
         navLabel="園のメニュー"
-        items={garden ? [{ href: '/garden', label: 'ダッシュボード' }, { href: '/', label: '公開画面を見る' }] : []}
+        items={
+          garden
+            ? [
+                { href: '/garden', label: 'ダッシュボード', icon: 'dashboard' },
+                { href: '/', label: '公開画面を見る', icon: 'external' },
+              ]
+            : []
+        }
       >
-        {garden ? <AccountMenu name={garden.corporate} email={garden.email} honorific="御中" logout={gardenLogoutAction} /> : null}
+        {garden ? <AccountMenu name={garden.corporate} email={garden.email} honorific="御中" logout={gardenLogoutAction} /> : <AccountMenu />}
       </AppSidebar>
       <div className="app-main">
         <div className="app-content">{children}</div>
