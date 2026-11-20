@@ -8,6 +8,9 @@ export type Master = {
   employments: Code[];
 };
 
+// 公開してよい（承認済みの）画像。url は API が保存キーから組み立てた公開 URL
+export type ImageInfo = { id: string; url: string; alt: string; width: number; height: number; mime_type: string };
+
 export type RecruitSummary = {
   id: number;
   corporate: string | null;
@@ -22,13 +25,10 @@ export type RecruitSummary = {
   stations: string[];
   occupations: string[];
   employments: string[];
+  hero_image: ImageInfo | null; // 一覧のサムネに使う代表画像。承認済みの画像が無ければ null
 };
 
-// 公開してよい（承認済みの）画像。url は API が保存キーから組み立てた公開 URL
-export type ImageInfo = { id: string; url: string; alt: string; width: number; height: number; mime_type: string };
-
 export type RecruitDetail = RecruitSummary & {
-  hero_image: ImageInfo | null;
   images: ImageInfo[];
   profile: string | null;
   place: string | null;

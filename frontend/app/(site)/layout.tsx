@@ -25,7 +25,10 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         )}
       </AppSidebar>
       <div className="app-main">
-        <div className="app-content">{children}</div>
+        <div className="app-content">
+          {children}
+          <p className="site-note">JobNavi は、練習用に作られた架空のサイトです。掲載している法人・求人・給与（通貨「ルミ」）は、すべて架空のものです。</p>
+        </div>
       </div>
     </div>
   );

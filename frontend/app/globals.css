@@ -122,6 +122,8 @@ h1, h2 { line-height: 1.4; }
 /* 登録直後の完了メッセージ */
 
 .page { max-width: 1180px; margin: 0 auto; padding: 32px 24px 64px; }
+/* 画面の下の注記（架空のサイトであること）。.page の下の余白に食い込ませて、本文のすぐ下に置く */
+.site-note { max-width: 1180px; margin: -40px auto 0; padding: 0 24px 32px; font-size: 12px; color: var(--muted); }
 .title-row { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; margin-bottom: 24px; }
 .title-row h1 { margin: 0; font-size: 16.8px; flex-grow: 1; }
 .result-count { margin: 0; font-size: 13.6px; color: var(--muted); }
@@ -185,7 +187,15 @@ h1, h2 { line-height: 1.4; }
 .chip:hover { background: var(--primary-dark); color: var(--on-primary); }
 .text-link { font-size: 14px; }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; }
+.card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; }
+/* カード全体が押せる（題名のリンクの ::after をカード全体に広げる）。見た目の変化はホバーとキーボードのフォーカスで出す */
+.card h2 a::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius); }
+.card:hover { border-color: var(--primary); }
+.card h2 a:focus-visible { outline: none; }
+.card h2 a:focus-visible::after { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* 左のサムネ（装飾。リンクは題名と同じ行き先）。画像の無い求人は .card-thumb-empty（中立の背景だけ）で、同じ大きさを取り、行の並びをそろえる */
+.card-thumb { flex: 0 0 160px; width: 160px; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--surface-muted); }
+.card-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .card-main { flex: 1 1 320px; min-width: 0; }
 .card-corporate { margin: 0 0 4px; font-size: 13px; color: var(--muted); }
 .card h2 { margin: 0 0 10px; font-size: 16px; }
@@ -193,10 +203,13 @@ h1, h2 { line-height: 1.4; }
 .card h2 a:hover { text-decoration: underline; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .tags li { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); }
-.card-summary { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
-.card-side { flex: 0 0 auto; min-width: 170px; text-align: right; }
+.card-summary { margin: 10px 0 0; font-size: 14px; color: var(--muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; } /* 一覧では 2 行まで。全文は詳細に出る */
+.card-side { flex: 0 0 auto; min-width: 170px; display: flex; align-items: center; justify-content: flex-end; gap: 16px; text-align: right; }
+.card-arrow { font-size: 28px; line-height: 1; color: var(--muted); }
+.card:hover .card-arrow { color: var(--primary); }
 .pay-label { margin: 0; font-size: 12px; color: var(--muted); }
-.pay-value { margin: 0 0 12px; font-size: 16.8px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+.pay-value { margin: 0; font-size: 16.8px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+.pay-unit { margin-left: 2px; font-size: 0.75em; font-weight: 500; color: var(--muted); }
 .outline-button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border: 1.5px solid var(--primary); border-radius: 6px; color: var(--primary); font-size: 14px; font-weight: 700; text-decoration: none; }
 .outline-button:hover { background: var(--tag-bg); }
 
@@ -261,8 +274,15 @@ h1, h2 { line-height: 1.4; }
 .auth-intro .auth-intro-alt { margin: 28px 0 0; font-size: 14px; }
 .auth-register .auth-form { flex: 1 1 420px; max-width: 520px; min-width: 0; }
 
-@media (max-width: 640px) {
-  .card-side { flex-basis: 100%; text-align: left; }
+/* カードの並びは、画面ではなく、一覧（.results）の幅で切り替える。サイドパネルの開閉で、同じ画面幅でも一覧の幅が変わるため。
+   800px 以上: サムネ・本文・給与と矢印が 1 行。800px 未満: 給与と矢印を下の行へ。520px 未満: サムネも全幅にして縦に積む */
+.results { container-type: inline-size; }
+@container (max-width: 799px) {
+  .card-main { flex-basis: 200px; }
+  .card-side { flex-basis: 100%; justify-content: space-between; text-align: left; }
+}
+@container (max-width: 519px) {
+  .card-thumb { flex-basis: 100%; width: 100%; aspect-ratio: 16 / 9; }
 }
 
 /* 園の画像管理 */
