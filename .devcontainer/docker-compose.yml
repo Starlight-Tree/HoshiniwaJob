@@ -28,7 +28,7 @@ services:
       # ホストのソケットは、この dev にはマウントしない。
       DOCKER_HOST: tcp://hoshiniwa-docker-proxy:2375
       # gcloud の日常の ID は閲覧専用のなりすまし（devcontainer.json の containerEnv と同じ値。変えるときは両方を直す）。
-      CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT: hoshiniwajob-viewer@hoshiniwa-job-ops.iam.gserviceaccount.com
+      CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT: jobnavi-viewer@jobnavi-ops.iam.gserviceaccount.com
       INFISICAL_DISABLE_TELEMETRY: "true"
       INFISICAL_DISABLE_UPDATE_CHECK: "true"
     # hoshiniwa-dev だけに繋ぐ（プロキシとの通信用。外へも出られる）。frontend-net・backend-net には繋がない

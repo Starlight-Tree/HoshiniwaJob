@@ -5,7 +5,7 @@
 # ・秘密の値は MCP の応答でマスクする（INFISICAL_MASK_SECRET_VALUES=true）。
 # ・使えるツールは、秘密の一覧（list-secrets。値は伏せ字）だけ。
 #   秘密の値を MCP 経由で入れると、値がエージェントの会話を通る。値の登録は CLI で行う（docs/access-separation.md の「Infisical」）。
-# ・MCP にはプロジェクトを絞る設定が無い。届く範囲は、この ID（hoshiniwajob-devcontainer）が入っているプロジェクトで決まる。
+# ・MCP にはプロジェクトを絞る設定が無い。届く範囲は、この ID（jobnavi-devcontainer）が入っているプロジェクトで決まる。
 # ・標準出力は MCP の通信に使われる。診断は標準エラーに出す。
 
 set -euo pipefail

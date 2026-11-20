@@ -7,7 +7,7 @@ Infisical・GitHub App・GCP のサービスアカウントの実体は未作成
 
 1. 別のプロジェクト（DocuNavi など）の資格情報・マシン ID・サービスアカウントを、このプロジェクトで再利用しない。
 2. Infisical のプロジェクトは、このプロジェクト専用に作る。マシン ID も、このプロジェクト専用に作る。
-3. GCP のサービスアカウントも、このプロジェクト専用に作る（運用用プロジェクト `hoshiniwa-job-ops` に置く）。キーは作らない。
+3. GCP のサービスアカウントも、このプロジェクト専用に作る（運用用プロジェクト `jobnavi-ops` に置く）。キーは作らない。
 4. 秘密は、プロジェクトごとに分けて保管する。
 5. 権限は、必要な秘密・リソースだけに絞る（Viewer、閲覧専用、1 リポジトリ限定）。
 6. コンテナごとに、必要な秘密だけを読めるようにする（開発コンテナのマシン ID は、開発用の秘密だけ。GitHub App の鍵は別プロジェクトで、ユーザーのログインでだけ読む）。
@@ -44,7 +44,7 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 |---|---|---|---|
 | `playwright` | なし（汎用のブラウザー操作） | 登録される | ログイン状態つきの確認が要るときだけ、同名を local で上書きする |
 | `infisical` | このプロジェクト専用のマシン ID（`~/.infisical/identity`） | 登録される。マシン ID が無いと起動に失敗する | 使えるツールは `list-secrets`（値は伏せ字）だけ |
-| `github` | このプロジェクト専用の GitHub App（1 時間のトークン）。ヘルパー `scripts/github-mcp-header.sh` が作る | `GITHUB_MCP_PROJECT_ID` を指定したときだけ登録される | 対象は `Starlight-Tree/HoshiniwaJob` だけ。`ci.yml` に `workflow_dispatch` は無いので、使えるのは主に監視 |
+| `github` | このプロジェクト専用の GitHub App（1 時間のトークン）。ヘルパー `scripts/github-mcp-header.sh` が作る | `GITHUB_MCP_PROJECT_ID` を指定したときだけ登録される | 対象は `Starlight-Tree/JobNavi` だけ。`ci.yml` に `workflow_dispatch` は無いので、使えるのは主に監視 |
 | `cloudflare` | OAuth（`/mcp` で認可するまで、何もできない） | 登録される | 認可の範囲は、アカウント単位になる見込み（未確認）。R2 の確認が要るときだけ、最小の範囲で認可する |
 | `langsmith` | OAuth（同上） | 登録される | ユーザーが必要なときに使う。OAuth の認可はそのときユーザーが行う。登録と、書き込み系の ask 規則（`.claude/settings.json`）は維持する |
 | `prisma` | OAuth（同上） | 登録される | ユーザーが必要なときに使う。OAuth の認可はそのときユーザーが行う。登録と、書き込み系の ask 規則（`.claude/settings.json`）は維持する |
@@ -55,12 +55,12 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 
 | 資源 | このプロジェクト専用 | 状態 |
 |---|---|---|
-| GCP プロジェクト | `hoshiniwa-job-app`（実行用）、`hoshiniwa-job-ops`（運用用） | 作成済み。どちらも空（サービスアカウントも Secret も無い） |
-| GCP の閲覧専用サービスアカウント | `hoshiniwajob-viewer@hoshiniwa-job-ops`（なりすまし。`CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT`） | **未作成** |
-| Infisical のプロジェクト | `hoshiniwajob`（環境 `dev`）、`hoshiniwajob-github-app`（環境 `prod`。GitHub App の鍵だけ） | **未作成** |
-| Infisical のマシン ID | `hoshiniwajob-devcontainer`（`hoshiniwajob` だけの Viewer。`hoshiniwajob-github-app` には入れない） | **未作成** |
-| GitHub App | `hoshiniwajob-agent-actions`（`HoshiniwaJob` だけにインストール。`Actions: write`、`Metadata: read`） | **未作成** |
-| アプリの秘密（R2 の `STORAGE_S3_*` など） | 今は Git 管理外の `.env`。Infisical の `hoshiniwajob` への移行は未実施 | |
+| GCP プロジェクト | 組織 `dev-cloud`（975415902896）の下。フォルダー `JobNavi`: `jobnavi-app-2026`（実行用。OAuth の同意画面とクライアントもここ）、`jobnavi-ops`（運用用）。フォルダー `GenAI`: `genai-shared-2026`（全アプリ共通の生成 AI。課金あり。Gemini API だけ有効） | 作成済み（2026-11-20）。`jobnavi-app-2026`・`jobnavi-ops` は空（サービスアカウントも Secret も無い）。`genai-shared-2026` に API キー `jobnavi-images`（`generativelanguage` だけに制限）。旧 `hoshiniwa-job-app`・`hoshiniwa-job-ops` は削除予定で、まだ残っている。フォルダーを作るため、組織の IAM に `roles/resourcemanager.folderAdmin` を付けた（外す予定） |
+| GCP の閲覧専用サービスアカウント | `jobnavi-viewer@jobnavi-ops`（なりすまし。`CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT`） | **未作成** |
+| Infisical のプロジェクト | `jobnavi`（環境 `dev`）、`jobnavi-github-app`（環境 `prod`。GitHub App の鍵だけ） | **未作成** |
+| Infisical のマシン ID | `jobnavi-devcontainer`（`jobnavi` だけの Viewer。`jobnavi-github-app` には入れない） | **未作成** |
+| GitHub App | `jobnavi-agent-actions`（`JobNavi` だけにインストール。`Actions: write`、`Metadata: read`） | **未作成** |
+| アプリの秘密（R2 の `STORAGE_S3_*` など） | 今は Git 管理外の `.env`。Infisical の `jobnavi` への移行は未実施 | |
 
 ## 分離済み（docunavi との R2。2026-11-20）
 
@@ -83,18 +83,18 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 2. コンテナのターミナルで、`claude` のログイン（`/login`）、`gcloud auth login --no-launch-browser`。
 3. Cloudflare など OAuth の MCP は、必要になったときに `/mcp` から認可する。
 
-### 2. GCP: 閲覧専用のサービスアカウント（`hoshiniwa-job-ops` に置く）
+### 2. GCP: 閲覧専用のサービスアカウント（`jobnavi-ops` に置く）
 
 実行前に、各コマンドの内容を確かめてください。API の有効化は、課金の紐づけが要る場合があります。
 
 ```bash
-OPS_PROJECT=hoshiniwa-job-ops
-TARGET_PROJECT=hoshiniwa-job-app
+OPS_PROJECT=jobnavi-ops
+TARGET_PROJECT=jobnavi-app-2026
 ME=<あなたのアカウント>
-SA=hoshiniwajob-viewer@${OPS_PROJECT}.iam.gserviceaccount.com
+SA=jobnavi-viewer@${OPS_PROJECT}.iam.gserviceaccount.com
 
 gcloud services enable iamcredentials.googleapis.com --project "$OPS_PROJECT"
-gcloud iam service-accounts create hoshiniwajob-viewer --display-name="HoshiniwaJob viewer" --project "$OPS_PROJECT"
+gcloud iam service-accounts create jobnavi-viewer --display-name="JobNavi viewer" --project "$OPS_PROJECT"
 gcloud iam service-accounts add-iam-policy-binding "$SA" \
   --member="user:${ME}" --role=roles/iam.serviceAccountTokenCreator --project "$OPS_PROJECT"
 for role in roles/cloudbuild.builds.viewer roles/run.viewer roles/logging.viewer roles/serviceusage.serviceUsageConsumer; do
@@ -107,8 +107,8 @@ done
 
 ### 3. Infisical: プロジェクトとマシン ID
 
-1. プロジェクト `hoshiniwajob`（環境 `dev`）と、`hoshiniwajob-github-app`（環境 `prod`）を作る。
-2. マシン ID `hoshiniwajob-devcontainer` を作る（Universal Auth。Client Secret の有効期限は 30 日）。**`hoshiniwajob` だけに Viewer で追加する。**
+1. プロジェクト `jobnavi`（環境 `dev`）と、`jobnavi-github-app`（環境 `prod`）を作る。
+2. マシン ID `jobnavi-devcontainer` を作る（Universal Auth。Client Secret の有効期限は 30 日）。**`jobnavi` だけに Viewer で追加する。**
 3. 資格情報を、コンテナのターミナルで、画面に出さずにボリュームへ置く。
 
    ```bash
@@ -117,8 +117,8 @@ done
 
 ### 4. GitHub App（GitHub MCP を使うとき）
 
-1. GitHub App `hoshiniwajob-agent-actions` を作る。権限は `Actions: Read and write` と `Metadata: Read-only` だけ。`HoshiniwaJob` のリポジトリだけにインストールする。
-2. App の ID と秘密鍵（PEM を base64 にしたもの）を、Infisical の `hoshiniwajob-github-app`（環境 `prod`）に、`GITHUB_APP_ID` と `GITHUB_APP_PRIVATE_KEY_B64` として保存する。
+1. GitHub App `jobnavi-agent-actions` を作る。権限は `Actions: Read and write` と `Metadata: Read-only` だけ。`JobNavi` のリポジトリだけにインストールする。
+2. App の ID と秘密鍵（PEM を base64 にしたもの）を、Infisical の `jobnavi-github-app`（環境 `prod`）に、`GITHUB_APP_ID` と `GITHUB_APP_PRIVATE_KEY_B64` として保存する。
    値は CLI の `--file` で渡す（`secrets set KEY=@file` はファイルを読まない）。
 3. コンテナのターミナルで `infisical login`（あなたのユーザー。鍵を読むのは、このログインだけ）。
 4. `GITHUB_MCP_PROJECT_ID=<プロジェクトの ID> bash scripts/github-mcp-header.sh --diagnose` で、前提を確かめる（標準出力は「OK」の 1 行だけ。トークンは作らない）。

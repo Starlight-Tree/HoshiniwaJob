@@ -18,12 +18,12 @@
 	},
 	// DOCKER_HOST・CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT・INFISICAL_DISABLE_* は ./docker-compose.yml の dev の environment にも置いてある
 	// （Compose ベースで containerEnv が効くかは未確認なので両方。変えるときは両方を直す）。
-	// CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT: gcloud の日常の ID を、閲覧専用のサービスアカウント（運用用プロジェクト hoshiniwa-job-ops）へのなりすましに固定する。
+	// CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT: gcloud の日常の ID を、閲覧専用のサービスアカウント（運用用プロジェクト jobnavi-ops）へのなりすましに固定する。
 	// 書き込みは、コマンドごとに明示する（docs/access-separation.md）。そのサービスアカウントは、作るまで存在しない（作るまで gcloud は失敗する）。
 	"containerEnv": {
 		"TZ": "Asia/Tokyo",
 		"DOCKER_HOST": "tcp://hoshiniwa-docker-proxy:2375",
-		"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT": "hoshiniwajob-viewer@hoshiniwa-job-ops.iam.gserviceaccount.com",
+		"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT": "jobnavi-viewer@jobnavi-ops.iam.gserviceaccount.com",
 		"INFISICAL_DISABLE_TELEMETRY": "true",
 		"INFISICAL_DISABLE_UPDATE_CHECK": "true"
 	},
