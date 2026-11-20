@@ -80,3 +80,67 @@ def test_every_summary_has_a_hero_image_key(client):
     for item in items:
         assert "hero_image" in item  # 画像が無い求人でも、キーは必ずある（値は null）
         assert item["hero_image"] is None or set(item["hero_image"]) == {"id", "url", "alt", "width", "height", "mime_type"}
+
+
+# ===== キーワード検索（q） =====
+
+
+def test_keyword_matches_title_and_corporate(client):
+    by_title = client.get("/api/recruits", params={"q": "語り部"}).json()
+    assert {i["category"] for i in by_title["items"]} == {"植物園の語り部", "遺跡前の語り部"}
+    by_corporate = client.get("/api/recruits", params={"q": "環軌道植物公社"}).json()
+    assert by_corporate["total"] == 2 and {i["corporate"] for i in by_corporate["items"]} == {"環軌道植物公社"}
+
+
+def test_keyword_terms_are_anded_across_columns_and_split_on_any_space(client):
+    # 半角・全角の空白で区切る。語の間は AND（職種の語と法人の語をまたいでよい）
+    for q in ("語り部 遺跡", "語り部　遺跡"):
+        assert client.get("/api/recruits", params={"q": q}).json()["total"] == 1
+    cross = client.get("/api/recruits", params={"q": "語り部 ミルフェン"}).json()
+    assert [i["category"] for i in cross["items"]] == ["植物園の語り部"]
+    assert client.get("/api/recruits", params={"q": "語り部 存在しない語"}).json()["total"] == 0
+
+
+def test_keyword_combines_with_other_conditions_and_paging(client):
+    only_regular = client.get("/api/recruits", params={"q": "語り部", "employment": 1}).json()
+    assert all("常勤" in i["employments"] for i in only_regular["items"])
+    assert only_regular["total"] <= client.get("/api/recruits", params={"q": "語り部"}).json()["total"]
+    paged = client.get("/api/recruits", params={"q": "語り部", "per_page": 1}).json()
+    assert (paged["total"], paged["last_page"], len(paged["items"])) == (2, 2, 1)
+
+
+def test_keyword_never_shows_hidden_recruits(client):
+    assert client.get("/api/recruits", params={"q": "非表示"}).json()["total"] == 0
+
+
+def test_keyword_wildcards_are_plain_characters(client):
+    for q in ("%", "_", "\\", "語り部%", "語_部"):
+        assert client.get("/api/recruits", params={"q": q}).json()["total"] == 0, q
+
+
+def test_blank_keyword_is_no_filter(client):
+    for q in ("", "   ", "　"):
+        assert client.get("/api/recruits", params={"q": q}).json()["total"] == 11, repr(q)
+
+
+def test_too_long_keyword_is_rejected(client):
+    assert client.get("/api/recruits", params={"q": "あ" * 100}).status_code == 200
+    assert client.get("/api/recruits", params={"q": "あ" * 101}).status_code == 422
+    assert client.get("/api/facets", params={"q": "あ" * 101}).status_code == 422
+
+
+def test_keyword_terms_are_deduplicated_and_capped():
+    from app.recruits import _keyword_terms
+
+    assert _keyword_terms("a b a　c d e f") == ["a", "b", "c", "d", "e"]
+    assert _keyword_terms(None) == [] and _keyword_terms("  ") == []
+
+
+def test_facets_apply_the_keyword_to_every_count(client):
+    body = client.get("/api/facets", params={"q": "語り部"}).json()
+    assert body["total"] == 2
+    assert sum(_counts(body["employments"]).values()) >= 2
+    # 自分の種類（雇用形態）の選択は件数に効かないが、キーワードは効く
+    narrowed = client.get("/api/facets", params={"q": "語り部", "employment": 1}).json()
+    assert narrowed["total"] <= 2
+    assert sum(_counts(narrowed["employments"]).values()) == sum(_counts(body["employments"]).values())

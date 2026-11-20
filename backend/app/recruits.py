@@ -28,16 +28,34 @@ _KINDS = (
     ("employments", "employment_codes", "employment"),
 )
 
+# キーワード（q）。空白（全角も）で区切った語が、すべて、次の列のどれかに含まれる求人だけ（語の間は AND、列の間は OR）。
+# 備考（note1〜3）は、「交通費は規定により支給」のような定型文が多く、ノイズになるので対象にしない。
+_KEYWORD_COLUMNS = ("category", "corporate", "profile", "place", "comment1", "comment2", "comment3")
+KEYWORD_MAX_LENGTH = 100
+KEYWORD_MAX_TERMS = 5
+
 AreaQ = Annotated[list[int] | None, Query()]
 StationQ = Annotated[list[int] | None, Query()]
 OccupationQ = Annotated[list[int] | None, Query()]
 EmploymentQ = Annotated[list[int] | None, Query()]
+KeywordQ = Annotated[str | None, Query(max_length=KEYWORD_MAX_LENGTH)]
 
 
-def _where(selected: dict[str, list[int] | None], skip: str | None = None) -> tuple[str, dict[str, object]]:
-    """検索の規則: 同じ種類の条件の中は OR（配列が重なれば一致）、種類の間は AND。表示中の求人だけ。
+def _keyword_terms(q: str | None) -> list[str]:
+    """キーワードを、語に分ける。空白（全角を含む）で区切り、重複を除き、先頭から KEYWORD_MAX_TERMS 語まで。空なら []。"""
+    return list(dict.fromkeys((q or "").split()))[:KEYWORD_MAX_TERMS]
 
-    skip に種類の名前を渡すと、その種類の条件は使わない（件数の数え方に使う）。
+
+def _like_pattern(term: str) -> str:
+    """部分一致の ILIKE の形。語の中の % _ \\ は、ただの文字として扱う（ワイルドカードにしない）。"""
+    escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+def _where(selected: dict[str, list[int] | None], skip: str | None = None, q: str | None = None) -> tuple[str, dict[str, object]]:
+    """検索の規則: 同じ種類の条件の中は OR（配列が重なれば一致）、種類の間は AND。キーワード（q）も AND。表示中の求人だけ。
+
+    skip に種類の名前を渡すと、その種類の条件は使わない（件数の数え方に使う。キーワードは、いつも使う）。
     """
     where = ["s.is_displayed"]
     params: dict[str, object] = {}
@@ -46,6 +64,10 @@ def _where(selected: dict[str, list[int] | None], skip: str | None = None) -> tu
         if values and name != skip:
             where.append(f"s.{column} && %({key})s::int[]")
             params[key] = values
+    haystack = "concat_ws(' ', " + ", ".join(f"s.{col}" for col in _KEYWORD_COLUMNS) + ")"  # 列名は、このモジュールの固定の文字列だけ
+    for i, term in enumerate(_keyword_terms(q)):
+        where.append(f"{haystack} ILIKE %(kw{i})s")
+        params[f"kw{i}"] = _like_pattern(term)
     return " AND ".join(where), params
 
 
@@ -71,14 +93,16 @@ def master() -> Master:
 
 
 @router.get("/facets", response_model=Facets)
-def facets(area: AreaQ = None, station: StationQ = None, occupation: OccupationQ = None, employment: EmploymentQ = None) -> Facets:
+def facets(
+    area: AreaQ = None, station: StationQ = None, occupation: OccupationQ = None, employment: EmploymentQ = None, q: KeywordQ = None
+) -> Facets:
     selected = {"area": area, "station": station, "occupation": occupation, "employment": employment}
-    clause, params = _where(selected)
+    clause, params = _where(selected, q=q)
     counts: dict[str, list[dict]] = {}
     with connection() as conn:
         total = conn.execute(f"SELECT count(*) AS n FROM recruit_search s WHERE {clause}", params).fetchone()["n"]  # noqa: S608
         for name, column, _ in _KINDS:
-            others, other_params = _where(selected, skip=name)
+            others, other_params = _where(selected, skip=name, q=q)
             counts[name] = conn.execute(
                 f"SELECT c AS code, count(*)::int AS count FROM recruit_search s, unnest(s.{column}) AS c "  # noqa: S608
                 f"WHERE {others} GROUP BY c ORDER BY c",
@@ -93,10 +117,11 @@ def search_recruits(
     station: StationQ = None,
     occupation: OccupationQ = None,
     employment: EmploymentQ = None,
+    q: KeywordQ = None,
     page: Annotated[int, Query(ge=1)] = 1,
     per_page: Annotated[int, Query(ge=1, le=50)] = 10,
 ) -> RecruitPage:
-    clause, params = _where({"area": area, "station": station, "occupation": occupation, "employment": employment})
+    clause, params = _where({"area": area, "station": station, "occupation": occupation, "employment": employment}, q=q)
     with connection() as conn:
         total = conn.execute(f"SELECT count(*) AS n FROM recruit_search s WHERE {clause}", params).fetchone()["n"]  # noqa: S608
         rows = conn.execute(
