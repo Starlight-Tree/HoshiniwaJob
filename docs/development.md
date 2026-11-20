@@ -24,6 +24,13 @@ TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:55432/postgres .venv/bin/pytho
 cd frontend && npm ci && npm test && npm run build && npm run typecheck   # typecheck は build の後
 ```
 
+上の検査と、版の整合・compose の構文・`scripts/` のテストを、まとめて流すには `scripts/verify.sh [段]`（段: `backend` `frontend` `lint` `scripts` `all`）。
+CI に近い検査で、同じではない（依存の導入とイメージのビルドをしない。Node やツールの版が違いうる。主な違いは、スクリプト冒頭のコメントに書いてある）。
+失敗しても残りの段を流し、最後に結果をまとめる。流せない段（DB・venv・PG 17 クライアント・`node_modules`・`actionlint`・`zizmor` が無い、Next.js の勧告の表示で build が止められた）は「未実行」、CI より弱い点は「注記」に出し、合格とは数えない。
+終了コードは 0 = 全部合格・注記なし、1 = 失敗あり（未実行があっても 1）、2 = 失敗は無いが未実行か注記あり、64 = 引数の誤り。
+副作用は、テスト用 DB の作り直し（`TEST_DATABASE_URL` は、必ずテスト用のサーバーに向ける）と、`frontend/.next` など Git の管理外のファイル。追跡されている `frontend/next-env.d.ts` は build が書き換えるので、終了時に戻す。
+`verify.sh`・`scripts/`・`frontend/package.json` の `scripts`・テストを変えたら、流す前に `git diff` で中身を見る（`.claude/settings.json` の許可で、`scripts/verify.sh` は確認なしで動く）。`scripts/` のテストは CI に入っていない。
+
 `TEST_DATABASE_URL`（Postgres 17）が無いと、DB を使うテスト（ほぼ全部）は飛ばされる。飛ばされたまま通っても、検証したことにならない。
 `backend/requirements.txt` は `requirements.in` から作った固定版で、直接編集しない。
 
