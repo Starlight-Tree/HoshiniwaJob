@@ -5,7 +5,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 画像・マイグレーション・バックアップ・R2 の詳細は [docs/image-storage.md](docs/image-storage.md)、画面の調査は [docs/ux-research.md](docs/ux-research.md)、
 資格情報・権限・MCP をプロジェクトごとに分ける方針は [docs/access-separation.md](docs/access-separation.md)。
 **Vertex AI の画像生成ジョブ（デプロイ済みの設定・成功した実行・モデル）の正本は [docs/image-gen-resources.md](docs/image-gen-resources.md)。** 会話の履歴やログを探す前に、これを読む。
-領域ごとの規約は `backend/` `frontend/` `jobs/image-gen/` `.devcontainer/` の各 `CLAUDE.md`、パス別の規則は `.claude/rules/`。
+領域ごとの規約は `backend/` `frontend/` `jobs/image-gen/` `.devcontainer/` の各 `CLAUDE.md`、パス別の規則は `.claude/rules/`、読み取り専用の調査・レビュー担当は `.claude/agents/`、文書ごとの正本の表は [docs/CLAUDE.md](docs/CLAUDE.md)。
 
 ## よく使うコマンド
 
@@ -15,6 +15,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 | 初めての環境（空の DB） | `docker compose up -d db` → `run --rm migrate` → `run --rm seed` → `run --rm seed-images` → `up -d --build`（README の「Quick start」） |
 | バックエンドのテスト | `cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.in`、`TEST_DATABASE_URL=<Postgres の URL> .venv/bin/python -m pytest -q`。**`TEST_DATABASE_URL` が無いと DB のテスト（ほぼ全部）がスキップされる** |
 | フロントエンドの検査 | `cd frontend && npm ci && npm test && npm run build && npm run typecheck`（`typecheck` は `build` の後） |
+| 検査（まとめて） | `scripts/verify.sh [段]`（段: backend / frontend / lint / scripts / all）。CI に近い検査で、同じではない（違いはスクリプト冒頭）。流せない段は「未実行」、CI より弱い点は「注記」に出る。終了コード 0 = 全部合格・注記なし、1 = 失敗あり、2 = 失敗は無いが未実行か注記あり、64 = 引数の誤り。流す前に、`verify.sh`・`scripts/`・テストの変更を `git diff` で見る（`.claude/settings.json` の許可で、確認なしで動く） |
 | 版の整合 | `scripts/check-versions.sh`（Python・Node の版が、各ファイルで揃っているか） |
 | 登録語の検査 | `scripts/check-sensitive-terms.sh [A..B]`（語は Git の管理外の `.git/sensitive-terms`。表示しない） |
 
@@ -25,12 +26,11 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 | `backend/` | API（FastAPI）。認証、求人、園、画像、マイグレーション、seed、運営用 CLI | Python 3.13 |
 | `frontend/` | 画面（Next.js）。API は画面のサーバー側から呼ぶ。画像の一括生成の道具は `frontend/scripts/generate-images/` | Node 24 |
 | `db/` | 初期スキーマ（`schema.sql`）とマスタ（`seed_codes.sql`）。空のボリュームで初めて起動したときだけ流れる | Postgres 17 |
-| `jobs/image-gen/` | 画像生成の Cloud Run Job のコード（試作。テスト・CI なし）。**デプロイ済みのジョブとは別物のことがある。正本は [台帳](docs/image-gen-resources.md)** | Python 3.11（**揃えていない。保留中**） |
+| `jobs/image-gen/` | 画像生成の Cloud Run Job のコード（試作。`test_main.py` はあるが、CI には入れていない）。**デプロイ済みのジョブとは別物のことがある。正本は [台帳](docs/image-gen-resources.md)** | Python 3.11（**揃えていない。保留中**） |
 | `.devcontainer/` | 開発コンテナと、Docker のソケットプロキシ | |
 | `backups/` | DB のバックアップ。Git 管理外 | |
 
-版は 1 か所で決めず、`.python-version`（3.13）と `.node-version`（24）を基準にして、`backend/Dockerfile`、`docker-compose.yml` の `frontend`（`node:24-slim`）、
-`frontend/package.json` の `engines`、CI が合っているかを `scripts/check-versions.sh` が確かめる。
+版の基準は `.python-version`（3.13）と `.node-version`（24）。各ファイルとの整合は `scripts/check-versions.sh` が確かめる。
 **未確認:** 開発コンテナの Node は feature `node:2` の既定（最新の LTS）で、24 に固定していない。
 
 ## 守ること（コードを書く前に）
@@ -62,8 +62,7 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 - **コミットメッセージ:** Conventional Commits（`type(scope): 英語の命令形の要約`）。1 コミット 1 論理変更。本文に「なぜ」と確認の結果（限界も）を書く。
 - **運用:** `main` に直接コミット。ステージはパスを指定する（`git add -A` と `git add .` は使わない）。コミット前に `git diff --staged` で、意図しない変更が入っていないか確かめる。
 - **プッシュ・本番デプロイ・`git reset` / `git restore` は、承認を得てから。** プッシュの前に、追加行の秘密情報と `scripts/check-sensitive-terms.sh origin/main..HEAD` を実行する。
-- **CI:** `.github/workflows/ci.yml` が、`main` へのプッシュと PR で、バックエンドのテスト（Postgres 17）、バックエンドの Docker ビルド、フロントエンド（テスト・ビルド・型検査）、
-  ワークフローの静的検査を行う。外部 API は呼ばない。デプロイは含まない。
+- **CI:** `.github/workflows/ci.yml`（`main` へのプッシュと PR。内容は [docs/development.md](docs/development.md)）。外部 API は呼ばない。デプロイは含まない。ローカルでは `scripts/verify.sh` が、CI に近い検査を流す（同じではない）。
 
 ## 作業の進め方
 
