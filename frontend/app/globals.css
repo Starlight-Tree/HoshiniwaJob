@@ -1,81 +1,87 @@
 :root {
   color-scheme: light dark; /* 手動で選んだときは、下の data-theme が上書きする */
-  --bg: #f4f7f6;
+
+  /* 配色は DocuNavi と同じ（無彩色に近い灰色の地に、青を 1 色だけ）。変数の名前は、この画面で使ってきたまま */
+  --bg: #f6f7f9;
   --surface: #ffffff;
-  --border: #d6e2df;
-  --border-soft: #e3ecea;
-  --text: #17302d;
-  --muted: #3f5a56;
-  --faint: #5b706c;
-  --primary: #0b5c55;
-  --primary-dark: #06403b;
-  --tag-bg: #e3f1ee;
-  --tag-text: #0b4d47;
-  --accent: #c4492f;
-  --focus: #1b6fd1;
+  --surface-muted: #eef0f3;
+  --border: #e1e4e9;
+  --border-soft: #eceef1;
+  --text: #1f2328;
+  --muted: #5c6470;
+  --faint: #6a717c;
+  --primary: #2c4fcf;
+  --primary-dark: #1f3bab;
+  --tag-bg: #e9eefc;
+  --tag-text: #1f3bab;
+  --accent: #d9480f;
+  --focus: #c2610c;
   --error: #b3261e;
-  --error-text: #8c1d14;
-  --error-bg: #fdecea;
-  --error-border: #e8b4ae;
+  --error-text: #7a1717;
+  --error-bg: #fdecec;
+  --error-border: #f0a8a8;
   --on-primary: #ffffff;
   --input-bg: #ffffff;
-  --input-border: #8aa19d;
+  --input-border: #8a919b;
   --danger: #a32020;
-  --shadow: rgba(23, 48, 45, 0.14);
-  --radius: 10px;
-  --font: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
+  --shadow: rgba(15, 18, 22, 0.14);
+  --radius: 12px;
+  /* 欧文は Inter、日本語は Noto Sans JP の可変フォント（どちらも app/layout.tsx が読み込む）。読み込み前・失敗時は、OS の標準書体 */
+  --font: var(--font-inter), 'Noto Sans JP Variable', system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', Meiryo, sans-serif;
 }
 
 /* ダークの値は、OS 追従（手動でライトを選んでいない間）と、手動でダークを選んだとき（data-theme）の 2 か所に、同じ内容を書く。CSS では共有できないので、変えるときは両方（theme.test.ts が一致を確かめる）。
-   ダークの --primary は明るい青緑（文字・枠・リンクの色）。その上の文字は --on-primary（暗い色）。--primary-dark は、ダークでは「ホバーで明るく」の値 */
+   ダークの --primary は明るい青（文字・枠・リンクの色）。その上の文字は --on-primary（暗い色）。--primary-dark は、ダークでは「ホバーで明るく」の値 */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0f1816;
-    --surface: #16231f;
-    --border: #2f4540;
-    --border-soft: #22332f;
-    --text: #e4efec;
-    --muted: #a9c0bb;
-    --faint: #8fa8a3;
-    --primary: #5fd0c2;
-    --primary-dark: #8ee3d7;
-    --tag-bg: #1d3a35;
-    --tag-text: #b6ece4;
-    --accent: #ff8f73;
-    --focus: #7ab4ff;
+    --bg: #15171b;
+    --surface: #1b1d21;
+    --surface-muted: #22252a;
+    --border: #2a2e35;
+    --border-soft: #22252a;
+    --text: #e6e8eb;
+    --muted: #9aa1ab;
+    --faint: #8a919b;
+    --primary: #8aa2ff;
+    --primary-dark: #a9baff;
+    --tag-bg: #232a45;
+    --tag-text: #c9d4ff;
+    --accent: #ff8a57;
+    --focus: #f2a65a;
     --error: #ff8a80;
-    --error-text: #ffc9c4;
-    --error-bg: #3a1c1a;
-    --error-border: #7c3a35;
-    --on-primary: #06201d;
-    --input-bg: #0c1412;
-    --input-border: #6f8b86;
+    --error-text: #ffd5d9;
+    --error-bg: #3a1c20;
+    --error-border: #8f3a44;
+    --on-primary: #101319;
+    --input-bg: #15171b;
+    --input-border: #6a717c;
     --danger: #ff8a80;
     --shadow: rgba(0, 0, 0, 0.55);
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #0f1816;
-  --surface: #16231f;
-  --border: #2f4540;
-  --border-soft: #22332f;
-  --text: #e4efec;
-  --muted: #a9c0bb;
-  --faint: #8fa8a3;
-  --primary: #5fd0c2;
-  --primary-dark: #8ee3d7;
-  --tag-bg: #1d3a35;
-  --tag-text: #b6ece4;
-  --accent: #ff8f73;
-  --focus: #7ab4ff;
+  --bg: #15171b;
+  --surface: #1b1d21;
+  --surface-muted: #22252a;
+  --border: #2a2e35;
+  --border-soft: #22252a;
+  --text: #e6e8eb;
+  --muted: #9aa1ab;
+  --faint: #8a919b;
+  --primary: #8aa2ff;
+  --primary-dark: #a9baff;
+  --tag-bg: #232a45;
+  --tag-text: #c9d4ff;
+  --accent: #ff8a57;
+  --focus: #f2a65a;
   --error: #ff8a80;
-  --error-text: #ffc9c4;
-  --error-bg: #3a1c1a;
-  --error-border: #7c3a35;
-  --on-primary: #06201d;
-  --input-bg: #0c1412;
-  --input-border: #6f8b86;
+  --error-text: #ffd5d9;
+  --error-bg: #3a1c20;
+  --error-border: #8f3a44;
+  --on-primary: #101319;
+  --input-bg: #15171b;
+  --input-border: #6a717c;
   --danger: #ff8a80;
   --shadow: rgba(0, 0, 0, 0.55);
 }
@@ -85,7 +91,8 @@
 :root[data-theme='dark'] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.7; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+button, input, textarea, select { font-family: inherit; }
 a { color: var(--primary); }
 a:hover { color: var(--primary-dark); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
@@ -97,7 +104,7 @@ h1, h2 { line-height: 1.4; }
 
 .site-header { background: var(--surface); border-bottom: 1px solid var(--border); }
 .site-header .inner { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding-top: 16px; padding-bottom: 16px; }
-.logo { flex-grow: 1; font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; letter-spacing: 0.02em; }
+.logo { flex-grow: 1; font-size: 22px; font-weight: 700; color: var(--text); text-decoration: none; letter-spacing: 0.02em; }
 .site-header nav { display: flex; gap: 24px; align-items: center; }
 .site-header nav a { color: var(--text); font-size: 14px; font-weight: 700; text-decoration: none; }
 .header-cta { display: block; background: var(--primary); color: var(--on-primary); padding: 8px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; }
@@ -177,7 +184,7 @@ h1, h2 { line-height: 1.4; }
 .card h2 a { color: var(--text); text-decoration: none; }
 .card h2 a:hover { text-decoration: underline; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.tags li { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--tag-bg); color: var(--tag-text); }
+.tags li { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); }
 .card-summary { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
 .card-side { flex: 0 0 auto; min-width: 170px; text-align: right; }
 .pay-label { margin: 0; font-size: 12px; color: var(--muted); }
@@ -288,7 +295,7 @@ h1, h2 { line-height: 1.4; }
 .app-content { flex: 1 0 auto; }
 .app-sidebar { flex: 0 0 248px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 16px; overflow-y: auto; }
 .app-sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-.app-brand { display: flex; flex-direction: column; font-size: 22px; font-weight: 700; line-height: 1.3; letter-spacing: 0.02em; color: var(--primary); text-decoration: none; }
+.app-brand { display: flex; flex-direction: column; font-size: 22px; font-weight: 700; line-height: 1.3; letter-spacing: 0.02em; color: var(--text); text-decoration: none; }
 .app-brand-sub { font-size: 13px; letter-spacing: 0; color: var(--muted); }
 .app-sidebar-toggle { display: none; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--primary); border-radius: 10px; background: var(--surface); color: var(--primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .app-sidebar-body { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
