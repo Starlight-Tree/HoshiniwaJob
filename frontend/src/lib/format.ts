@@ -30,11 +30,3 @@ export function payRange(min: number | null, max: number | null): string {
 export function payOf(job: Pick<RecruitSummary, 'salary' | 'pay_min' | 'pay_max'>): { label: string; value: string; amount: string; unit: string } {
   return { label: salaryLabel(job.salary), value: payRange(job.pay_min, job.pay_max), ...payAmount(job.pay_min, job.pay_max) };
 }
-
-/** 一覧に出す件数の範囲（例: 1〜6 件を表示）。0 件のときは空。 */
-export function shownRange(page: number, perPage: number, total: number): string {
-  if (total === 0) return '';
-  const from = (page - 1) * perPage + 1;
-  const to = Math.min(total, page * perPage);
-  return `${from}〜${to} 件を表示`;
-}

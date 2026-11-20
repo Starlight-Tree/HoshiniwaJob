@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FilterForm } from '../../src/components/FilterForm';
-import { Pagination } from '../../src/components/Pagination';
+import { PagerBar } from '../../src/components/PagerBar';
 import { SelectableCard } from '../../src/components/SelectableCard';
 import { SelectedChips } from '../../src/components/SelectedChips';
 import { fetchFacets, fetchMaster, fetchRecruits } from '../../src/lib/api';
-import { shownRange } from '../../src/lib/format';
 import { chipsFor, hasConditions, hrefFor, parseSelection, toQuery } from '../../src/lib/search';
 import type { Facets, Master, RecruitPage } from '../../src/lib/types';
 
@@ -50,8 +49,8 @@ export default async function Home({ searchParams }: Props) {
       <div className="title-row">
         <h1>宇宙の植物園・ガーデンの求人</h1>
         <p className="result-count" aria-live="polite">
-          <strong>{result.total}</strong> 件が見つかりました
-          {result.total > 0 ? <span className="range">（{shownRange(result.page, result.per_page, result.total)}）</span> : null}
+          {hasConditions(selection) ? '検索結果 ' : '全 '}
+          <strong>{result.total}</strong> 件
         </p>
       </div>
 
@@ -68,7 +67,7 @@ export default async function Home({ searchParams }: Props) {
             {result.items.map((job) => (
               <SelectableCard key={job.id} job={job} query={query} />
             ))}
-            <Pagination selection={selection} last={result.last_page} />
+            <PagerBar selection={selection} last={result.last_page} total={result.total} perPage={result.per_page} />
           </>
         ) : (
           <div className="empty">

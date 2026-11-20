@@ -128,7 +128,6 @@ h1, h2 { line-height: 1.4; }
 .title-row h1 { margin: 0; font-size: 16.8px; flex-grow: 1; }
 .result-count { margin: 0; font-size: 13.6px; color: var(--muted); }
 .result-count strong { font-size: 20px; line-height: 1; color: var(--primary); margin-right: 2px; }
-.result-count .range { font-size: 13px; }
 
 /* しぼり込み（上の横並びのチップ。DocuNavi の資料一覧と同じ形）。チップを押すと、真下に選択肢の一覧が開く（複数選べる）。開閉はブラウザー標準の <details> */
 .filter-bar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
@@ -241,11 +240,13 @@ h1, h2 { line-height: 1.4; }
 .outline-button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border: 1.5px solid var(--primary); border-radius: 6px; color: var(--primary); font-size: 14px; font-weight: 700; text-decoration: none; }
 .outline-button:hover { background: var(--tag-bg); }
 
-.pagination { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
-.page-link { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; padding: 0 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; }
-.page-link.wide { padding: 0 16px; }
-.page-link[aria-current='page'] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: 700; }
-.page-gap { min-width: 24px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+/* 一覧の下に固定するページ送り（DocuNavi の .docs-pager と同じ形。左に「1–10 / 11 件」、右に ‹ 1 / 2 ›）。.results（縦に並ぶ箱）の中で position: sticky にして、一覧の最後まで画面の下に留め、最後のカードのすぐ下で止める。重ね順は、しぼり込みの一覧（20）・詳細パネル（--peek-z）より下。カードが下を通るので、背景を塗る */
+.pager { position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 20px; padding: 6px 4px; background: var(--bg); border-top: 1px solid var(--border-soft); font-size: 14px; color: var(--muted); }
+.pager-nav { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+/* 枠なしの ‹ ›。押せる範囲は 44px 四方（指で押せる大きさ）で、見た目は静かにする */
+.pager-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; color: var(--text); font-size: 22px; line-height: 1; text-decoration: none; }
+a.pager-btn:hover { background: var(--surface-muted); }
+.pager-btn[aria-disabled='true'] { color: var(--muted); opacity: 0.4; }
 
 .empty, .notice { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 24px; }
 .empty h2, .empty h3 { margin: 0 0 8px; font-size: 16.8px; }

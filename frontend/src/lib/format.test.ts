@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { payAmount, payOf, payRange, salaryLabel, shownRange } from './format';
+import { payAmount, payOf, payRange, salaryLabel } from './format';
 
 describe('payAmount', () => {
   it('金額（3 桁ごとの区切り）と単位に分ける', () => {
@@ -55,13 +55,5 @@ describe('salaryLabel / payOf', () => {
 
   it('応相談は、value が「応相談」、unit が空文字（詳細ページは value だけ使う）', () => {
     expect(payOf({ salary: 2, pay_min: null, pay_max: null })).toEqual({ label: '月給', value: '応相談', amount: '応相談', unit: '' });
-  });
-});
-
-describe('shownRange', () => {
-  it('件数の範囲。0 件は空', () => {
-    expect(shownRange(1, 10, 11)).toBe('1〜10 件を表示');
-    expect(shownRange(2, 10, 11)).toBe('11〜11 件を表示');
-    expect(shownRange(1, 10, 0)).toBe('');
   });
 });
