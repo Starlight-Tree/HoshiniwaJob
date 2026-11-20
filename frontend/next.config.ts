@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['127.0.0.1', 'host.docker.internal'],
   // `next dev` が AGENTS.md を自動で作るのを止める
   agentRules: false,
+  // 画面の左下に出る開発用のアイコン（Insight）を出さない（DocuNavi と同じ）
+  devIndicators: false,
   // 開発サーバーが、サーバーアクションの引数（メール・名前など）を端末に出すのを止める
   logging: { serverFunctions: false },
   // 画像は JPEG などで置き、ブラウザーが対応していれば AVIF、次に WebP で配信する。求人の画像は API が返す公開 URL から取る
