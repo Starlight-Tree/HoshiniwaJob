@@ -172,4 +172,4 @@ done
 - マシン ID だけを使い、保存済みのユーザーのログインを無視する設定が、CLI にあるか（見つかっていない）。
 - 固定している `@infisical/mcp@0.0.25` が、値の伏せ字とツールの限定の設定を持つか。
 - 今のコンテナで、Infisical にユーザーとしてログインしているか（`infisical logout` を実行したか。見ていない）。
-- 公式文書は `main`（2026-11-20）、コンテナの CLI は v0.44.11 に固定（`.devcontainer/Dockerfile:49`）。この節の CLI の挙動（`INFISICAL_TOKEN` の優先順位・`logout --local-only`・`sm projects create`）が、その版で同じか。
+- 公式文書は `main`（2026-11-20）、コンテナの CLI は v0.44.11 に固定（`.devcontainer/Dockerfile:49`）。この節の CLI の挙動（`INFISICAL_TOKEN` の優先順位・`logout --local-only`・`sm projects create`）が、その版で同じか。`main` の文書は、2026-11-04 に `infisical sm` を `infisical secrets-manager` へ改名している（GitHub のコミットの説明で確認）。現行の CLI での名前は未確認。「現状の対応関係」の `sm projects create` は、v0.44.11 で動いたもの。
