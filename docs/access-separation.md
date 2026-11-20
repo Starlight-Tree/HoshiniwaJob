@@ -46,8 +46,8 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 | `infisical` | このプロジェクト専用のマシン ID（`~/.infisical/identity`） | 登録される。マシン ID が無いと起動に失敗する | 使えるツールは `list-secrets`（値は伏せ字）だけ |
 | `github` | このプロジェクト専用の GitHub App（1 時間のトークン）。ヘルパー `scripts/github-mcp-header.sh` が作る | `GITHUB_MCP_PROJECT_ID` を指定したときだけ登録される | 対象は `Starlight-Tree/HoshiniwaJob` だけ。`ci.yml` に `workflow_dispatch` は無いので、使えるのは主に監視 |
 | `cloudflare` | OAuth（`/mcp` で認可するまで、何もできない） | 登録される | 認可の範囲は、アカウント単位になる見込み（未確認）。R2 の確認が要るときだけ、最小の範囲で認可する |
-| `langsmith` | OAuth（同上） | 登録される | このプロジェクトに使う場所は無い。認可しない |
-| `prisma` | OAuth（同上） | 登録される | このプロジェクトに使う場所は無い。認可しない |
+| `langsmith` | OAuth（同上） | 登録される | ユーザーが必要なときに使う。OAuth の認可はそのときユーザーが行う。登録と、書き込み系の ask 規則（`.claude/settings.json`）は維持する |
+| `prisma` | OAuth（同上） | 登録される | ユーザーが必要なときに使う。OAuth の認可はそのときユーザーが行う。登録と、書き込み系の ask 規則（`.claude/settings.json`）は維持する |
 
 書き込み系のツールは、`.claude/settings.json` の `ask` で毎回確認になります。
 
