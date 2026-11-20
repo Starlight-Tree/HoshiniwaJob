@@ -11,7 +11,8 @@ FastAPI + psycopg3（生の SQL。ORM・Alembic は使わない）。Python 3.13
 | `main.py` | アプリの組み立て。ルーターの登録、CORS、`/health`。`/media` は `STORAGE_BACKEND=local` のときだけ |
 | `settings.py` | 環境変数の読み取り。設定はここに集める。必須の値が無いときは起動に失敗させ、別の値に切り替えない |
 | `db.py` | 接続プール（`dict_row`） |
-| `auth.py` / `garden.py` / `security.py` | 利用者と園のログイン。表もセッションも別。共通の部品（トークン・argon2）は `security.py` |
+| `auth.py` / `garden.py` / `security.py` | 利用者と園のログイン。表もセッションも別。共通の部品（トークン・argon2）は `security.py`。利用者は、Google でのログイン（`POST /api/auth/google`）と、お名前の変更（`PATCH /api/auth/me`）もここ |
+| `google_login.py` | Google でのログインの、コードの交換と ID トークンの検証（iss・aud・exp・nonce・email_verified。署名は、Google から TLS で直接受け取るので省く。理由は冒頭）。クライアントのシークレットは、この API だけが持つ。標準ライブラリだけで通信する（依存を足さない） |
 | `recruits.py` / `schemas.py` | 求人の検索・詳細・条件ごとの件数（`/api/facets`）と、応答の型 |
 | `images_api.py` / `image_queries.py` / `image_service.py` / `storage.py` | 画像。API、検索用の SQL、検証・登録・取り下げ・点検、保存先（`LocalStorage` / `S3Storage`） |
 | `images_cli.py` | 運営用 CLI（`list` `register` `reject` `reconcile` `formfile`）。園の API からは呼べない |

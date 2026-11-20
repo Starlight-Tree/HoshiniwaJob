@@ -94,6 +94,7 @@ class User(BaseModel):
     email: str
     last_name: str | None
     first_name: str | None
+    avatar_url: str | None = None  # Google のプロフィール画像（https のみ）。パスワードで登録した人は None
 
 
 class Session(BaseModel):
@@ -111,6 +112,22 @@ class RegisterRequest(BaseModel):
     first_name: Annotated[str, Field(min_length=1, max_length=50)]
     email: Annotated[EmailStr, AfterValidator(_normalized_email)]
     password: Annotated[str, Field(min_length=8, max_length=128)]
+
+
+class UpdateNameRequest(BaseModel):
+    """お名前（姓・名）の変更。登録（RegisterRequest）と同じ決まり。"""
+
+    last_name: Annotated[str, Field(min_length=1, max_length=50)]
+    first_name: Annotated[str, Field(min_length=1, max_length=50)]
+
+
+class GoogleLoginRequest(BaseModel):
+    """Google の認可コードを渡して、ログインする。画面のサーバーが、Google から戻ってきた code と、自分で作った PKCE の verifier・nonce を送る。"""
+
+    code: Annotated[str, Field(min_length=1, max_length=2048)]
+    code_verifier: Annotated[str, Field(min_length=43, max_length=128)]
+    nonce: Annotated[str, Field(min_length=16, max_length=128)]
+    redirect_uri: Annotated[str, Field(min_length=1, max_length=512)]
 
 
 class Garden(BaseModel):

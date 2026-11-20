@@ -90,3 +90,22 @@ def test_expired_session_is_rejected(client):
 def test_garden_account_cannot_log_in_as_user(client):
     res = client.post("/api/auth/login", json={"email": "hoshiniwa-garden@example.com", "password": "star-garden-demo"})
     assert res.status_code == 401
+
+
+def test_update_name_changes_only_the_logged_in_users_name(client):
+    mine = client.post("/api/auth/register", json={**NEW, "email": "rename-me@example.com"}).json()
+    other = client.post("/api/auth/register", json={**NEW, "email": "rename-other@example.com"}).json()
+    res = client.patch("/api/auth/me", headers=bearer(mine["token"]), json={"last_name": "新姓", "first_name": "新名"})
+    assert res.status_code == 200
+    assert (res.json()["last_name"], res.json()["first_name"]) == ("新姓", "新名")
+    assert client.get("/api/auth/me", headers=bearer(mine["token"])).json()["first_name"] == "新名"
+    assert client.get("/api/auth/me", headers=bearer(other["token"])).json()["first_name"] == "花子"
+
+
+def test_update_name_requires_login_and_validates_input(client):
+    assert client.patch("/api/auth/me", json={"last_name": "a", "first_name": "b"}).status_code == 401
+    token = client.post("/api/auth/register", json={**NEW, "email": "rename-v@example.com"}).json()["token"]
+    for patch in ({"last_name": ""}, {"first_name": "x" * 51}, {"last_name": None}):
+        res = client.patch("/api/auth/me", headers=bearer(token), json={"last_name": "姓", "first_name": "名", **patch})
+        assert res.status_code == 422
+    assert client.patch("/api/auth/me", headers=bearer(token), json={"last_name": "姓"}).status_code == 422

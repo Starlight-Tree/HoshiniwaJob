@@ -43,6 +43,19 @@ def require_demo_data_allowed() -> None:
         raise SystemExit("ダミーデータの投入は、DEMO_DATA=allow を渡した開発・テストの環境だけです。実行しませんでした。")
 
 
+# ---- Google でのログイン（app/google_login.py）。クライアントのシークレットは API だけが持つ。値は環境変数で渡し、コード・ログ・Git に置かない。 ----
+
+
+def google_oauth() -> tuple[str, str, str] | None:
+    """(クライアント ID, クライアントのシークレット, リダイレクト URI)。ID かシークレットが無ければ None（Google ログインは使えない）。"""
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+    if not client_id or not client_secret:
+        return None
+    redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "").strip() or "http://localhost:3200/auth/google/callback"  # 空文字も未設定として扱う
+    return client_id, client_secret, redirect_uri
+
+
 def required_env(name: str) -> str:
     value = os.environ.get(name, "")
     if not value:
