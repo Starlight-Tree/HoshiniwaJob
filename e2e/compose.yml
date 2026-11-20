@@ -1,0 +1,134 @@
+# E2E 用の使い捨てスタック（Postgres 17 + FastAPI + Next.js（next build → next start）+ Playwright）。ホストには何も公開しない。
+# 流し方は e2e/run.sh（毎回の乱数の秘密を作り、終わったら down -v で全部消す）。直接流さない（E2E_* の値が要る）。
+# 開発スタック（jobnavi。3200・8200・名前付きボリューム）とは、名前もネットワークも別。container_name は付けない（プロジェクト名 jobnavi-e2e で区別する）。
+# コマンドは常に: docker compose -p jobnavi-e2e -f e2e/compose.yml …
+name: jobnavi-e2e
+
+x-backend: &backend
+  build:
+    context: ../backend
+  image: jobnavi-e2e-backend
+
+x-database-url: &database_url "postgresql://jobnavi:${E2E_DB_PASSWORD:?}@db:5432/jobnavi_e2e"
+
+services:
+  # DB 名は jobnavi_e2e。tmpfs なので、止めると中身は消える。support/session.ts は、DB 名が `_e2e` で終わらないと何も書かない
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: jobnavi_e2e
+      POSTGRES_USER: jobnavi
+      POSTGRES_PASSWORD: "${E2E_DB_PASSWORD:?}"
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../db/seed_codes.sql:/docker-entrypoint-initdb.d/02-seed-codes.sql:ro
+    healthcheck:
+      # -h 127.0.0.1: 初回の初期化中の一時サーバー（ソケットだけ待ち受ける）を、起動済みと見なさないため
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U jobnavi -d jobnavi_e2e"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  # マイグレーションとダミーデータ。run --rm で 1 回だけ使う（up では起動しない）。画像（seed-images）は流さない
+  migrate:
+    <<: *backend
+    profiles: ["tools"]
+    command: ["python", "-m", "app.migrate"]
+    environment:
+      DATABASE_URL: *database_url
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  seed:
+    <<: *backend
+    profiles: ["tools"]
+    command: ["python", "-m", "app.seed_demo"]
+    environment:
+      DEMO_DATA: allow   # この値が無いと、seed_demo は実行を拒否する
+      DATABASE_URL: *database_url
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # --reload なし。JWT の iss は AUTH_BASE_URL（= E2E_ORIGIN。画面の BETTER_AUTH_URL と同じ値）、鍵は web の JWKS から取る
+  api:
+    <<: *backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      DATABASE_URL: *database_url
+      AUTH_BASE_URL: "${E2E_ORIGIN:?}"
+      AUTH_JWKS_URL: "http://web:3000/api/auth/jwks"
+      AUTH_AUDIENCE: "jobnavi"
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_DIR: /data/media
+      IMAGE_PUBLIC_BASE_URL: /media
+      CORS_ORIGINS: "${E2E_ORIGIN:?}"
+    # app ユーザー（uid 10001）が書けるようにする。中身は消えてよい
+    tmpfs:
+      - /data/media:uid=10001,gid=10001
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  # 本番に近い形（next build → next start）。API_BASE_URL と IMAGE_PUBLIC_BASE_URL は next.config.ts がビルド時に読む（rewrites・images）ので、ビルド引数でも渡す
+  web:
+    build:
+      context: ../frontend
+      dockerfile: ../e2e/web.Dockerfile
+      args:
+        API_BASE_URL: "http://api:8000"
+        IMAGE_PUBLIC_BASE_URL: /media
+    image: jobnavi-e2e-web
+    environment:
+      API_BASE_URL: "http://api:8000"
+      IMAGE_PUBLIC_BASE_URL: /media
+      BETTER_AUTH_URL: "${E2E_ORIGIN:?}"
+      BETTER_AUTH_SECRET: "${E2E_BETTER_AUTH_SECRET:?}"
+      # Google へは通信しない（E2E は、Google の往復を確かめない）。設定の検査（authConfigProblem）を通すためのダミー値
+      GOOGLE_CLIENT_ID: e2e-dummy-client-id
+      GOOGLE_CLIENT_SECRET: e2e-dummy-client-secret
+      DATABASE_URL: *database_url
+    depends_on:
+      api:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  # Playwright。ブラウザーはこのイメージの中（ホストには要らない）。失敗時の trace・スクリーンショットは、ホストの e2e/test-results に出る
+  e2e:
+    build:
+      context: .
+    image: jobnavi-e2e-runner
+    profiles: ["tools"]
+    init: true
+    ipc: host
+    environment:
+      E2E_ORIGIN: "${E2E_ORIGIN:?}"
+      E2E_DATABASE_URL: *database_url
+      E2E_BETTER_AUTH_SECRET: "${E2E_BETTER_AUTH_SECRET:?}"
+    volumes:
+      - ./test-results:/e2e/test-results
+    depends_on:
+      web:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    restart: "no"

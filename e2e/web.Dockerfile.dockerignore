@@ -1,0 +1,8 @@
+# ビルド context（frontend/）から除く。秘密（.env 系）と、ホストで作ったものを、イメージに入れない
+node_modules
+**/node_modules
+.next
+tsconfig.tsbuildinfo
+**/.env*
+scripts/generate-images/.env
+public/images/generated

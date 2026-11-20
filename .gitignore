@@ -31,3 +31,8 @@ backups/
 
 # ローカルの作業メモ・指示書の置き場（個人用。他のリポジトリから写す。コミットしない）
 /.dev-local/
+
+# E2E（e2e/）の生成物
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/

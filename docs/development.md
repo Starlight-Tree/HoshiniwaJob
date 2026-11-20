@@ -61,6 +61,18 @@ docker compose run --rm migrate python -m app.migrate --dry-run   # 事前検査
 docker compose run --rm migrate                                   # 適用
 ```
 
+## E2E（表示名の保存）
+
+「Google ログイン後の画面で、アカウントのメニューから表示名を変更して保存し、画面と API の DB に反映される」までを、Playwright で自動テストする（`e2e/`）。
+
+- **確かめること**: ログイン済みの画面でアカウントメニューを開き、「表示名を変更」で名前を変えて保存すると、メニューのボタンが新しい名前になり（再読み込みしても同じ）、`users.display_name` が新しい名前になる。対照として、別の秘密で署名した Cookie ではログインしていない表示になること（署名が検査されていること）も確かめる。
+- **確かめないこと**: 本物の Google との往復（同意画面・コールバック）。https の Cookie（名前が `__Secure-` で始まる経路）。この E2E は http の `http://web:3000` だけで動く。Google の代わりに、Better Auth のセッションを模した状態（`auth_user`・`auth_session` の行と、署名つきの Cookie）を、使い捨ての DB に注入する（`e2e/support/session.ts`）。
+- **実行**: `e2e/run.sh`（リポジトリのルートからでも、どこからでも）。ホストに要るのは Docker だけ（Playwright もブラウザーも Node も要らない）。ホストにポートを公開せず、名前付きボリュームも作らない。開発スタック（`jobnavi`。3200・8200）とは別のプロジェクト（`jobnavi-e2e`）で、開発の DB・コンテナには触らない。
+- **しくみ**: `e2e/compose.yml` が、使い捨ての DB（tmpfs。DB 名は `jobnavi_e2e`）・API・画面（`next build` → `next start`）・Playwright を起動し、終わったら `down -v` で全部消す（失敗しても）。ビルドしたイメージ（`jobnavi-e2e-*`）だけ、次回を速くするため残る。初回は、イメージの取得と `next build` で時間がかかる。失敗時の trace・スクリーンショットは、`e2e/test-results`（Git 管理外）に出る。
+- **秘密**: Better Auth の署名の秘密と DB のパスワードは、実行ごとに乱数で作る使い捨ての値（ファイルにもログにも出さない）。本物の値（`BETTER_AUTH_SECRET`・Google・R2）は使わない。Google の OAuth の値は、設定の検査を通すための固定のダミー。
+- **版を上げたとき**: Cookie の署名の作り方は、Better Auth 1.7.18 の挙動を `e2e/support/session.ts` に写したもの（Better Auth をテスト側には入れていない）。`frontend/package.json` の `better-auth` の版を上げたら、E2E を流して確かめ直す（合わないと「注入したセッションを Better Auth が認めませんでした」で落ちる）。Playwright は、`e2e/package.json` の `@playwright/test` と `e2e/Dockerfile` のイメージの版（どちらも 1.65.1）を必ず同じにする。
+- **CI には入れていない**（`ci.yml` は変えていない）。
+
 ## 画像の生成
 
 `frontend/scripts/generate-images/`（Gemini の Batch API。課金される。手順は同じ場所の README）。生成した画像は `python -m app.images_cli register` で登録する。
