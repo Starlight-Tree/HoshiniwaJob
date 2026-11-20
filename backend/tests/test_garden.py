@@ -5,6 +5,7 @@ import psycopg
 from app import garden
 from app.security import DUMMY_HASH
 from tests.conftest import TEST_URL
+from tests.jwt_tokens import make_token
 
 GARDEN = {"email": "hoshiniwa-garden@example.com", "password": "star-garden-demo"}
 GARDEN2 = {"email": "hoshiniwa-garden2@example.com", "password": "star-garden-demo"}
@@ -90,18 +91,17 @@ def test_expired_session_is_rejected(client):
     assert client.get("/api/garden/summary", headers=bearer(token)).status_code == 401
 
 
-def test_user_token_cannot_open_garden_api(client):
-    user_token = client.post("/api/auth/login", json=USER).json()["token"]
+def test_user_token_cannot_open_garden_api(auth_env, client):
+    # 求職者の JWT（Better Auth が発行したもの）は、園の API を開けない
+    user_token = make_token()
     assert client.get("/api/garden/auth/me", headers=bearer(user_token)).status_code == 401
     assert client.get("/api/garden/summary", headers=bearer(user_token)).status_code == 401
 
 
-def test_garden_token_cannot_open_user_api(client):
+def test_garden_token_cannot_open_user_api(auth_env, client):
     token = garden_login(client)
     assert client.get("/api/auth/me", headers=bearer(token)).status_code == 401
-    # 園のトークンでの利用者のログアウトは、園のセッションを消さない
-    assert client.post("/api/auth/logout", headers=bearer(token)).status_code == 204
-    assert client.get("/api/garden/auth/me", headers=bearer(token)).status_code == 200
+    assert client.get("/api/garden/auth/me", headers=bearer(token)).status_code == 200  # 園のセッションは、そのまま
 
 
 def test_summary_counts_only_own_recruits(client):

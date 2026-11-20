@@ -8,7 +8,8 @@ from app import image_service as svc
 from app.storage import get_storage
 from tests.conftest import TEST_URL
 from tests.imagefiles import make_animated_png, make_image, make_noise_png
-from tests.test_garden import GARDEN, GARDEN2, USER, bearer, db_exec, garden_login
+from tests.jwt_tokens import make_token
+from tests.test_garden import GARDEN, GARDEN2, bearer, db_exec, garden_login
 
 pytestmark = pytest.mark.skipif(not TEST_URL, reason="TEST_DATABASE_URL が未設定です")
 
@@ -72,9 +73,9 @@ def test_upload_is_public_immediately_without_any_approval(client, tok1):
     assert client.get(f"/api/garden/images/{body['id']}/preview", headers=bearer(tok1)).status_code in (404, 405)
 
 
-def test_authentication_is_required_everywhere(client, tok1):
+def test_authentication_is_required_everywhere(auth_env, client, tok1):
     r = upload(client, tok1).json()
-    user_token = client.post("/api/auth/login", json=USER).json()["token"]
+    user_token = make_token()  # 求職者の JWT（Better Auth が発行したもの）
     calls = [
         ("get", f"/api/garden/recruits/{MINE}/images"),
         ("post", f"/api/garden/recruits/{MINE}/images?alt=x"),

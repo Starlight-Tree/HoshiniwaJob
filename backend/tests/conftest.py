@@ -54,3 +54,24 @@ def client():
     with TestClient(app) as c:
         yield c
     shutil.rmtree(MEDIA_DIR, ignore_errors=True)
+
+
+@pytest.fixture
+def auth_env(monkeypatch):
+    """画面のサーバー（Better Auth）の代わり。API の設定をテスト用にし、JWKS の取得を、テスト用の鍵を返す関数に差し替える（呼ばれた回数は fetches に残る）。"""
+    from app import jwt_auth
+    from tests import jwt_tokens
+
+    monkeypatch.setenv("AUTH_BASE_URL", jwt_tokens.ISSUER)
+    monkeypatch.setenv("AUTH_JWKS_URL", jwt_tokens.JWKS_URL)
+    monkeypatch.setenv("AUTH_AUDIENCE", jwt_tokens.AUDIENCE)
+    fetches: list[str] = []
+
+    def fake_fetch(url: str) -> dict:
+        fetches.append(url)
+        return jwt_tokens.jwks_document()
+
+    monkeypatch.setattr(jwt_auth, "fetch_jwks_document", fake_fetch)
+    monkeypatch.setattr(jwt_auth, "_cache", None)
+    yield fetches
+    jwt_auth._cache = None

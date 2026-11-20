@@ -9,6 +9,7 @@ boto3==1.43.119
 botocore==1.43.119
 cffi==2.1.1
 click==8.5.0
+cryptography==50.0.2
 dnspython==2.9.0
 email-validator==2.3.0
 fastapi==0.162.0

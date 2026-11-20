@@ -11,8 +11,7 @@ FastAPI + psycopg3（生の SQL。ORM・Alembic は使わない）。Python 3.13
 | `main.py` | アプリの組み立て。ルーターの登録、CORS、`/health`。`/media` は `STORAGE_BACKEND=local` のときだけ |
 | `settings.py` | 環境変数の読み取り。設定はここに集める。必須の値が無いときは起動に失敗させ、別の値に切り替えない |
 | `db.py` | 接続プール（`dict_row`） |
-| `auth.py` / `garden.py` / `security.py` | 利用者と園のログイン。表もセッションも別。共通の部品（トークン・argon2）は `security.py`。利用者は、Google でのログイン（`POST /api/auth/google`）と、お名前の変更（`PATCH /api/auth/me`）もここ |
-| `google_login.py` | Google でのログインの、コードの交換と ID トークンの検証（iss・aud・exp・nonce・email_verified。署名は、Google から TLS で直接受け取るので省く。理由は冒頭）。クライアントのシークレットは、この API だけが持つ。標準ライブラリだけで通信する（依存を足さない） |
+| `auth.py` / `jwt_auth.py` / `garden.py` / `security.py` | 利用者は、Better Auth（画面のサーバーの中）が出す JWT を、`jwt_auth.py` が JWKS の公開鍵で検証し、`auth.py` が `sub` を `users.auth_user_id` に結んでプロフィールを返す（`GET`・`PATCH /api/auth/me`。はじめての人は最初のリクエストで行を作る）。ログイン自体は API では扱わない。園は、`garden.py` のパスワードとセッション（表も別）。園の部品（トークン・argon2）は `security.py` |
 | `recruits.py` / `schemas.py` | 求人の検索・詳細・条件ごとの件数（`/api/facets`）と、応答の型 |
 | `images_api.py` / `image_queries.py` / `image_service.py` / `storage.py` | 画像。API、検索用の SQL、検証・登録・取り下げ・点検、保存先（`LocalStorage` / `S3Storage`） |
 | `images_cli.py` | 運営用 CLI（`list` `register` `reject` `reconcile` `formfile`）。園の API からは呼べない |
@@ -28,6 +27,7 @@ FastAPI + psycopg3（生の SQL。ORM・Alembic は使わない）。Python 3.13
 - **マイグレーション:** `migrations/NNNN_名前.sql` を足すだけ。適用済みを書き換えない・`DROP` / `TRUNCATE` を入れない。`db/schema.sql` を変えたら、`baseline_fingerprint.json` と `test_migrate.py` の整合を確かめる。
 - **エラー本文は固定の文。** 例外の文字列を `detail` に入れない。認証の失敗は、メールの有無が応答の速さや文面から分からないようにする（`security.py`）。
 - **権限の確認は API の SQL の条件で行う。** 画面を信用しない。他の園のものは 404。
+- **求職者の ID は、検証に通った JWT の `sub`（`users.auth_user_id`）だけから取る。** 画面・クライアントが送った別の値は使わない。署名は JWKS の公開鍵（ES256 / RS256）だけで検証し、共有秘密（HS256）や `alg=none` へは切り替えない（`jwt_auth.py`）。
 - `DEMO_DATA`、`STORAGE_S3_*` などの認証情報は、環境変数だけで受け取る。ログ・例外に出さない。
 - 新しい依存は `requirements.in` に足して `requirements.txt` を作り直す（README に「uv が使える環境では `uv pip compile`」とある）。作り直しは差分が大きくなるので、先に確認する。
 

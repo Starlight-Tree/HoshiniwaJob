@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit
 
 
 def database_url() -> str:
@@ -43,17 +44,29 @@ def require_demo_data_allowed() -> None:
         raise SystemExit("ダミーデータの投入は、DEMO_DATA=allow を渡した開発・テストの環境だけです。実行しませんでした。")
 
 
-# ---- Google でのログイン（app/google_login.py）。クライアントのシークレットは API だけが持つ。値は環境変数で渡し、コード・ログ・Git に置かない。 ----
+# ---- ログイン（app/jwt_auth.py）。画面のサーバーの中の Better Auth が出す JWT を、JWKS の公開鍵で検証する。値は環境変数で渡す。 ----
+
+DEFAULT_AUTH_AUDIENCE = "hoshiniwajob"
 
 
-def google_oauth() -> tuple[str, str, str] | None:
-    """(クライアント ID, クライアントのシークレット, リダイレクト URI)。ID かシークレットが無ければ None（Google ログインは使えない）。"""
-    client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
-    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
-    if not client_id or not client_secret:
+def _http_url(name: str) -> str | None:
+    """環境変数の URL（末尾の / なし）。未設定・空は None。http(s) 以外・ホストなしは起動の設定ミスとして例外にする。"""
+    raw = os.environ.get(name, "").strip().rstrip("/")
+    if not raw:
         return None
-    redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "").strip() or "http://localhost:3200/auth/google/callback"  # 空文字も未設定として扱う
-    return client_id, client_secret, redirect_uri
+    parts = urlsplit(raw)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise RuntimeError(f"{name} は http(s) の URL にしてください")
+    return raw
+
+
+def auth_jwt() -> tuple[str, str, str] | None:
+    """(発行元 iss, JWKS の URL, 対象 aud)。AUTH_BASE_URL（画面の公開オリジン。Better Auth の baseURL と同じ）か AUTH_JWKS_URL（API から届く、画面のサーバー（Better Auth）の鍵の URL）が無ければ None（ログインは使えない）。"""
+    issuer = _http_url("AUTH_BASE_URL")
+    jwks_url = _http_url("AUTH_JWKS_URL")
+    if issuer is None or jwks_url is None:
+        return None
+    return issuer, jwks_url, os.environ.get("AUTH_AUDIENCE", "").strip() or DEFAULT_AUTH_AUDIENCE
 
 
 def required_env(name: str) -> str:

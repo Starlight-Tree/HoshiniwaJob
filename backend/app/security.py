@@ -1,7 +1,7 @@
-"""利用者（auth.py）と園（garden.py）のログインで共通の部品。
+"""園（garden.py）のログインの部品と、Authorization ヘッダーの読み取り。
 
-トークンは推測できない乱数で、DB にはそのハッシュ（sha256）だけを置く。パスワードは argon2。
-利用者と園は、テーブルもセッションも別。ここに置くのは、同じ方式で動かす部分だけ。
+園のトークンは推測できない乱数で、DB にはそのハッシュ（sha256）だけを置く。パスワードは argon2。
+求職者のログインは Better Auth の JWT（jwt_auth.py・auth.py）で、別の仕組み。ここから使うのは、bearer と NOT_LOGGED_IN だけ。
 """
 
 import hashlib
