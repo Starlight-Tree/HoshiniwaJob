@@ -8,7 +8,7 @@ JobNavi (星庭ジョブ) is a fictional job board for botanical gardens on the 
 
 | Job search (with counts per filter) | Job detail (with images) |
 |---|---|
-| ![Job search](docs/images/search.png) | ![Job detail](docs/images/detail.png) |
+| <a href="docs/images/search.png"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/search-dark.png"><img alt="Job search: filter chips with a count for each option, and job cards with a thumbnail, tags and salary" src="docs/images/search.png"></picture></a> | <a href="docs/images/detail.png"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/detail-dark.png"><img alt="Job detail: the hero image, a gallery and the job's conditions" src="docs/images/detail.png"></picture></a> |
 
 ## Features
 

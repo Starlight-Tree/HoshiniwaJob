@@ -8,7 +8,7 @@
 
 | 求人検索（条件ごとの件数つき） | 求人の詳細（画像つき） |
 |---|---|
-| ![求人検索](docs/images/search.png) | ![求人の詳細](docs/images/detail.png) |
+| <a href="docs/images/search.png"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/search-dark.png"><img alt="求人検索。条件のチップ（選択肢ごとの件数つき）と、サムネ・タグ・給与のある求人カード" src="docs/images/search.png"></picture></a> | <a href="docs/images/detail.png"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/detail-dark.png"><img alt="求人の詳細。ヒーロー画像、ギャラリー、募集の条件" src="docs/images/detail.png"></picture></a> |
 
 ## 特徴
 
