@@ -31,6 +31,10 @@ CI に近い検査で、同じではない（依存の導入とイメージの�
 副作用は、テスト用 DB の作り直し（`TEST_DATABASE_URL` は、必ずテスト用のサーバーに向ける）と、`frontend/.next` など Git の管理外のファイル。追跡されている `frontend/next-env.d.ts` は build が書き換えるので、終了時に戻す。
 `verify.sh`・`scripts/`・`frontend/package.json` の `scripts`・テストを変えたら、流す前に `git diff` で中身を見る（`.claude/settings.json` の許可で、`scripts/verify.sh` は確認なしで動く）。`scripts/` のテストは CI に入っていない。
 
+pytest は直列だけで流す。`pytest-xdist`（`-n auto`）は使えない。テストが DB を固定の名前で作り直す（`hj_test`: `backend/tests/conftest.py`、`hj_seed`: `test_seed_and_cli.py`、`hj_mig_*`: `test_migrate.py`。作り直しは `DROP DATABASE IF EXISTS` → `CREATE DATABASE`。`test_auth.py` と `test_garden.py` は `hj_test` に名前で直接つなぐ）ので、並列にすると同じ DB を取り合って衝突しうる。並列で試した結果ではなく、コードの読みと、ホストの報告（DB 名が固定のため使えない）による。
+ホストの報告（2026-11-20。ホストでの計測。コマンド・時間の測り方・生の出力は未受領で、数字はリポジトリから確かめられない）: 直列で 108 件合格・1 件スキップ・13.12 秒（Python 3.13.18・Pillow 13.0.0・pytest 9.2.0。使い捨ての Postgres 17）。スキップの 1 件は、ホストの説明では、実行したイメージに `pg_dump` 17 が無いため（SKIPPED の行は未受領。`test_migrate.py` の `pg_dump` 不在の分岐で、バックアップと復旧の往復のテストが飛んだとみられる。推定）。
+スキップがあるので、この実行は CI と `verify.sh` の合格の基準（スキップ 0 件）を満たさない。合格の目安にしない。CI は PG 17 クライアントを入れ、スキップが 1 件でもあれば落とす（`ci.yml` を読んだ内容。実際の CI の実行結果は未確認）。
+
 `TEST_DATABASE_URL`（Postgres 17）が無いと、DB を使うテスト（ほぼ全部）は飛ばされる。飛ばされたまま通っても、検証したことにならない。
 `backend/requirements.txt` は `requirements.in` から作った固定版で、直接編集しない。
 
