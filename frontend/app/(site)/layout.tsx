@@ -10,7 +10,11 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   const user = await currentUser();
   return (
     <div className="app-shell">
-      <AppSidebar brand="JobNavi" brandHref="/" navLabel="メインメニュー" items={[{ href: '/', label: '求人を探す', icon: 'search', alsoCurrentUnder: ['/recruits'] }]}>
+      <AppSidebar brand="JobNavi" brandHref="/" navLabel="メインメニュー" items={[
+          { href: '/', label: '求人を探す', icon: 'search', alsoCurrentUnder: ['/recruits'] },
+          { href: '/diagnosis', label: '診断', icon: 'spark' },
+        ]}
+      >
         {user ? (
           <AccountMenu
             name={displayName(user)}

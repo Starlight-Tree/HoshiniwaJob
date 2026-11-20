@@ -178,6 +178,31 @@ h1, h2 { line-height: 1.4; }
 .primary-button.inline { display: inline-flex; align-items: center; justify-content: center; width: auto; padding: 0 24px; text-decoration: none; color: var(--on-primary); }
 .primary-button.inline:hover { color: var(--on-primary); }
 
+/* 診断（/diagnosis）。選択肢はふつうのラジオボタンで、見た目だけ丸いボタンにする（入力は隠さず、キーボードで動く） */
+.diagnosis-hint { margin: -8px 0 20px; font-size: 14px; color: var(--muted); }
+.diagnosis h1 { margin: 0 0 8px; font-size: 16.8px; }
+.diagnosis-lead { margin: 0 0 24px; font-size: 14px; color: var(--muted); max-width: 720px; }
+.quiz { display: flex; flex-direction: column; gap: 20px; align-items: flex-start; }
+.quiz-question { width: 100%; margin: 0; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.quiz-question legend { padding: 0 6px; font-size: 15px; font-weight: 700; }
+.quiz-step { margin-right: 6px; font-size: 12px; font-weight: 700; color: var(--primary); }
+.quiz-options { display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.quiz-option { position: relative; display: inline-flex; }
+.quiz-option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.quiz-option span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 14px; }
+.quiz-option:hover span { border-color: var(--primary); }
+.quiz-option input:checked + span { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: 700; }
+.quiz-option input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.quiz-select { min-height: 40px; max-width: 100%; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; }
+.diagnosis-result { margin-top: 32px; scroll-margin-top: 16px; }
+.diagnosis-result h2 { margin: 0 0 8px; font-size: 16.8px; }
+.diagnosis-result .range { font-size: 13px; font-weight: 400; color: var(--muted); }
+.diagnosis-picked { margin: 0 0 16px; font-size: 14px; color: var(--muted); }
+.diagnosis-list { display: flex; flex-direction: column; gap: 20px; }
+.match { display: flex; flex-direction: column; gap: 6px; }
+.match-reason { margin: 0; font-size: 13px; font-weight: 700; color: var(--primary); }
+.diagnosis-more { margin: 20px 0 0; }
+
 /* 結果 */
 .results { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
@@ -220,7 +245,7 @@ h1, h2 { line-height: 1.4; }
 .page-gap { min-width: 24px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
 
 .empty, .notice { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 24px; }
-.empty h2 { margin: 0 0 8px; font-size: 16.8px; }
+.empty h2, .empty h3 { margin: 0 0 8px; font-size: 16.8px; }
 .empty p { margin: 0 0 16px; color: var(--muted); }
 .notice { border-color: var(--accent); }
 .notice p { margin: 0; }

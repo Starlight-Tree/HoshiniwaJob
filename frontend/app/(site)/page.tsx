@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FilterForm } from '../../src/components/FilterForm';
 import { Pagination } from '../../src/components/Pagination';
@@ -53,6 +54,10 @@ export default async function Home({ searchParams }: Props) {
           {result.total > 0 ? <span className="range">（{shownRange(result.page, result.per_page, result.total)}）</span> : null}
         </p>
       </div>
+
+      <p className="diagnosis-hint">
+        どれを選べばいいか迷ったら、<Link href="/diagnosis">3 つの質問で診断</Link>してみてください。
+      </p>
 
       <FilterForm master={master} facets={facets} selection={selection} />
 

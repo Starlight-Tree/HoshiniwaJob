@@ -60,7 +60,16 @@ export function SidebarIcon() {
 }
 
 /** 帯の行き先のアイコン。サーバーの layout からは、この名前（文字列）で渡す。 */
-export type NavIconName = 'search' | 'dashboard' | 'external';
+export type NavIconName = 'search' | 'dashboard' | 'external' | 'spark';
+
+/** 「診断」（4 つの先がとがった星）。 */
+function SparkIcon() {
+  return (
+    <Line size={20}>
+      <path d="M10 2.5 11.9 8.1 17.5 10 11.9 11.9 10 17.5 8.1 11.9 2.5 10 8.1 8.1Z" />
+    </Line>
+  );
+}
 
 /** 「求人を探す」（虫めがね）。 */
 function SearchIcon() {
@@ -97,6 +106,7 @@ function ExternalIcon() {
 export function NavIcon({ name }: { name: NavIconName }) {
   if (name === 'dashboard') return <DashboardIcon />;
   if (name === 'external') return <ExternalIcon />;
+  if (name === 'spark') return <SparkIcon />;
   return <SearchIcon />;
 }
 
