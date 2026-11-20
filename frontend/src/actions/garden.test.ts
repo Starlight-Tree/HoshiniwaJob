@@ -45,6 +45,24 @@ describe('gardenLoginAction', () => {
     expect(JSON.parse(String(init?.body))).toEqual({ email: 'garden@example.com', password: 'pw-pw-pw-1' });
   });
 
+  // setToken が sessionCookieSecure() の結果を Cookie の secure に渡す配線を守る（判定そのものは cookie-secure.test.ts）
+  it.each([
+    ['production', undefined, true],
+    ['production', 'false', false],
+    ['development', undefined, false],
+    ['development', 'true', true],
+  ] as const)('NODE_ENV=%s・SESSION_COOKIE_SECURE=%s のとき、園の Cookie の secure は %s', async (nodeEnv, flag, expected) => {
+    vi.stubEnv('NODE_ENV', nodeEnv);
+    vi.stubEnv('SESSION_COOKIE_SECURE', flag as string);
+    reply(200, session);
+    try {
+      await expect(gardenLoginAction({}, form({ email: 'garden@example.com', password: 'pw-pw-pw-1' }))).rejects.toMatchObject({ to: '/garden' });
+      expect(store.get('hj_garden_session')?.options?.secure).toBe(expected);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('401 は固定の文を返し、Cookie は作らない。入力したメールは残し、パスワードは返さない', async () => {
     reply(401, { detail: 'メールアドレスまたはパスワードが違います' });
     const state = await gardenLoginAction({}, form({ email: 'garden@example.com', password: 'wrong-pw' }));

@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { fetchGardenMe, fetchMe } from './api';
 import { getAuth } from './auth';
 import { isUnauthorized, logAuthError } from './auth-log';
+import { sessionCookieSecure } from './cookie-secure';
 import type { Garden, User } from './types';
 
 // 求職者のログインの印は、Better Auth の Cookie（HttpOnly。画面のサーバーだけが読む。lib/auth.ts）。API へは、そこから取る短命の JWT を渡す。
@@ -17,8 +18,9 @@ async function setToken(name: string, token: string): Promise<void> {
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_SECONDS,
-    // https で公開するときは SESSION_COOKIE_SECURE=true にする（ローカルの http では付けない）
-    secure: process.env.SESSION_COOKIE_SECURE === 'true',
+    // 本番（NODE_ENV=production）は既定で secure（付け忘れても http 用の Cookie にならない。lib/cookie-secure.ts）。
+    // http で本番ビルドを動かす（next start をローカルで試す）ときだけ、SESSION_COOKIE_SECURE=false を渡す。開発（next dev）の既定は secure なし
+    secure: sessionCookieSecure(),
   });
 }
 
