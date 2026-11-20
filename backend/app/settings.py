@@ -46,7 +46,7 @@ def require_demo_data_allowed() -> None:
 
 # ---- ログイン（app/jwt_auth.py）。画面のサーバーの中の Better Auth が出す JWT を、JWKS の公開鍵で検証する。値は環境変数で渡す。 ----
 
-DEFAULT_AUTH_AUDIENCE = "hoshiniwajob"
+DEFAULT_AUTH_AUDIENCE = "jobnavi"
 
 
 def _http_url(name: str) -> str | None:

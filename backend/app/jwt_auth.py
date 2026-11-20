@@ -4,7 +4,7 @@
 `Authorization: Bearer <JWT>` で送ってくるので、ここで確かめる。
 
 - 署名の検証は、Better Auth の JWKS（`AUTH_JWKS_URL`。画面のサーバーが配る）の公開鍵（ES256 / RS256）だけで行う。alg=none や HS256（公開鍵を共有秘密として使う攻撃）は受け付けない。
-  発行元（`iss`）は `AUTH_BASE_URL`（画面の公開オリジン）、対象（`aud`）は `AUTH_AUDIENCE`（既定 hoshiniwajob）。`exp` `iss` `aud` `sub` は必須。
+  発行元（`iss`）は `AUTH_BASE_URL`（画面の公開オリジン）、対象（`aud`）は `AUTH_AUDIENCE`（既定 jobnavi）。`exp` `iss` `aud` `sub` は必須。
 - 利用者の ID は、検証に通ったトークンの `sub` だけから取る。クライアントが送った別の値は使わない。
 - トークンの中身・Authorization ヘッダはログに出さない。ログに残すのは、失敗の種類（例外のクラス名）だけ。
 - 鍵を取れないときは、前に取れた鍵で続ける。前の鍵が無ければ、検証できない（`AuthUnavailable`。呼び出し側は 503）。共有秘密の検証には切り替えない。
@@ -41,7 +41,7 @@ _MAX_JWKS_BYTES = 1_000_000
 _KEYS_TTL_SECONDS = 600.0
 # 未知の kid を理由にした取り直しの最小間隔。でたらめな kid のトークンで、JWKS への問い合わせを増幅させないため
 _MIN_REFRESH_INTERVAL_SECONDS = 60.0
-_JWKS_USER_AGENT = "hoshiniwajob-api/1.0"
+_JWKS_USER_AGENT = "jobnavi-api/1.0"
 DISPLAY_NAME_MAX = 30  # 表示名の上限（schemas.py・画面と同じ）
 _MAX_EMAIL = 254
 _MAX_PICTURE = 2048

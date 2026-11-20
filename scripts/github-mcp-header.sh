@@ -6,7 +6,7 @@
 # 秘密鍵はファイルに書かない（プロセス置換で渡す）。トークンも書かない。失敗したときは、秘密を含まない理由を標準エラーに出して、非ゼロで終わる。
 #
 # `--diagnose`: トークンを作らずに、前提（実行ユーザー・Infisical のログイン・秘密の取得）だけを確かめる。標準出力は「OK」の 1 行だけで、秘密は出ない
-#   （手で実行してよい。コンテナでは vscode ユーザーで: docker exec -u vscode -e HOME=/home/vscode hoshiniwajob-devcontainer env GITHUB_MCP_PROJECT_ID=<ID> bash /workspaces/hoshiniwajob/scripts/github-mcp-header.sh --diagnose）。
+#   （手で実行してよい。コンテナでは vscode ユーザーで: docker exec -u vscode -e HOME=/home/vscode jobnavi-devcontainer env GITHUB_MCP_PROJECT_ID=<ID> bash /workspaces/jobnavi/scripts/github-mcp-header.sh --diagnose）。
 #
 # 失敗の原因（標準エラーの先頭の「[原因: …]」で区別する）:
 #   1. Infisical のユーザーログインが無い      → コンテナの端末（vscode ユーザー）で `infisical login`

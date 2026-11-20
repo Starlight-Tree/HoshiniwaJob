@@ -6,32 +6,32 @@ services:
     build:
       context: .devcontainer
       dockerfile: Dockerfile
-    container_name: hoshiniwajob-devcontainer
+    container_name: jobnavi-devcontainer
     # 表示用ラベル
     labels:
       local.ui.group: "Devcontainers"
     init: true
     command: sleep infinity
     volumes:
-      - .:/workspaces/hoshiniwajob:cached
+      - .:/workspaces/jobnavi:cached
       # このプロジェクト専用のボリューム。認証情報・MCP の登録・履歴が、他のプロジェクトと混ざらない（docs/access-separation.md）。
       - claude-config:/home/vscode/.claude
       - playwright-browsers:/home/vscode/.cache/ms-playwright
       - infisical-config:/home/vscode/.infisical
       - gcloud-config:/home/vscode/.config/gcloud
-      # Project Manager の projects.json（docunavi と hoshiniwajob で共有。資格情報は入れない）。
+      # Project Manager の projects.json（docunavi と jobnavi で共有。資格情報は入れない）。
       - shared-project-manager:/home/vscode/.project-manager
     environment:
       TZ: Asia/Tokyo
       CLAUDE_CONFIG_DIR: /home/vscode/.claude
-      # 読み取り専用に近いプロキシ（.devcontainer/docker-proxy/compose.yml）。hoshiniwa-dev の中でだけ引ける名前。
+      # 読み取り専用に近いプロキシ（.devcontainer/docker-proxy/compose.yml）。jobnavi-dev の中でだけ引ける名前。
       # ホストのソケットは、この dev にはマウントしない。
-      DOCKER_HOST: tcp://hoshiniwa-docker-proxy:2375
+      DOCKER_HOST: tcp://jobnavi-docker-proxy:2375
       # gcloud の日常の ID は閲覧専用のなりすまし（devcontainer.json の containerEnv と同じ値。変えるときは両方を直す）。
       CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT: jobnavi-viewer@jobnavi-ops.iam.gserviceaccount.com
       INFISICAL_DISABLE_TELEMETRY: "true"
       INFISICAL_DISABLE_UPDATE_CHECK: "true"
-    # hoshiniwa-dev だけに繋ぐ（プロキシとの通信用。外へも出られる）。frontend-net・backend-net には繋がない
+    # jobnavi-dev だけに繋ぐ（プロキシとの通信用。外へも出られる）。frontend-net・backend-net には繋がない
     # （api と db に、開発コンテナから直接届かないようにするため）。
     networks:
       - dev-net
@@ -39,26 +39,26 @@ services:
 networks:
   # .devcontainer/docker-proxy/compose.yml が作る（devcontainer.json の initializeCommand が先に起動する）。
   dev-net:
-    name: hoshiniwa-dev
+    name: jobnavi-dev
     external: true
 
 volumes:
   # 次の 4 つは、このプロジェクト専用（他のプロジェクトと共有しない）。ホストで 1 回ずつ作ってから起動する（無いと起動に失敗する）:
-  #   for v in claude-config playwright-browsers infisical-config gcloud-config; do docker volume create hoshiniwajob-$v; done
+  #   for v in claude-config playwright-browsers infisical-config gcloud-config; do docker volume create jobnavi-$v; done
   # claude-config は、作ったあとに settings.json・CLAUDE.md・履歴だけを写す（認証情報と .claude.json は写さない。docs/access-separation.md）。
   claude-config:
-    name: hoshiniwajob-claude-config
+    name: jobnavi-claude-config
     external: true
   playwright-browsers:
-    name: hoshiniwajob-playwright-browsers
+    name: jobnavi-playwright-browsers
     external: true
   infisical-config:
-    name: hoshiniwajob-infisical-config
+    name: jobnavi-infisical-config
     external: true
   gcloud-config:
-    name: hoshiniwajob-gcloud-config
+    name: jobnavi-gcloud-config
     external: true
-  # docunavi と hoshiniwajob の両方が、同じ名前で参照する（Project Manager の projects.json だけ）。
+  # docunavi と jobnavi の両方が、同じ名前で参照する（Project Manager の projects.json だけ）。
   # external: ホストで 1 回 `docker volume create devcontainer-shared-project-manager` を実行してから起動する（無いと起動に失敗する）。
   shared-project-manager:
     name: devcontainer-shared-project-manager

@@ -22,16 +22,16 @@ Infisical の権限と資格情報について、公式文書で確認したこ�
 
 | ボリューム | 中身 | 作り方 |
 |---|---|---|
-| `hoshiniwajob-claude-config` | Claude Code の設定・ログイン・履歴・MCP の登録（`~/.claude`） | 作ったあとに `settings.json`・`CLAUDE.md`・履歴だけを写す。認証情報と `.claude.json` は写さない |
-| `hoshiniwajob-infisical-config` | Infisical のマシン ID の資格情報と、ユーザーのログイン状態（`~/.infisical`。権限 700）。ログイン状態は、`.devcontainer/persist-infisical-login.sh` が起動のたびにここへ移す（暗号化のパスフレーズも同じボリューム。ソースで確認。動かした結果は未確認） | 空で作る |
-| `hoshiniwajob-gcloud-config` | gcloud のログイン（`~/.config/gcloud`） | 空で作る |
-| `hoshiniwajob-playwright-browsers` | Chromium（`~/.cache/ms-playwright`。キャッシュ） | 空で作る |
+| `jobnavi-claude-config` | Claude Code の設定・ログイン・履歴・MCP の登録（`~/.claude`） | 作ったあとに `settings.json`・`CLAUDE.md`・履歴だけを写す。認証情報と `.claude.json` は写さない |
+| `jobnavi-infisical-config` | Infisical のマシン ID の資格情報と、ユーザーのログイン状態（`~/.infisical`。権限 700）。ログイン状態は、`.devcontainer/persist-infisical-login.sh` が起動のたびにここへ移す（暗号化のパスフレーズも同じボリューム。ソースで確認。動かした結果は未確認） | 空で作る |
+| `jobnavi-gcloud-config` | gcloud のログイン（`~/.config/gcloud`） | 空で作る |
+| `jobnavi-playwright-browsers` | Chromium（`~/.cache/ms-playwright`。キャッシュ） | 空で作る |
 | `devcontainer-shared-project-manager` | VS Code の Project Manager の一覧だけ（資格情報なし） | 他のプロジェクトと共有 |
 
 `.devcontainer/docker-compose.yml` が、先頭の 4 つを外部ボリュームとして参照します。起動の前に、ホストで 1 回ずつ作ります。
 
 ```bash
-for v in claude-config playwright-browsers infisical-config gcloud-config; do docker volume create hoshiniwajob-$v; done
+for v in claude-config playwright-browsers infisical-config gcloud-config; do docker volume create jobnavi-$v; done
 ```
 
 ## MCP

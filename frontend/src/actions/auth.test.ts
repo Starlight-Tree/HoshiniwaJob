@@ -122,15 +122,15 @@ describe('logoutAction', () => {
 
   it('Better Auth に届かなくても、この端末の Better Auth の Cookie だけは消す（園の Cookie・他のアプリの Cookie は残す）', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    store.set('hoshiniwajob.session_token', { value: 'x' });
-    store.set('__Secure-hoshiniwajob.session_token', { value: 'y' });
+    store.set('jobnavi.session_token', { value: 'x' });
+    store.set('__Secure-jobnavi.session_token', { value: 'y' });
     store.set('better-auth.session_token', { value: 'docunavi' }); // 同じ localhost の別のアプリ（接頭辞が違う）
     store.set('hj_garden_session', { value: 'garden-tok' });
     api.signOut.mockRejectedValue(new Error('down'));
     await expect(logoutAction()).rejects.toMatchObject({ to: '/' });
     // 期限切れにして上書きする。https の Cookie は、Secure を付けないと、ブラウザーが消させない
-    expect(store.get('hoshiniwajob.session_token')).toMatchObject({ value: '', options: { maxAge: 0, secure: false } });
-    expect(store.get('__Secure-hoshiniwajob.session_token')).toMatchObject({ value: '', options: { maxAge: 0, secure: true } });
+    expect(store.get('jobnavi.session_token')).toMatchObject({ value: '', options: { maxAge: 0, secure: false } });
+    expect(store.get('__Secure-jobnavi.session_token')).toMatchObject({ value: '', options: { maxAge: 0, secure: true } });
     expect(store.get('better-auth.session_token')?.value).toBe('docunavi');
     expect(store.get('hj_garden_session')?.value).toBe('garden-tok');
   });

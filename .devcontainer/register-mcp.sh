@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# このプロジェクトの MCP を、user スコープ（~/.claude/.claude.json。専用ボリューム hoshiniwajob-claude-config）に登録する。
+# このプロジェクトの MCP を、user スコープ（~/.claude/.claude.json。専用ボリューム jobnavi-claude-config）に登録する。
 # 何度実行しても同じ（登録済みなら何もしない）。コンテナの作成時（postCreateCommand）と起動のたびに（postStartCommand）呼ばれる。
 #
 # ・ボリュームがこのプロジェクト専用なので、user スコープでも他のプロジェクトには見えない（docs/access-separation.md）。

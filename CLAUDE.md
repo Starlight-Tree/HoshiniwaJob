@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-JobNavi（旧称: 星庭ジョブ。GitHub のリポジトリ名は JobNavi。ディレクトリ名・Docker の名前は hoshiniwajob のまま。DB 名と DB ユーザーは hoshiniwa）。架空の宇宙の植物園・ガーデンの求人サイト（運営は架空の「星庭ワークス」）。データはすべてダミー。
+JobNavi（旧称: 星庭ジョブ。リポジトリ・ディレクトリ・Docker・DB の名前は、すべて jobnavi。旧名 hoshiniwajob への改名は 2026-11-21）。架空の宇宙の植物園・ガーデンの求人サイト（運営は架空の「星庭ワークス」）。データはすべてダミー。
 FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Postgres 17（`db/`）、Docker Compose。入口は [README.md](README.md)（日本語は [README.ja.md](README.ja.md)）、開発・テスト・ダミーデータ・CI は [docs/development.md](docs/development.md)、
 画像・マイグレーション・バックアップ・R2 の詳細は [docs/image-storage.md](docs/image-storage.md)、画面の調査は [docs/ux-research.md](docs/ux-research.md)、
 資格情報・権限・MCP をプロジェクトごとに分ける方針は [docs/access-separation.md](docs/access-separation.md)。

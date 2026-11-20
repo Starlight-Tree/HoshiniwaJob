@@ -3,7 +3,7 @@
 export type Theme = 'light' | 'dark';
 
 /** 保存先のキー。`app/layout.tsx` の描画前のスクリプトも、同じキーを読む。 */
-export const THEME_KEY = 'hoshiniwajob-theme';
+export const THEME_KEY = 'jobnavi-theme';
 
 /** 初回描画の前に、保存済みのテーマを `<html data-theme>` へ入れるスクリプト（白フラッシュを防ぐ）。保存が無ければ何もせず、CSS の OS 追従に任せる。 */
 export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(THEME_KEY)});if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}`;

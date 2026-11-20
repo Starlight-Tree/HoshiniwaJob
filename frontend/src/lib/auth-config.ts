@@ -10,7 +10,7 @@ const DEFAULT_SECRET_PREFIX = 'better-auth-secret';
 /** Better Auth が勧める Secret の長さ（これより短いと推測されやすい）。 */
 export const MIN_SECRET_LENGTH = 32;
 /** Better Auth の Cookie 名の接頭辞（`<接頭辞>.session_token`。https では先頭に `__Secure-` が付く）。既定の `better-auth` のままだと、同じ localhost の別のアプリ（DocuNavi など）と Cookie を取り合う。 */
-export const AUTH_COOKIE_PREFIX = 'hoshiniwajob';
+export const AUTH_COOKIE_PREFIX = 'jobnavi';
 
 function isHttpUrl(value: string): boolean {
   try {

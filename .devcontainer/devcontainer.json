@@ -1,16 +1,16 @@
 {
-	"name": "HoshiniwaJob",
-	// Compose ベース。開発コンテナ（dev）と、アプリの db・api・frontend を、同じ Compose のプロジェクト hoshiniwajob に置く（seed は道具なので自動では起動しない。README の「Quick start」）。
+	"name": "JobNavi",
+	// Compose ベース。開発コンテナ（dev）と、アプリの db・api・frontend を、同じ Compose のプロジェクト jobnavi に置く（seed は道具なので自動では起動しない。README の「Quick start」）。
 	// 定義は ../docker-compose.yml（アプリ。ホストの `docker compose up` と共通）と ./docker-compose.yml（dev。ここだけ）。
 	"dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
 	"service": "dev",
 	"runServices": ["db", "api", "frontend"],
-	"workspaceFolder": "/workspaces/hoshiniwajob",
+	"workspaceFolder": "/workspaces/jobnavi",
 	"remoteUser": "vscode",
 	// ウィンドウを閉じると、まとめて止める（down ではない。コンテナも pg-data も残る）。
 	"shutdownAction": "stopCompose",
 	// Docker は、ホストのソケットを渡さず、星庭ジョブ専用のプロキシ（.devcontainer/docker-proxy/compose.yml）経由にする。
-	// initializeCommand: ホストで、コンテナの作成の前に実行される。プロキシを起動し、ネットワーク hoshiniwa-dev を作る。
+	// initializeCommand: ホストで、コンテナの作成の前に実行される。プロキシを起動し、ネットワーク jobnavi-dev を作る。
 	"initializeCommand": "docker compose -f .devcontainer/docker-proxy/compose.yml up -d",
 	"features": {
 		"ghcr.io/devcontainers/features/node:2": {},
@@ -22,7 +22,7 @@
 	// 書き込みは、コマンドごとに明示する（docs/access-separation.md）。そのサービスアカウントは、作るまで存在しない（作るまで gcloud は失敗する）。
 	"containerEnv": {
 		"TZ": "Asia/Tokyo",
-		"DOCKER_HOST": "tcp://hoshiniwa-docker-proxy:2375",
+		"DOCKER_HOST": "tcp://jobnavi-docker-proxy:2375",
 		"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT": "jobnavi-viewer@jobnavi-ops.iam.gserviceaccount.com",
 		"INFISICAL_DISABLE_TELEMETRY": "true",
 		"INFISICAL_DISABLE_UPDATE_CHECK": "true"

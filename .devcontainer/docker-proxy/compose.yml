@@ -10,23 +10,23 @@
 #   GET  /_ping, /version                          Docker CLI が最初に呼ぶ
 #   GET  /containers/json                          一覧（docker ps）。環境変数は含まれない
 #   GET  /containers/<名前か ID>/logs              ログ（docker logs）
-#   POST /containers/hoshiniwajob-(db|api|frontend)/(start|stop|restart)
-#                                                  名前で指定したときだけ。docker restart hoshiniwajob-frontend など
+#   POST /containers/jobnavi-(db|api|frontend)/(start|stop|restart)
+#                                                  名前で指定したときだけ。docker restart jobnavi-frontend など
 # 許可しない: コンテナの作成・削除（POST /containers/create、DELETE）、exec、inspect（/containers/<id>/json）、
 #   build、images・volumes・networks・events・/info、上の 3 つ以外のコンテナへの POST。
 #
 # 限界:
 #  - GET はパスでしか絞れないので、OrbStack 上のすべてのコンテナの一覧とログが見える。
 #  - `docker compose restart <サービス>` は、コンテナを ID で指定する（名前ではない）。ID のパスは名前の規則に合わないので通らない可能性が高い。
-#    ID の形（16 進）を許すと、他のプロジェクトのコンテナまで止められるので許さない。再起動は `docker restart hoshiniwajob-<名前>` を使う。
+#    ID の形（16 進）を許すと、他のプロジェクトのコンテナまで止められるので許さない。再起動は `docker restart jobnavi-<名前>` を使う。
 #  - 正規表現がクエリ文字列（?t=10 など）を含めずにパスだけで照合されるかは、実機で未確認（導入するときに確かめる）。
-name: hoshiniwa-dev-proxy
+name: jobnavi-dev-proxy
 
 services:
   docker-proxy:
     # 1.x の固定版。Docunavi と同じ。更新するときは、検証をやり直す。
     image: docker.io/wollomatic/socket-proxy:1.13.1
-    container_name: hoshiniwa-docker-proxy
+    container_name: jobnavi-docker-proxy
     # 表示用ラベル
     labels:
       local.ui.group: "Docker-Proxies"
@@ -37,7 +37,7 @@ services:
       # 接続元はプライベートアドレスに限る。開発コンテナの IP は起動のたびに変わるので、CIDR にする。
       - "-allowfrom=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"
       - '-allowGET=(/v1\.[0-9]{1,2})?/(_ping|version|containers/json|containers/[a-zA-Z0-9_.-]+/logs)'
-      - '-allowPOST=(/v1\.[0-9]{1,2})?/containers/hoshiniwajob-(db|api|frontend)/(start|stop|restart)'
+      - '-allowPOST=(/v1\.[0-9]{1,2})?/containers/jobnavi-(db|api|frontend)/(start|stop|restart)'
       # HEAD /_ping を使うバージョンの CLI があるため（これだけ）
       - '-allowHEAD=(/v1\.[0-9]{1,2})?/_ping'
       - "-loglevel=${DOCKER_PROXY_LOGLEVEL:-INFO}"
@@ -61,10 +61,10 @@ services:
       timeout: 5s
       retries: 2
     networks:
-      - hoshiniwa-dev
+      - jobnavi-dev
     restart: unless-stopped
 
 networks:
-  hoshiniwa-dev:
+  jobnavi-dev:
     # 開発コンテナ（./docker-compose.yml の dev）がこの名前で繋ぐ。internal にはしない（開発コンテナが外へ出られなくなる）。
-    name: hoshiniwa-dev
+    name: jobnavi-dev

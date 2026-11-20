@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 ISSUER = "http://localhost:3200"
 JWKS_URL = "http://auth.test/api/auth/jwks"
-AUDIENCE = "hoshiniwajob"
+AUDIENCE = "jobnavi"
 KID = "test-key-1"
 DEFAULT_SUB = "ba_user_0000000001"
 

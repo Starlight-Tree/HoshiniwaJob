@@ -89,16 +89,16 @@ python -m app.images_cli formfile              # recruits.formfile に値のあ�
 
 ```bash
 mkdir -p backups
-docker compose exec -T db pg_dump -U hoshiniwa -Fc hoshiniwa > backups/hoshiniwa.dump.new
-ls -l backups/hoshiniwa.dump.new                    # サイズが 0 でないことを確かめる。0 なら、次の行は実行しない
-mv backups/hoshiniwa.dump.new backups/hoshiniwa.dump   # 古い写しは、これで置き換わる
+docker compose exec -T db pg_dump -U jobnavi -Fc jobnavi > backups/jobnavi.dump.new
+ls -l backups/jobnavi.dump.new                    # サイズが 0 でないことを確かめる。0 なら、次の行は実行しない
+mv backups/jobnavi.dump.new backups/jobnavi.dump   # 古い写しは、これで置き換わる
 ```
 
 復旧（別の DB へ戻して中身を確かめてから、必要なら入れ替える）:
 
 ```bash
-docker compose exec -T db psql -U hoshiniwa -d postgres -c "CREATE DATABASE hoshiniwa_restore"
-docker compose exec -T db pg_restore -U hoshiniwa --no-owner -d hoshiniwa_restore < backups/hoshiniwa.dump
+docker compose exec -T db psql -U jobnavi -d postgres -c "CREATE DATABASE jobnavi_restore"
+docker compose exec -T db pg_restore -U jobnavi --no-owner -d jobnavi_restore < backups/jobnavi.dump
 ```
 
 - 画像の本体は DB のバックアップに入らない。**ストレージ側の保護**が別に要る（R2 ではバケットの保護の運用を決める）。バケットロックは、取り下げ・削除を妨げるので、開発では掛けない。

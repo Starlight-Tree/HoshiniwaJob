@@ -11,7 +11,7 @@ import { AUTH_COOKIE_PREFIX, authConfigProblem, type AuthEnv } from './auth-conf
 
 const SESSION_SECONDS = 60 * 60 * 24 * 14; // 14 日
 /** JWT の対象（aud）の既定。API の AUTH_AUDIENCE と同じ値にする。 */
-export const DEFAULT_AUDIENCE = 'hoshiniwajob';
+export const DEFAULT_AUDIENCE = 'jobnavi';
 
 const text = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null);
 
