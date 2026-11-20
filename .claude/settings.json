@@ -1,5 +1,9 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(scripts/verify.sh)",
+      "Bash(scripts/verify.sh *)"
+    ],
     "deny": [
       "Read(./.env)",
       "Read(./backups/**)",
