@@ -103,7 +103,7 @@ describe('rank', () => {
 
 describe('selectionOf / reasonOf', () => {
   it('求人検索の条件にする（駅は使わず、ページは 1）', () => {
-    expect(selectionOf({ employment: 1, area: null, occupation: 100 })).toEqual({ employment: [1], area: [], station: [], occupation: [100], page: 1 });
+    expect(selectionOf({ employment: 1, area: null, occupation: 100 })).toEqual({ employment: [1], area: [], station: [], occupation: [100], q: '', page: 1 });
   });
 
   it('一致の説明: 条件 1 つ／すべて／一部', () => {

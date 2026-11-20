@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chipsFor, hasConditions, hrefFor, parseSelection, toQuery } from './search';
+import { chipsFor, hasConditions, hrefFor, KEYWORD_MAX_LENGTH, normalizeKeyword, parseSelection, toQuery } from './search';
 import type { Master } from './types';
 
 const master: Master = {
@@ -58,5 +58,33 @@ describe('chipsFor', () => {
 
   it('職種は区分の中から名前を引く', () => {
     expect(chipsFor(parseSelection({ occupation: '1' }), master).map((c) => c.label)).toEqual(['無重力蔓の育成士']);
+  });
+});
+
+describe('キーワード（q）', () => {
+  it('整える: 全角を含む空白の連なりは半角 1 つ、前後は落とし、上限で切る。配列は先頭だけ', () => {
+    expect(normalizeKeyword('  温室　 夜勤 ')).toBe('温室 夜勤');
+    expect(normalizeKeyword(['語り部', '別'])).toBe('語り部');
+    expect(normalizeKeyword(undefined)).toBe('');
+    expect(normalizeKeyword('あ'.repeat(KEYWORD_MAX_LENGTH + 20))).toHaveLength(KEYWORD_MAX_LENGTH);
+  });
+
+  it('URL の q を読み、クエリへ戻す（条件のあと・ページの前。空なら入れない）', () => {
+    const sel = parseSelection({ q: '温室　夜勤', area: '3', page: '2' });
+    expect(sel.q).toBe('温室 夜勤');
+    expect(toQuery(sel)).toBe('area=3&q=%E6%B8%A9%E5%AE%A4+%E5%A4%9C%E5%8B%A4&page=2');
+    expect(toQuery(parseSelection({ q: '   ' }))).toBe('');
+  });
+
+  it('hasConditions はキーワードだけでも true', () => {
+    expect(hasConditions(parseSelection({ q: '温室' }))).toBe(true);
+    expect(hasConditions(parseSelection({ q: ' ' }))).toBe(false);
+  });
+
+  it('キーワードのチップは先頭に出し、外すと q だけが消えてページは 1 に戻る', () => {
+    const chips = chipsFor(parseSelection({ q: '語り部', area: '3', page: '2' }), master);
+    expect(chips.map((c) => c.label)).toEqual(['検索：語り部', '第一環']);
+    expect(chips[0]).toMatchObject({ kind: 'q', code: 0, removeHref: '/?area=3' });
+    expect(chips[1]?.removeHref).toBe('/?q=%E8%AA%9E%E3%82%8A%E9%83%A8');
   });
 });

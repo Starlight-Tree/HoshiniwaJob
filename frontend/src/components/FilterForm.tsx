@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
-import { hrefFor, KINDS, type Kind, type Selection } from '../lib/search';
+import { hrefFor, KEYWORD_MAX_LENGTH, KINDS, normalizeKeyword, type Kind, type Selection } from '../lib/search';
 import type { Code, Facets, Master } from '../lib/types';
 
 type Props = { master: Master; facets: Facets; selection: Selection };
@@ -20,7 +20,7 @@ function counts(facets: Facets, kind: Kind): Map<number, number> {
 
 // サーバーから来た選択（URL）と同じかを見分けるための鍵
 function keyOf(sel: Selection): string {
-  return KINDS.map((k) => `${k}:${sel[k].join(',')}`).join('|');
+  return [...KINDS.map((k) => `${k}:${sel[k].join(',')}`), `q:${sel.q}`].join('|');
 }
 
 /**
@@ -85,10 +85,17 @@ export function FilterForm({ master, facets, selection }: Props) {
   // URL が別の経路（チップの ✕、クリア、戻る）で変わったときは、サーバーの選択に合わせ直す。
   const [chosen, setChosen] = useState(selection);
   const [seen, setSeen] = useState(keyOf(selection));
+  // キーワードの入力欄は、手元の文字を持つ（日本語の変換中の文字が、URL の往復で崩れないように。DocuNavi の検索欄と同じ）
+  const [text, setText] = useState(selection.q);
   if (keyOf(selection) !== seen) {
     setSeen(keyOf(selection));
     setChosen(selection);
+    // 打っている途中の文字（末尾の空白など）は、整えた形が URL と同じなら、そのまま残す
+    if (normalizeKeyword(text) !== selection.q) setText(selection.q);
   }
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const composing = useRef(false);
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   // チップの一覧を、外を押す・フォーカスが外へ出る・Esc・別のチップを開く・画面の幅が変わる、で閉じる。Esc のときは、開いていたチップへフォーカスを戻す。
   // 開いたとき、一覧が画面の右へはみ出すなら、チップの右端にそろえて開く（チップの位置は、幅によって変わる）
@@ -137,6 +144,16 @@ export function FilterForm({ master, facets, selection }: Props) {
       form.removeEventListener('toggle', onToggle, true);
     };
   }, []);
+
+  // 打つたびに履歴を増やさない（replace）。打ち止めから少し待って絞り込む。変換中は待つ。Enter（送信）は、すぐ絞り込む
+  function typeKeyword(value: string) {
+    setText(value);
+    const next: Selection = { ...chosen, q: normalizeKeyword(value), page: 1 };
+    setChosen(next);
+    clearTimeout(timer.current);
+    if (composing.current || next.q === selection.q) return;
+    timer.current = setTimeout(() => startTransition(() => router.replace(hrefFor(next), { scroll: false })), 350);
+  }
 
   function toggle(kind: Kind, code: number, on: boolean) {
     const codes = on ? [...chosen[kind], code] : chosen[kind].filter((c) => c !== code);
@@ -190,9 +207,30 @@ export function FilterForm({ master, facets, selection }: Props) {
       aria-busy={pending}
       onSubmit={(e) => {
         e.preventDefault();
+        clearTimeout(timer.current);
         startTransition(() => router.push(hrefFor({ ...chosen, page: 1 }), { scroll: false }));
       }}
     >
+      <input
+        type="search"
+        name="q"
+        className="filter-search"
+        value={text}
+        maxLength={KEYWORD_MAX_LENGTH}
+        placeholder="キーワードで探す…"
+        aria-label="キーワード（空白で区切ると、すべてを含む求人だけ）"
+        title="空白で区切ると、すべてを含む求人だけに絞ります（AND）"
+        enterKeyHint="search"
+        onChange={(e) => typeKeyword(e.target.value)}
+        onCompositionStart={() => {
+          composing.current = true;
+        }}
+        onCompositionEnd={(e) => {
+          composing.current = false;
+          typeKeyword(e.currentTarget.value);
+        }}
+      />
+
       {simple.map(({ kind, title, items }) => {
         const count = counts(facets, kind);
         return (

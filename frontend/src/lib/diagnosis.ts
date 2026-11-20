@@ -83,6 +83,7 @@ export function selectionOf(answers: Answers): Selection {
     area: answers.area === null ? [] : [answers.area],
     station: [],
     occupation: answers.occupation === null ? [] : [answers.occupation],
+    q: '',
     page: 1,
   };
 }

@@ -4,7 +4,10 @@ import type { Master } from './types';
 export const KINDS = ['employment', 'area', 'station', 'occupation'] as const;
 export type Kind = (typeof KINDS)[number];
 
-export type Selection = Record<Kind, number[]> & { page: number };
+/** キーワードの長さの上限。バックエンドの /api/recruits の q と同じ値（超えると 422）。 */
+export const KEYWORD_MAX_LENGTH = 100;
+
+export type Selection = Record<Kind, number[]> & { q: string; page: number };
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -12,6 +15,12 @@ function toInts(value: string | string[] | undefined): number[] {
   const list = Array.isArray(value) ? value : value === undefined ? [] : [value];
   const codes = list.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0);
   return [...new Set(codes)].sort((a, b) => a - b);
+}
+
+/** キーワードを整える。空白（全角を含む）の連なりを 1 つの半角の空白にし、前後を落とし、上限で切る。 */
+export function normalizeKeyword(value: string | string[] | undefined): string {
+  const first = Array.isArray(value) ? value[0] : value;
+  return (first ?? '').replace(/\s+/g, ' ').trim().slice(0, KEYWORD_MAX_LENGTH);
 }
 
 /** URL のクエリを、検索の条件にする。数字でない値・重複は捨てる（API へ 422 になる値を渡さない）。 */
@@ -22,6 +31,7 @@ export function parseSelection(params: RawParams): Selection {
     area: toInts(params.area),
     station: toInts(params.station),
     occupation: toInts(params.occupation),
+    q: normalizeKeyword(params.q),
     page: Number.isInteger(page) && page > 1 ? page : 1,
   };
 }
@@ -30,6 +40,7 @@ export function parseSelection(params: RawParams): Selection {
 export function toQuery(sel: Selection): string {
   const q = new URLSearchParams();
   for (const kind of KINDS) for (const code of sel[kind]) q.append(kind, String(code));
+  if (sel.q) q.set('q', sel.q);
   if (sel.page > 1) q.set('page', String(sel.page));
   return q.toString();
 }
@@ -40,10 +51,11 @@ export function hrefFor(sel: Selection): string {
 }
 
 export function hasConditions(sel: Selection): boolean {
-  return KINDS.some((kind) => sel[kind].length > 0);
+  return sel.q !== '' || KINDS.some((kind) => sel[kind].length > 0);
 }
 
-export type Chip = { kind: Kind; code: number; label: string; removeHref: string };
+/** 条件のチップ。キーワードは kind が 'q'（code は 0）。 */
+export type Chip = { kind: Kind | 'q'; code: number; label: string; removeHref: string };
 
 /** 選んだ条件を、1 つずつ外せるチップにする。外すとページは 1 に戻る。 */
 export function chipsFor(sel: Selection, master: Master): Chip[] {
@@ -54,6 +66,7 @@ export function chipsFor(sel: Selection, master: Master): Chip[] {
     occupation: new Map(master.occupations.flatMap((g) => g.items.map((c) => [c.code, c.name] as const))),
   };
   const chips: Chip[] = [];
+  if (sel.q) chips.push({ kind: 'q', code: 0, label: `検索：${sel.q}`, removeHref: hrefFor({ ...sel, q: '', page: 1 }) });
   for (const kind of KINDS) {
     for (const code of sel[kind]) {
       const label = names[kind].get(code);

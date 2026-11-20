@@ -54,6 +54,7 @@ const get = async <T>(path: string, token?: string): Promise<T> => json<T>(await
 function conditions(sel: Selection): URLSearchParams {
   const q = new URLSearchParams();
   for (const kind of KINDS) for (const code of sel[kind]) q.append(kind, String(code));
+  if (sel.q) q.set('q', sel.q);
   return q;
 }
 

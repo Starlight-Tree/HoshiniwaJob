@@ -6,7 +6,8 @@ import type { Facets, Master } from '../lib/types';
 import { FilterForm } from './FilterForm';
 
 const push = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+const replace = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push, replace }) }));
 
 const master: Master = {
   employments: [
@@ -41,7 +42,10 @@ const facets: Facets = {
   occupations: [{ code: 1, count: 2 }],
 };
 
-beforeEach(() => push.mockReset());
+beforeEach(() => {
+  push.mockReset();
+  replace.mockReset();
+});
 
 /** チップ（<summary>）。名前は「ラベル 値」。 */
 const chip = (label: string) => screen.getByText(label, { selector: '.facet-label' }).closest('summary') as HTMLElement;
@@ -203,6 +207,96 @@ describe('FilterForm（上の横並びのチップ）', () => {
       await userEvent.keyboard('{Escape}');
       expect(facetOf('エリア').open).toBe(false);
       expect(chip('エリア')).toHaveFocus();
+    });
+  });
+  describe('キーワードの入力欄', () => {
+    const box = () => screen.getByRole('searchbox', { name: /キーワード/ });
+
+    it('先頭に 1 つ出し、URL の q を入れておく（上限の長さを付ける）', () => {
+      render(<FilterForm master={master} facets={facets} selection={parseSelection({ q: '語り部' })} />);
+      expect(box()).toHaveValue('語り部');
+      expect(box()).toHaveAttribute('maxlength', '100');
+      expect(box()).toHaveAttribute('name', 'q');
+    });
+
+    it('打つと、少し待ってから、履歴を増やさずに（replace）整えたキーワードで絞る。1 ページ目へ戻す', () => {
+      vi.useFakeTimers();
+      try {
+        render(<FilterForm master={master} facets={facets} selection={parseSelection({ area: '3', page: '2' })} />);
+        fireEvent.change(box(), { target: { value: '温室　夜勤 ' } });
+        expect(replace).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(349);
+        expect(replace).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(replace).toHaveBeenCalledTimes(1);
+        expect(replace).toHaveBeenCalledWith('/?area=3&q=%E6%B8%A9%E5%AE%A4+%E5%A4%9C%E5%8B%A4', { scroll: false });
+        expect(push).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('続けて打つと、待ちをやり直す（最後の 1 回だけ）', () => {
+      vi.useFakeTimers();
+      try {
+        render(<FilterForm master={master} facets={facets} selection={parseSelection({})} />);
+        fireEvent.change(box(), { target: { value: '温' } });
+        vi.advanceTimersByTime(300);
+        fireEvent.change(box(), { target: { value: '温室' } });
+        vi.advanceTimersByTime(300);
+        expect(replace).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(50);
+        expect(replace).toHaveBeenCalledTimes(1);
+        expect(replace).toHaveBeenCalledWith('/?q=%E6%B8%A9%E5%AE%A4', { scroll: false });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('日本語の変換中は絞らず、確定したときに絞る', () => {
+      vi.useFakeTimers();
+      try {
+        render(<FilterForm master={master} facets={facets} selection={parseSelection({})} />);
+        fireEvent.compositionStart(box());
+        fireEvent.change(box(), { target: { value: 'おん' } });
+        vi.advanceTimersByTime(1000);
+        expect(replace).not.toHaveBeenCalled();
+        fireEvent.compositionEnd(box(), { target: { value: '温室' } });
+        vi.advanceTimersByTime(350);
+        expect(replace).toHaveBeenCalledWith('/?q=%E6%B8%A9%E5%AE%A4', { scroll: false });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('Enter（送信）は、待たずにすぐ絞る（push）。待っていた replace は出さない', () => {
+      vi.useFakeTimers();
+      try {
+        render(<FilterForm master={master} facets={facets} selection={parseSelection({})} />);
+        fireEvent.change(box(), { target: { value: '語り部' } });
+        fireEvent.submit(box().closest('form') as HTMLFormElement);
+        expect(push).toHaveBeenCalledWith('/?q=%E8%AA%9E%E3%82%8A%E9%83%A8', { scroll: false });
+        vi.advanceTimersByTime(1000);
+        expect(replace).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('キーワードを入れたまま、チェックを入れても、キーワードは残る', async () => {
+      render(<FilterForm master={master} facets={facets} selection={parseSelection({ q: '語り部' })} />);
+      await userEvent.click(chip('エリア'));
+      await userEvent.click(screen.getByRole('checkbox', { name: '第一環' }));
+      expect(push).toHaveBeenCalledWith('/?area=3&q=%E8%AA%9E%E3%82%8A%E9%83%A8', { scroll: false });
+    });
+
+    it('URL が外から変わったら（チップの ✕・クリア・戻る）、入力欄も合わせる。打っている途中の末尾の空白は消さない', () => {
+      const { rerender } = render(<FilterForm master={master} facets={facets} selection={parseSelection({ q: '語り部' })} />);
+      rerender(<FilterForm master={master} facets={facets} selection={parseSelection({})} />);
+      expect(box()).toHaveValue('');
+      fireEvent.change(box(), { target: { value: '温室 ' } });
+      rerender(<FilterForm master={master} facets={facets} selection={parseSelection({ q: '温室' })} />);
+      expect(box()).toHaveValue('温室 ');
     });
   });
 });

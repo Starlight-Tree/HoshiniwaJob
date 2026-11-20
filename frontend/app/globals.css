@@ -131,6 +131,11 @@ h1, h2 { line-height: 1.4; }
 
 /* しぼり込み（上の横並びのチップ。DocuNavi の資料一覧と同じ形）。チップを押すと、真下に選択肢の一覧が開く（複数選べる）。開閉はブラウザー標準の <details> */
 .filter-bar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
+/* キーワードの入力欄。チップと同じ高さ・枠・角丸。幅は 12rem（1280px で、チップ 4 つと同じ 1 行に収まる大きさ）。狭い幅では 1 列いっぱい */
+.filter-search { flex: 0 1 12rem; width: 12rem; min-width: 0; min-height: 2.4rem; box-sizing: border-box; padding: 0 0.7rem; border: 1px solid var(--input-border); border-radius: 0.5rem; background: var(--input-bg); color: var(--text); font: inherit; font-size: 14.4px; }
+.filter-search::placeholder { color: var(--faint); }
+.filter-search:hover { background: var(--surface-muted); }
+.filter-search:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .facet { position: relative; min-width: 0; max-width: 100%; }
 .facet-summary { display: flex; width: 11.5rem; max-width: 100%; min-height: 2.4rem; box-sizing: border-box; align-items: center; gap: 0.4rem; padding: 0 0.6rem 0 0.7rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--surface); color: var(--text); font-size: 14.4px; white-space: nowrap; list-style: none; cursor: pointer; }
 .facet-summary::-webkit-details-marker { display: none; }
@@ -167,7 +172,7 @@ h1, h2 { line-height: 1.4; }
 .filter-status { position: absolute; top: 100%; left: 0; margin: 0; font-size: 13px; line-height: 1.3; color: var(--muted); pointer-events: none; }
 @media (max-width: 640px) {
   /* 狭い幅では、チップを 1 列に並べ（長いラベルと値が省略されないように）、一覧は、押したチップの真下に、左右いっぱいに開く */
-  .facet { flex: 1 1 100%; }
+  .facet, .filter-search { flex: 1 1 100%; }
   .facet-summary { width: 100%; }
   .facet-panel, .facet-panel-wide { right: 0; left: 0; width: auto; max-width: none; }
 }
