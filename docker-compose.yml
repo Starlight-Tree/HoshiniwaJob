@@ -113,10 +113,11 @@ services:
       STORAGE_S3_SECRET_ACCESS_KEY: "${STORAGE_S3_SECRET_ACCESS_KEY:-}"
       DATABASE_URL: *database_url
       CORS_ORIGINS: "http://localhost:3200"
-      # Google でのログイン。OAuth クライアントは、あなたが Google Cloud Console で作る（README）。値は .env（Git 管理外）に書く。シークレットは API だけが持つ
-      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
-      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
-      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-}"
+      # 求職者のログイン。画面のサーバー（frontend の Better Auth）が出す JWT を、その JWKS の公開鍵で検証するだけ（ログインの通信・シークレットは持たない）。
+      # AUTH_BASE_URL は frontend の BETTER_AUTH_URL と同じ値（JWT の iss）。AUTH_JWKS_URL は、API のコンテナから届く frontend の URL
+      AUTH_BASE_URL: "${BETTER_AUTH_URL:-http://localhost:3200}"
+      AUTH_JWKS_URL: "http://frontend:3000/api/auth/jwks"
+      AUTH_AUDIENCE: "hoshiniwajob"
       # ホスト↔コンテナ間のボリュームでファイル変更通知が届かない環境（Docker Desktop 等）向け
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
@@ -150,9 +151,15 @@ services:
       API_BASE_URL: "http://api:8000"
       # 公開画像の URL の頭。既定は /media（API が配る）。R2 に切り替えるときは .env で api と同じ値にする（next.config.ts が読む）
       IMAGE_PUBLIC_BASE_URL: "${IMAGE_PUBLIC_BASE_URL:-/media}"
-      # Google でのログイン。画面のサーバーが持つのは、クライアント ID（公開してよい値）と、戻り先だけ。シークレットは渡さない
+      # 求職者のログイン（Better Auth。Google だけ）。画面のサーバーの中で動く（frontend/src/lib/auth.ts）。Google の OAuth クライアントは、あなたが Google Cloud Console で作る（README）。
+      # 値は Infisical（scripts/login-secrets.sh で登録し、`infisical run --projectId <ID> --env dev -- docker compose up -d` で起動する）か、.env（Git 管理外）に書く。足りないときは、ログイン画面に「まだ設定されていません」と出る（他の画面は動く）
+      # BETTER_AUTH_SECRET は 32 文字以上のランダムな値（例: openssl rand -base64 32）。一度決めたら変えない（DB の auth_jwks の署名鍵と、Google のトークンの暗号化に使う。変えると全員がログアウトに見える）
+      BETTER_AUTH_URL: "${BETTER_AUTH_URL:-http://localhost:3200}"
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:-}"
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
-      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      # ログイン（Better Auth）の表（auth_ で始まる表）を読み書きするための DB 接続。注意: api・migrate と同じ資格情報で、表ごとの権限分けはしていない（auth_ の表だけを使うのは、コードの上の約束）。求人など、アプリのデータは、これまでどおり API 経由で読む
+      DATABASE_URL: *database_url
     volumes:
       - ./frontend:/app
       # node_modules と .next は、ホストのものと分ける（ネイティブの依存が OS ごとに違うため）
@@ -163,8 +170,11 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      db:
+        condition: service_healthy
     networks:
       - frontend-net
+      - backend-net
     command: sh -c "npm install --no-audit --no-fund && npm run dev -- --hostname 0.0.0.0 --port 3000"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
@@ -174,8 +184,9 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-# frontend-net: frontend と api（frontend は npm install で外へ出る）。
-# backend-net: api・db と、道具（migrate・seed・seed-images）だけ。internal なので、db は外へ出られず、ホストからも届かない。
+# frontend-net: frontend と api（frontend は npm install と Google への通信で外へ出る）。
+# backend-net: db と、api・frontend・道具（migrate・seed・seed-images）。internal なので、db は外へ出られず、ホストからも届かない。
+#   frontend が backend-net にいるのは、ログイン（Better Auth の auth_ の表）のため。2026-11-20 に、Next.js の公式の構成（認証を画面のサーバーの中に置く）を選んで、DB へ届くようにした。
 networks:
   frontend-net:
   backend-net:

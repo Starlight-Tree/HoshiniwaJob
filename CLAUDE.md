@@ -37,7 +37,8 @@ FastAPI + psycopg3（`backend/`）、Next.js + TypeScript（`frontend/`）、Pos
 
 - **`.env`・`backups/` は読まない。** `.env` には R2 の認証情報が入りうる。`backups/` は個人情報を含みうる DB のダンプ。旧 PHP の資料は 2026-11-20 に削除済みで、残す参考は [docs/legacy-reference.md](docs/legacy-reference.md)。
   `grep -r .` や `find .` で潜らない（`git grep` / `git ls-files` を使う）。値を表示・ログ・コミットしない。
-- **認証情報は環境変数で渡す。** コード・文書・コミット・スクリーンショットに書かない。`STORAGE_S3_*` の値は特に。画面（`frontend/`）に渡してよいのは公開用の値だけ。
+- **認証情報は環境変数で渡す。** コード・文書・コミット・スクリーンショットに書かない。`STORAGE_S3_*` の値は特に。画面（`frontend/`）に渡す秘密は、ログイン（Better Auth）の `BETTER_AUTH_SECRET`・`GOOGLE_CLIENT_SECRET`・`DATABASE_URL` だけ（サーバー側の環境変数。`NEXT_PUBLIC_` を付けない）。`STORAGE_S3_*`・R2 の値など、ほかの秘密は渡さない。
+- **`BETTER_AUTH_SECRET` は、決めたら変えない。** DB の署名鍵（`auth_jwks`）と Google のトークンの暗号化に使っている。変えると全員がログアウトに見え、直すには `auth_jwks` の行を消す必要がある（承認が要る）。登録は `scripts/login-secrets.sh`（ユーザーが自分の端末で実行する。エージェントは実行せず、値を見ない）。
 - **ダミーデータの投入は `DEMO_DATA=allow` を渡した開発・テストの環境だけ。** `seed` と `seed-images` を本番の DB に向けない。Compose の `tools` の道具は `up` で起動しない。
 - **マイグレーションは番号付き SQL を足すだけ。** 適用済みのファイルを書き換えない（sha256 を記録していて、変わると止まる）。`DROP` / `TRUNCATE` は足さない。
   `db/schema.sql` は 0001 の基準で、`baseline_fingerprint.json` と照合される。適用の前に、必ず DB のバックアップを取る（`docs/image-storage.md`）。
