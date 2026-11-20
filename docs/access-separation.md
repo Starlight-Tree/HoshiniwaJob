@@ -57,7 +57,7 @@ for v in claude-config playwright-browsers infisical-config gcloud-config; do do
 
 | 資源 | このプロジェクト専用 | 状態 |
 |---|---|---|
-| GCP プロジェクト | 組織 `dev-cloud`（975415902896）の下。フォルダー `JobNavi`: `jobnavi-app-2026`（実行用。OAuth の同意画面とクライアントもここ）、`jobnavi-ops`（運用用）。フォルダー `GenAI`: `genai-shared-2026`（全アプリ共通の生成 AI。課金あり。Gemini API だけ有効） | 作成済み（2026-11-20）。`jobnavi-app-2026`・`jobnavi-ops` は空（サービスアカウントも Secret も無い）。`genai-shared-2026` に API キー `jobnavi-images`（`generativelanguage` だけに制限）。旧 `hoshiniwa-job-app`・`hoshiniwa-job-ops` は削除予定で、まだ残っている。フォルダーを作るため、組織の IAM に `roles/resourcemanager.folderAdmin` を付けた（外す予定） |
+| GCP プロジェクト | 組織 `dev-cloud`（975415902896）の下。フォルダー `JobNavi`: `jobnavi-app-2026`（実行用。OAuth の同意画面とクライアントもここ）、`jobnavi-ops`（運用用）。フォルダー `GenAI`: `genai-shared-2026`（全アプリ共通の生成 AI。課金あり。Gemini API だけ有効） | 作成済み（2026-11-20）。`jobnavi-app-2026`・`jobnavi-ops` は空（サービスアカウントも Secret も無い）。`genai-shared-2026` に API キー `jobnavi-images`（`generativelanguage` だけに制限）。旧 `hoshiniwa-job-app`・`hoshiniwa-job-ops` は 2026-11-20 に削除した（空で、Gemini の呼び出しは直近 14 日で 0 件。30 日以内なら `gcloud projects undelete` で戻せる）。フォルダーを作るため、組織の IAM に `roles/resourcemanager.folderAdmin` を付けた（外す予定） |
 | GCP の閲覧専用サービスアカウント | `jobnavi-viewer@jobnavi-ops`（なりすまし。`CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT`） | **未作成** |
 | Infisical のプロジェクト | `jobnavi`（使うのは環境 `dev`）、`jobnavi-github-app`（環境 `prod`。GitHub App の鍵だけ） | `jobnavi`: 作成済み（2026-11-20。コンテナのユーザーのログインで `infisical sm projects create`。ID `5851ffe9-3b94-40d0-8ac1-b9ea0e8708cb`、スラッグ `jobnavi-lk3q`。環境は dev・staging・prod が既定で付いた。報告。作成時の出力）。`jobnavi-github-app`: **未作成** |
 | Infisical のマシン ID | `jobnavi-devcontainer`（`jobnavi` だけに追加。`jobnavi-github-app` には入れない。権限は開発用の秘密だけに絞る。Viewer は環境・パスで絞れない） | **未作成** |
