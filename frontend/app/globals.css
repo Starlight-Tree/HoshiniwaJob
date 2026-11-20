@@ -295,6 +295,7 @@ h1, h2 { line-height: 1.4; }
 .app-icon-btn:hover { background: var(--surface-muted); color: var(--text); }
 .app-sidebar .app-toggle { display: none; }
 /* 閉じた帯のロゴの位置は、開くボタン。ホバー・フォーカスで、ロゴが開閉の絵に変わる */
+.app-rail-open { display: none; }
 .app-open-icon { position: absolute; inset: 0; display: none; place-items: center; }
 .app-open-btn:hover .app-brand-icon, .app-open-btn:focus-visible .app-brand-icon { visibility: hidden; }
 .app-open-btn:hover .app-open-icon, .app-open-btn:focus-visible .app-open-icon { display: grid; }
@@ -355,6 +356,11 @@ h1, h2 { line-height: 1.4; }
 @media (min-width: 1176px) {
   .app-sidebar .app-toggle { display: grid; }
   .app-sidebar[data-open='false'] .app-brand-link { display: none; }
+  /* 閉じた帯の空き部分で開く。下敷きのボタンがパネル全体を覆い、帯の項目・アイコンは、その上に載って自分のクリックだけを受ける（ページ遷移・メニュー。開閉はしない）。
+     帯の入れ物は pointer-events: none で素通しにし、中身だけ auto に戻す（pointer-events は子に引き継がれるので、下敷きにも auto を戻す） */
+  .app-sidebar[data-open='false'] .app-rail-open { position: absolute; z-index: -1; inset: 0; display: block; padding: 0; border: 0; background: transparent; cursor: e-resize; }
+  .app-sidebar[data-open='false'] .app-rail, .app-sidebar[data-open='false'] .app-rail-foot { pointer-events: none; }
+  .app-sidebar[data-open='false'] .app-rail-open, .app-sidebar[data-open='false'] .app-rail-btn, .app-sidebar[data-open='false'] .app-rail-foot .account { pointer-events: auto; }
   .app-sidebar[data-open='true'] { flex-basis: 16rem; align-items: stretch; padding: 0.75rem; }
   .app-sidebar[data-open='true'] .app-rail { align-items: stretch; }
   .app-sidebar[data-open='true'] .app-brand-row { padding-bottom: 0.5rem; }

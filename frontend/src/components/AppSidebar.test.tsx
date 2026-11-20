@@ -97,6 +97,20 @@ describe('AppSidebar', () => {
       expect(screen.queryByRole('button', { name: 'サイドパネルを開く' })).not.toBeInTheDocument();
     });
 
+    it('閉じた帯の空き部分（下敷きのボタン）をクリックしても開く。下敷きは読み上げ・Tab の対象にしない', async () => {
+      const { container } = setup('/');
+      expect(container.querySelector('.app-rail-open')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'サイドパネルを閉じる' }));
+      const underlay = container.querySelector<HTMLButtonElement>('.app-rail-open');
+      expect(underlay).toBeInTheDocument();
+      expect(underlay).toHaveAttribute('aria-hidden', 'true');
+      expect(underlay).toHaveAttribute('tabindex', '-1');
+      await userEvent.click(underlay!);
+      expect(screen.getByRole('complementary')).toHaveAttribute('data-open', 'true');
+      expect(screen.getByRole('button', { name: 'サイドパネルを閉じる' })).toHaveFocus();
+      expect(container.querySelector('.app-rail-open')).not.toBeInTheDocument();
+    });
+
     it('キーボード（Enter）でも開閉できる', async () => {
       setup('/');
       screen.getByRole('button', { name: 'サイドパネルを閉じる' }).focus();

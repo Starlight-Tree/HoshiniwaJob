@@ -37,7 +37,7 @@ function isCurrent(pathname: string, item: SidebarItem): boolean {
 /**
  * 左のサイドパネル（DocuNavi と同じ。開いた表示と、アイコンだけの細い帯を、ボタンで切り替える）。
  * 開いた表示: 上にロゴと名前・閉じるボタン、続いて行き先（アイコン＋名前）、下にアカウント（アバター＋名前）。はじめは開いた状態で、保存はしない。
- * 閉じた表示（細い帯）: ロゴの位置が「サイドパネルを開く」ボタンになる（ホバー・フォーカスで、ロゴが開閉の絵に変わる）。名前は、ホバーとキーボードのフォーカスで、アイコンの右に出る。
+ * 閉じた表示（細い帯）: ロゴの位置が「サイドパネルを開く」ボタンになる（ホバー・フォーカスで、ロゴが開閉の絵に変わる）。帯の空き部分をクリックしても開く。名前は、ホバーとキーボードのフォーカスで、アイコンの右に出る。
  * 開閉できるのは 1176px 以上（開くと、求人検索の「しぼり込み」と結果が並ぶ幅が足りなくなるため）。それより狭い間は、開閉のボタンを出さず、細い帯のまま。
  * 976px 未満は、上の横の帯になり、名前を文字で見せる。開いている画面の項目には `aria-current="page"` を付ける。
  * 項目の名前は、閉じた表示では画面に出さない文字（`.app-rail-label`）で持つ（読み上げの名前になり、開いた表示と狭い画面では見える）。
@@ -61,6 +61,9 @@ export function AppSidebar({ brand, brandHref, brandSub, navLabel, items, childr
   };
   return (
     <aside className="app-sidebar" data-open={open ? 'true' : 'false'}>
+      {/* 閉じた細い帯の空き部分をクリックしても開く（DocuNavi と同じ）。下敷きのボタンがパネル全体を覆い、帯の項目・アイコンは、その上に載って自分のクリックだけを受ける（globals.css の pointer-events）。
+          マウス用なので、読み上げ・Tab の対象にはしない（キーボードと読み上げは、先頭のロゴの位置のボタンが受ける） */}
+      {!open && <button type="button" className="app-rail-open" aria-hidden="true" tabIndex={-1} onClick={() => toggle(true)} />}
       <nav className="app-rail" aria-label={navLabel}>
         <div className="app-brand-row">
           <Link href={brandHref} className="app-rail-btn app-rail-logo app-brand-link" data-tip={brandName}>
