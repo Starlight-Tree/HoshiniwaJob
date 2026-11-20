@@ -10,7 +10,7 @@ const items = [{ href: '/', label: '求人を探す', icon: 'search' as const, a
 const setup = (pathname: string, props: Partial<Parameters<typeof AppSidebar>[0]> = {}) => {
   nav.pathname = pathname;
   return render(
-    <AppSidebar brand="HoshiniwaJob" brandHref="/" navLabel="メインメニュー" items={items} {...props}>
+    <AppSidebar brand="JobNavi" brandHref="/" navLabel="メインメニュー" items={items} {...props}>
       <p>下部の中身</p>
     </AppSidebar>,
   );
@@ -20,7 +20,7 @@ describe('AppSidebar', () => {
   it('ロゴ・行き先・下部の中身を出す（名前は、画面に出さない文字で持つ）', () => {
     setup('/');
     const menu = screen.getByRole('navigation', { name: 'メインメニュー' });
-    expect(within(menu).getByRole('link', { name: 'HoshiniwaJob' })).toHaveAttribute('href', '/');
+    expect(within(menu).getByRole('link', { name: 'JobNavi' })).toHaveAttribute('href', '/');
     expect(within(menu).getByRole('link', { name: '求人を探す' })).toHaveAttribute('href', '/');
     expect(screen.getByText('下部の中身')).toBeInTheDocument();
     // 名前は、ホバーで出るツールチップの文字にもなる
@@ -67,7 +67,7 @@ describe('AppSidebar', () => {
 
   it('副見出しは、ロゴの名前に足す', () => {
     setup('/garden', { brandSub: '園の管理' });
-    expect(screen.getByRole('link', { name: 'HoshiniwaJob 園の管理' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'JobNavi 園の管理' })).toHaveAttribute('href', '/');
   });
 
   describe('開閉', () => {
@@ -87,7 +87,7 @@ describe('AppSidebar', () => {
       expect(open).toHaveFocus();
       expect(screen.queryByRole('button', { name: 'サイドパネルを閉じる' })).not.toBeInTheDocument();
       // 閉じても、ロゴと行き先のリンクと、下部の中身は DOM に残る（細い帯が使う）
-      expect(screen.getByRole('link', { name: 'HoshiniwaJob' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'JobNavi' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: '求人を探す' })).toHaveAttribute('aria-current', 'page');
       expect(screen.getByText('下部の中身')).toBeInTheDocument();
 
@@ -122,7 +122,7 @@ describe('AppSidebar', () => {
 
     it('副見出しは、開閉のボタンの名前に影響せず、ロゴの名前に足される', () => {
       setup('/garden', { brandSub: '園の管理' });
-      expect(screen.getByRole('link', { name: 'HoshiniwaJob 園の管理' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'JobNavi 園の管理' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'サイドパネルを閉じる' })).toBeInTheDocument();
     });
   });

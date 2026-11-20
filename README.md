@@ -1,10 +1,10 @@
-# HoshiniwaJob
+# JobNavi
 
 [![CI](https://github.com/Starlight-Tree/HoshiniwaJob/actions/workflows/ci.yml/badge.svg)](https://github.com/Starlight-Tree/HoshiniwaJob/actions/workflows/ci.yml)
 
 English | [日本語](README.ja.md)
 
-HoshiniwaJob (星庭ジョブ) is a fictional job board for botanical gardens on the Moon, in orbital cities and on the planet Zahard (FastAPI, Next.js, Postgres 17, Docker Compose). The operator "Hoshiniwa Works", the place names, the currency "lumi" and all data are made up.
+JobNavi (星庭ジョブ; the repository is still named HoshiniwaJob) is a fictional job board for botanical gardens on the Moon, in orbital cities and on the planet Zahard (FastAPI, Next.js, Postgres 17, Docker Compose). The operator "Hoshiniwa Works", the place names, the currency "lumi" and all data are made up.
 
 | Job search (with counts per filter) | Job detail (with images) |
 |---|---|

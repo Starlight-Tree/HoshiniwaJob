@@ -9,7 +9,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: { default: 'HoshiniwaJob', template: '%s｜HoshiniwaJob' },
+  title: { default: 'JobNavi', template: '%s｜JobNavi' },
   description: '宇宙の植物園・ガーデンの求人を、雇用形態・エリア・乗り場・職種でさがせます。',
   other: { 'color-scheme': 'light dark' },
 };

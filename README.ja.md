@@ -1,10 +1,10 @@
-# 星庭ジョブ（HoshiniwaJob）
+# JobNavi（星庭ジョブ）
 
 [![CI](https://github.com/Starlight-Tree/HoshiniwaJob/actions/workflows/ci.yml/badge.svg)](https://github.com/Starlight-Tree/HoshiniwaJob/actions/workflows/ci.yml)
 
 [English](README.md) | 日本語
 
-月面・軌道都市・惑星ザーハードの植物園とガーデンの求人を探せる、架空の求人サイトです（FastAPI、Next.js、Postgres 17、Docker Compose）。運営の「星庭ワークス」、地名、通貨「ルミ」、データはすべて架空です。
+月面・軌道都市・惑星ザーハードの植物園とガーデンの求人を探せる、架空の求人サイト「JobNavi」です（リポジトリ名は HoshiniwaJob のまま。FastAPI、Next.js、Postgres 17、Docker Compose）。運営の「星庭ワークス」、地名、通貨「ルミ」、データはすべて架空です。
 
 | 求人検索（条件ごとの件数つき） | 求人の詳細（画像つき） |
 |---|---|

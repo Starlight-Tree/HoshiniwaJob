@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <header className="site-header">
         <div className="inner">
           <Link href="/" className="logo">
-            HoshiniwaJob
+            JobNavi
           </Link>
           <nav aria-label="メインメニュー">
             <Link href="/">← 求人を探す</Link>

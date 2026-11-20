@@ -10,7 +10,7 @@ export default async function GardenLayout({ children }: { children: ReactNode }
   return (
     <div className="app-shell">
       <AppSidebar
-        brand="HoshiniwaJob"
+        brand="JobNavi"
         brandHref="/garden"
         brandSub="園の管理"
         navLabel="園のメニュー"
