@@ -24,7 +24,7 @@
 - **削除はその場で行う。** 園が求人から外した画像は、どこからも使われなければ、その場で `deleted` にして実体を消す（猶予は無い）。元に戻せない。
   公開 URL は `Cache-Control: immutable`（1 年）で配るので、削除後も、ブラウザーなどのキャッシュには、しばらく残りうる。
 - **求人の画像**は `recruit_images`（表示順 `position`、ヒーロー `is_hero`）。ヒーローは求人ごとに 1 枚まで（DB の一意索引）で、公開中の画像だけ（DB のトリガー）。
-  指定が無ければ、公開 API は表示順で先頭の公開中の画像を `hero_image` にする。画像が 1 枚も無ければ、画面は共通の代替画像（`public/images/generated/job-detail-sample.jpg`。Git 管理）を出す。
+  指定が無ければ、公開 API は表示順で先頭の公開中の画像を `hero_image` にする。`hero_image` は、求人の詳細と、一覧（`GET /api/recruits`）の各項目の両方で返す（一覧のサムネに使う。一覧は、その 1 ページの分を 1 回の SQL でまとめて引く）。画像が 1 枚も無ければ、画面は共通の代替画像（`public/images/generated/job-detail-sample.jpg`。Git 管理）を出す。
 - **法人の画像**は `garden_images`（`logo` / `banner`）。同じ `images` を使う。API（`/api/garden/profile-images`）と DB はあるが、**画面と公開ページでの表示は未実装**（法人の紹介ページができてから）。
 - **権限**: 園が操作できるのは、自分に紐づく求人（`recruits.garden_account_id`）と自分の画像だけ。確認は API が毎回 SQL の条件で行い、他の園のものは 404（存在も分からない）。
 - **画面（`/garden/recruits/<id>/images`）**: 上にドラッグ＆ドロップの領域。ファイルを選ぶ（またはドロップする）と、手元のファイルから保存前のプレビューを出し、代替テキストを入れて「公開する」を押すと API へ送る。

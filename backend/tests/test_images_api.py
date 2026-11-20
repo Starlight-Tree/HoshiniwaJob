@@ -218,6 +218,97 @@ def test_hidden_recruit_images_are_not_public(client, tok1):
     assert client.get("/api/recruits/12").status_code == 404
 
 
+def list_items(client):
+    """公開の求人一覧（1 ページに全件）を、求人 ID で引ける形で返す。"""
+    res = client.get("/api/recruits", params={"per_page": 50})
+    assert res.status_code == 200
+    return {i["id"]: i for i in res.json()["items"]}
+
+
+def detail_hero(client, recruit_id):
+    return client.get(f"/api/recruits/{recruit_id}").json()["hero_image"]
+
+
+@pytest.fixture
+def image_sql(monkeypatch):
+    """recruit_images を読む SQL が流れるたびに、その文を残す（接続のクエリ回数を数えるため）。"""
+    seen: list[str] = []
+    original = psycopg.Cursor.execute
+
+    def counting(self, query, *args, **kwargs):
+        if isinstance(query, str) and "recruit_images" in query:
+            seen.append(query)
+        return original(self, query, *args, **kwargs)
+
+    monkeypatch.setattr(psycopg.Cursor, "execute", counting)
+    return seen
+
+
+def test_list_hero_image_is_null_when_there_are_no_images(client):
+    items = list_items(client)
+    assert len(items) == 11  # 非表示の 1 件は出ない
+    assert all("hero_image" in i and i["hero_image"] is None for i in items.values())
+
+
+def test_list_hero_image_is_the_same_as_the_detail_one(client, tok1):
+    image = upload(client, tok1).json()
+    items = list_items(client)
+    hero = items[MINE]["hero_image"]
+    assert hero == detail_hero(client, MINE)  # 一覧と詳細で、同じ画像・同じ形
+    assert hero == {"id": image["id"], "url": image["url"], "alt": "テスト画像", "width": 640, "height": 360, "mime_type": "image/jpeg"}
+    assert all(i["hero_image"] is None for rid, i in items.items() if rid != MINE)  # 画像を足していない求人は null のまま
+
+
+def test_list_hero_images_belong_to_their_own_recruits(client, tok1, tok2):
+    a = upload(client, tok1, 1, data=make_image(seed=1), alt="一").json()
+    b = upload(client, tok1, 2, data=make_image(seed=2), alt="二").json()
+    c = upload(client, tok2, OTHERS, data=make_image(seed=3), alt="三").json()
+    items = list_items(client)
+    assert [items[r]["hero_image"]["id"] for r in (1, 2, OTHERS)] == [a["id"], b["id"], c["id"]]
+    assert items[4]["hero_image"] is None
+    for recruit_id in (1, 2, OTHERS, 4):
+        assert items[recruit_id]["hero_image"] == detail_hero(client, recruit_id)
+
+
+def test_list_hero_image_prefers_the_designated_hero_over_the_first(client, tok1):
+    ids = [upload(client, tok1, data=make_image(seed=i), alt=f"画像{i}").json()["id"] for i in range(1, 4)]
+    assert list_items(client)[MINE]["hero_image"]["id"] == ids[0]  # ヒーロー未指定なら、表示順の先頭
+    client.put(f"/api/garden/recruits/{MINE}/images/order", json={"image_ids": [ids[2], ids[0], ids[1]]}, headers=bearer(tok1))
+    assert list_items(client)[MINE]["hero_image"]["id"] == ids[2]  # 並べ替えると、先頭が変わる
+    assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": ids[1]}, headers=bearer(tok1)).status_code == 200
+    hero = list_items(client)[MINE]["hero_image"]
+    assert hero["id"] == ids[1] and hero["alt"] == "画像2"  # 指定したヒーローは、先頭でなくても選ばれる
+    assert hero == detail_hero(client, MINE)
+
+
+def test_list_hero_image_skips_taken_down_images(client, tok1):
+    image = upload(client, tok1).json()
+    other = upload(client, tok1, data=make_image(seed=2)).json()
+    assert client.put(f"/api/garden/recruits/{MINE}/images/hero", json={"image_id": image["id"]}, headers=bearer(tok1)).status_code == 200
+    assert list_items(client)[MINE]["hero_image"]["id"] == image["id"]
+    take_down(image["id"])  # 取り下げると、ヒーローでも一覧には出ない
+    hero = list_items(client)[MINE]["hero_image"]
+    assert hero["id"] == other["id"] and hero == detail_hero(client, MINE)
+    take_down(other["id"])  # 公開中の画像が 1 枚も無くなったら null
+    items = list_items(client)
+    assert items[MINE]["hero_image"] is None and detail_hero(client, MINE) is None
+    assert image["id"] not in str(items) and other["id"] not in str(items)
+
+
+def test_list_loads_hero_images_in_one_query_however_many_items(client, tok1, tok2, image_sql):
+    for token, recruit_id in ((tok1, 1), (tok1, 2), (tok2, 3), (tok2, 4)):
+        upload(client, token, recruit_id, data=make_image(seed=recruit_id))
+    image_sql.clear()  # 数えるのは、ここからの一覧の呼び出しだけ
+    one = client.get("/api/recruits", params={"per_page": 1}).json()["items"]
+    assert len(one) == 1 and len(image_sql) == 1
+    image_sql.clear()
+    ten = client.get("/api/recruits", params={"per_page": 10}).json()["items"]
+    assert len(ten) == 10 and len(image_sql) == 1  # 件数が 10 倍でも、画像の SQL は 1 回
+    assert [i["hero_image"] is not None for i in ten] == [True] * 4 + [False] * 6
+    image_sql.clear()
+    assert client.get("/api/recruits", params={"page": 99}).json()["items"] == [] and image_sql == []  # 求人が 0 件なら、画像の SQL は流さない
+
+
 def test_image_count_limit(client, tok1):
     for i in range(svc.MAX_IMAGES_PER_RECRUIT):
         assert upload(client, tok1, data=make_image(seed=100 + i)).status_code == 201

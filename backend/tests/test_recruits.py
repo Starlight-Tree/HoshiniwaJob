@@ -72,3 +72,11 @@ def test_summary_has_salary_kind(client):
     items = client.get("/api/recruits").json()["items"]
     assert items[0]["salary"] == 2 and items[0]["pay_min"] == 180000  # 月給制
     assert items[2]["salary"] == 4 and items[2]["pay_min"] == 1100  # 時給制
+
+
+def test_every_summary_has_a_hero_image_key(client):
+    items = client.get("/api/recruits", params={"per_page": 50}).json()["items"]
+    assert len(items) == 11
+    for item in items:
+        assert "hero_image" in item  # 画像が無い求人でも、キーは必ずある（値は null）
+        assert item["hero_image"] is None or set(item["hero_image"]) == {"id", "url", "alt", "width", "height", "mime_type"}

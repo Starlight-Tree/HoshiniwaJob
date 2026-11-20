@@ -20,6 +20,17 @@ class Master(BaseModel):
     employments: list[Code]
 
 
+class ImageInfo(BaseModel):
+    """公開中の画像。url は保存キーから組み立てた公開 URL（署名付きではない）。"""
+
+    id: str
+    url: str
+    alt: str
+    width: int
+    height: int
+    mime_type: str
+
+
 class RecruitSummary(BaseModel):
     id: int
     corporate: str | None
@@ -34,6 +45,7 @@ class RecruitSummary(BaseModel):
     stations: list[str]
     occupations: list[str]
     employments: list[str]
+    hero_image: ImageInfo | None  # ヒーローに指定された公開中の画像。無ければ表示順で先頭の公開中の画像。画像が 1 枚も無ければ None
 
 
 class RecruitPage(BaseModel):
@@ -44,19 +56,7 @@ class RecruitPage(BaseModel):
     items: list[RecruitSummary]
 
 
-class ImageInfo(BaseModel):
-    """公開中の画像。url は保存キーから組み立てた公開 URL（署名付きではない）。"""
-
-    id: str
-    url: str
-    alt: str
-    width: int
-    height: int
-    mime_type: str
-
-
 class RecruitDetail(RecruitSummary):
-    hero_image: ImageInfo | None  # ヒーローに指定された公開中の画像。無ければ表示順で先頭の公開中の画像。画像が 1 枚も無ければ None
     images: list[ImageInfo]  # 公開中の画像を、表示順に
     profile: str | None
     place: str | None

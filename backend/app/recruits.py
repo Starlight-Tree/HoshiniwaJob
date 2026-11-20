@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query
 
 from app.db import connection
-from app.image_queries import public_images
+from app.image_queries import hero_images, public_images
 from app.schemas import Facets, Master, RecruitDetail, RecruitPage, RecruitSummary
 from app.storage import get_storage
 
@@ -104,12 +104,13 @@ def search_recruits(
             "ORDER BY s.id LIMIT %(limit)s OFFSET %(offset)s",
             {**params, "limit": per_page, "offset": (page - 1) * per_page},
         ).fetchall()
+        heroes = hero_images(conn, [row["id"] for row in rows], get_storage())  # 画像は、この 1 ページの分をまとめて 1 回で引く
     return RecruitPage(
         total=total,
         page=page,
         per_page=per_page,
         last_page=max(1, math.ceil(total / per_page)),
-        items=[RecruitSummary(**row) for row in rows],
+        items=[RecruitSummary(**row, hero_image=heroes.get(row["id"])) for row in rows],
     )
 
 
