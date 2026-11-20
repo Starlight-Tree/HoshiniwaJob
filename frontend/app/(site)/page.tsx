@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FilterForm } from '../../src/components/FilterForm';
 import { Pagination } from '../../src/components/Pagination';
-import { RecruitCard } from '../../src/components/RecruitCard';
+import { SelectableCard } from '../../src/components/SelectableCard';
 import { SelectedChips } from '../../src/components/SelectedChips';
 import { fetchFacets, fetchMaster, fetchRecruits } from '../../src/lib/api';
 import { shownRange } from '../../src/lib/format';
@@ -66,7 +66,7 @@ export default async function Home({ searchParams }: Props) {
         {result.items.length > 0 ? (
           <>
             {result.items.map((job) => (
-              <RecruitCard key={job.id} job={job} query={query} />
+              <SelectableCard key={job.id} job={job} query={query} />
             ))}
             <Pagination selection={selection} last={result.last_page} />
           </>

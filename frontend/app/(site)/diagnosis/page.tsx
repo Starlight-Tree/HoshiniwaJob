@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DiagnosisForm } from '../../../src/components/DiagnosisForm';
-import { RecruitCard } from '../../../src/components/RecruitCard';
+import { SelectableCard } from '../../../src/components/SelectableCard';
 import { fetchMaster, fetchRecruits } from '../../../src/lib/api';
 import { isSubmitted, parseAnswers, QUESTION_LABEL, rank, reasonOf, selectionOf, wantedOf } from '../../../src/lib/diagnosis';
 import { hrefFor, parseSelection } from '../../../src/lib/search';
@@ -78,7 +78,7 @@ export default async function DiagnosisPage({ searchParams }: Props) {
                   {shown.map((m) => (
                     <div key={m.job.id} className="match">
                       <p className="match-reason">{reasonOf(m)}</p>
-                      <RecruitCard job={m.job} query="" />
+                      <SelectableCard job={m.job} query="" />
                     </div>
                   ))}
                 </div>
