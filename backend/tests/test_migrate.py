@@ -37,10 +37,28 @@ def test_new_database_gets_baseline_then_all_migrations_and_rerun_is_a_noop():
     assert code == 0
     with psycopg.connect(url) as conn:
         versions = [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY version")]
-    assert versions == ["0001", "0002", "0003", "0004"]
+    assert versions == ["0001", "0002", "0003", "0004", "0005"]
     assert table_exists(url, "images") and table_exists(url, "recruit_images") and table_exists(url, "garden_images")
     code, lines = run(url)
     assert code == 0 and any("未適用: なし" in line for line in lines)
+
+
+def test_display_name_is_backfilled_from_the_old_name_columns():
+    url = new_database("hj_mig_dispname")
+    load_initial_schema(url)
+    with psycopg.connect(url, autocommit=True) as conn:
+        conn.execute(
+            "INSERT INTO users (last_name, first_name, email, password_hash) VALUES "
+            "('苔野', 'ひかり', 'a@example.com', 'h'), (NULL, NULL, 'b@example.com', 'h'), ('長' || repeat('い', 60), '名', 'c@example.com', 'h')"
+        )
+    assert run(url)[0] == 0
+    with psycopg.connect(url) as conn:
+        rows = dict(conn.execute("SELECT email, display_name FROM users").fetchall())
+        with pytest.raises(psycopg.errors.CheckViolation):
+            conn.execute("UPDATE users SET display_name = '' WHERE email = 'a@example.com'")
+    assert rows["a@example.com"] == "苔野 ひかり"  # 姓と名を空白でつなぐ
+    assert rows["b@example.com"] is None  # どちらも空なら NULL のまま
+    assert len(rows["c@example.com"]) == 30  # 上限（30 文字）までで切る
 
 
 def test_existing_data_is_preserved_and_ids_do_not_change():
@@ -118,14 +136,14 @@ def test_failed_migration_rolls_back_and_is_not_recorded(tmp_path, monkeypatch):
     load_initial_schema(url)
     work = tmp_path / "migrations"
     shutil.copytree(migrate.MIGRATIONS_DIR, work)
-    (work / "0005_broken.sql").write_text("CREATE TABLE half_done (id int);\nSELECT 1/0;\n", encoding="utf-8")
+    (work / "0006_broken.sql").write_text("CREATE TABLE half_done (id int);\nSELECT 1/0;\n", encoding="utf-8")
     monkeypatch.setattr(migrate, "MIGRATIONS_DIR", work)
     monkeypatch.setattr(migrate, "FINGERPRINT_FILE", work / "baseline_fingerprint.json")
     with pytest.raises(psycopg.errors.DivisionByZero):
         run(url)
     assert not table_exists(url, "half_done")  # 途中までの変更は残らない
     with psycopg.connect(url) as conn:
-        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ["0001", "0002", "0003", "0004"]
+        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ["0001", "0002", "0003", "0004", "0005"]
 
 
 def test_backup_and_restore_roundtrip(tmp_path):
@@ -147,5 +165,5 @@ def test_backup_and_restore_roundtrip(tmp_path):
     subprocess.run([f"{pg_bin}/pg_restore", "--no-owner", "-d", restored, str(dump)], check=True)
     with psycopg.connect(restored) as conn:
         assert conn.execute("SELECT category FROM recruits WHERE demo_key = 'restore-check'").fetchone()[0] == "復旧"
-        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ["0001", "0002", "0003", "0004"]
+        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ["0001", "0002", "0003", "0004", "0005"]
     assert run(restored)[0] == 0

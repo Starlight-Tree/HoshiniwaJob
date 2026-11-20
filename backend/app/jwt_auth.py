@@ -42,7 +42,7 @@ _KEYS_TTL_SECONDS = 600.0
 # 未知の kid を理由にした取り直しの最小間隔。でたらめな kid のトークンで、JWKS への問い合わせを増幅させないため
 _MIN_REFRESH_INTERVAL_SECONDS = 60.0
 _JWKS_USER_AGENT = "hoshiniwajob-api/1.0"
-_MAX_NAME = 50
+DISPLAY_NAME_MAX = 30  # 表示名の上限（schemas.py・画面と同じ）
 _MAX_EMAIL = 254
 _MAX_PICTURE = 2048
 
@@ -68,8 +68,7 @@ class Identity:
 
     sub: str
     email: str
-    last_name: str | None
-    first_name: str | None
+    name: str | None  # 表示名の初期値（Google の名前を 30 文字まで）。無ければ None
     picture: str | None
 
 
@@ -161,6 +160,14 @@ def _text(value: Any, limit: int) -> str | None:
     return value if 0 < len(value) <= limit else None
 
 
+def _display_name(value: Any) -> str | None:
+    """Google の名前を、表示名の上限（30 文字。コードポイント）までにした値。空・文字列でなければ None（制御文字は持たない）。"""
+    if not isinstance(value, str):
+        return None
+    value = "".join(ch for ch in value if ch.isprintable()).strip()[:DISPLAY_NAME_MAX]
+    return value.strip() or None
+
+
 def _identity(claims: dict[str, Any]) -> Identity:
     sub = claims.get("sub")
     if not isinstance(sub, str) or not _USER_ID.fullmatch(sub):
@@ -173,8 +180,7 @@ def _identity(claims: dict[str, Any]) -> Identity:
     return Identity(
         sub=sub,
         email=email.lower(),
-        last_name=_text(claims.get("last_name"), _MAX_NAME),
-        first_name=_text(claims.get("first_name"), _MAX_NAME),
+        name=_display_name(claims.get("name")),
         # 画面は https の画像だけを表示する。それ以外は持たない
         picture=picture if picture and picture.startswith("https://") else None,
     )

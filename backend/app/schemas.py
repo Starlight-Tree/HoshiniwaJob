@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, EmailStr, Field, StringConstraints
 
 
 class Code(BaseModel):
@@ -92,8 +92,7 @@ def _normalized_email(value: str) -> str:
 class User(BaseModel):
     id: int
     email: str
-    last_name: str | None
-    first_name: str | None
+    display_name: str | None  # 表示名（ニックネーム）。無ければ None（画面はメールアドレスを出す）
     avatar_url: str | None = None  # Google のプロフィール画像（https のみ）。無ければ None
 
 
@@ -102,11 +101,18 @@ class LoginRequest(BaseModel):
     password: Annotated[str, Field(min_length=1, max_length=128)]
 
 
-class UpdateNameRequest(BaseModel):
-    """お名前（姓・名）の変更。それぞれ 1〜50 文字。"""
+def _no_control_chars(value: str) -> str:
+    if not value.isprintable():
+        raise ValueError("表示名に使えない文字（改行・タブなど）が含まれています")
+    return value
 
-    last_name: Annotated[str, Field(min_length=1, max_length=50)]
-    first_name: Annotated[str, Field(min_length=1, max_length=50)]
+
+class UpdateNameRequest(BaseModel):
+    """表示名（ニックネーム）の変更。前後の空白を除いた 1〜30 文字で、改行・タブなどの制御文字を含まない。"""
+
+    display_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30), AfterValidator(_no_control_chars)
+    ]
 
 
 class Garden(BaseModel):

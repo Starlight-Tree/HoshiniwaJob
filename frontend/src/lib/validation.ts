@@ -1,6 +1,6 @@
 // 入力の検査。最終の判断は API（backend/app/schemas.py）がする。ここは、送る前に分かる誤りを、画面で先に知らせるためのもの。
 
-export type Field = 'last_name' | 'first_name' | 'email' | 'password';
+export type Field = 'display_name' | 'email' | 'password';
 export type FieldErrors = Partial<Record<Field, string>>;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,9 +14,13 @@ function email(value: string): string | undefined {
   return undefined;
 }
 
-function name(value: string, label: string): string | undefined {
-  if (value === '') return `${label}を入力してください`;
-  if (count(value) > 50) return `${label}は 50 文字以内で入力してください`;
+/** 表示名の上限（文字数）。API（backend/app/schemas.py）と同じ。 */
+export const DISPLAY_NAME_MAX = 30;
+
+function displayName(value: string): string | undefined {
+  if (value === '') return '表示名を入力してください';
+  if (/\p{Cc}/u.test(value)) return '表示名に使えない文字（改行・タブなど）が含まれています';
+  if (count(value) > DISPLAY_NAME_MAX) return `表示名は ${DISPLAY_NAME_MAX} 文字以内で入力してください`;
   return undefined;
 }
 
@@ -24,9 +28,9 @@ function compact(errors: FieldErrors): FieldErrors {
   return Object.fromEntries(Object.entries(errors).filter(([, v]) => v !== undefined)) as FieldErrors;
 }
 
-/** お名前の変更（姓・名）。それぞれ 1〜50 文字。 */
-export function validateName(input: { last_name: string; first_name: string }): FieldErrors {
-  return compact({ last_name: name(input.last_name, '姓'), first_name: name(input.first_name, '名') });
+/** 表示名（ニックネーム）の変更。前後の空白を除いた 1〜30 文字で、改行・タブなどを含まない。 */
+export function validateName(input: { display_name: string }): FieldErrors {
+  return compact({ display_name: displayName(input.display_name) });
 }
 
 export function validateLogin(input: { email: string; password: string }): FieldErrors {

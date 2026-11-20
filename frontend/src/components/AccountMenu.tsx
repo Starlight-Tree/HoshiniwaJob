@@ -21,8 +21,8 @@ type Props = {
   loginHref?: string;
   /** メニューの先頭に出す、画面への入口（DocuNavi の「ナレッジ」にあたる。求職者は「求人を探す」、園は「ダッシュボード」）。 */
   nav?: { href: string; label: string };
-  /** 渡すと、「表示名を変更」を出す（お名前の姓・名を変えられる人だけ。園は渡さない）。 */
-  profile?: { lastName: string | null; firstName: string | null };
+  /** 渡すと、「表示名を変更」を出す（表示名を変えられる人だけ。園は渡さない）。 */
+  profile?: { displayName: string | null };
 };
 
 /**
@@ -162,7 +162,7 @@ export function AccountMenu({ name, email, logout, image, loginHref, nav, profil
           ▴
         </span>
       </button>
-      {nameOpen && profile ? <DisplayNameDialog lastName={profile.lastName} firstName={profile.firstName} onClose={() => setNameOpen(false)} /> : null}
+      {nameOpen && profile ? <DisplayNameDialog displayName={profile.displayName} onClose={() => setNameOpen(false)} /> : null}
     </div>
   );
 }

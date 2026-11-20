@@ -65,6 +65,6 @@ export const currentGarden = cache(async (): Promise<Garden | null> => {
   }
 });
 
-export function displayName(user: Pick<User, 'last_name' | 'first_name' | 'email'>): string {
-  return [user.last_name, user.first_name].filter(Boolean).join(' ') || user.email;
+export function displayName(user: Pick<User, 'display_name' | 'email'>): string {
+  return user.display_name || user.email;
 }

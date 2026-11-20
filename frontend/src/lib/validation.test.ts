@@ -12,17 +12,19 @@ describe('validateLogin', () => {
   });
 });
 
-describe('validateName', () => {
-  it('姓・名が 1〜50 文字なら、エラーが無い。空と 51 文字は、それぞれの欄のエラー', () => {
-    expect(validateName({ last_name: '試験', first_name: '花子' })).toEqual({});
-    expect(validateName({ last_name: '', first_name: 'x'.repeat(51) })).toEqual({
-      last_name: '姓を入力してください',
-      first_name: '名は 50 文字以内で入力してください',
-    });
+describe('validateName（表示名）', () => {
+  it('1〜30 文字なら、エラーが無い。空と 31 文字は、表示名の欄のエラー', () => {
+    expect(validateName({ display_name: 'ひかり' })).toEqual({});
+    expect(validateName({ display_name: '' })).toEqual({ display_name: '表示名を入力してください' });
+    expect(validateName({ display_name: 'x'.repeat(31) })).toEqual({ display_name: '表示名は 30 文字以内で入力してください' });
   });
 
   it('文字数はコードポイントで数える（絵文字も 1 文字）', () => {
-    expect(validateName({ last_name: '😀'.repeat(50), first_name: '名' })).toEqual({});
-    expect(validateName({ last_name: '😀'.repeat(51), first_name: '名' }).last_name).toBeDefined();
+    expect(validateName({ display_name: '😀'.repeat(30) })).toEqual({});
+    expect(validateName({ display_name: '😀'.repeat(31) }).display_name).toBeDefined();
+  });
+
+  it('改行・タブなどの制御文字は使えない', () => {
+    expect(validateName({ display_name: 'a\nb' }).display_name).toContain('使えない文字');
   });
 });

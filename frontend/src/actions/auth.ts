@@ -34,9 +34,9 @@ export async function googleLoginAction(): Promise<void> {
   redirect(url ?? '/login?error=google_failed');
 }
 
-/** お名前（姓・名）の変更。ログイン中の本人のものだけ変えられる（API が、トークンの持ち主で決める）。 */
+/** 表示名（ニックネーム）の変更。ログイン中の本人のものだけ変えられる（API が、トークンの持ち主で決める）。 */
 export async function updateNameAction(_prev: FormState, data: FormData): Promise<FormState> {
-  const values = { last_name: text(data, 'last_name').trim(), first_name: text(data, 'first_name').trim() };
+  const values = { display_name: text(data, 'display_name').trim() };
   const fieldErrors = validateName(values);
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values };
   const token = await userToken();

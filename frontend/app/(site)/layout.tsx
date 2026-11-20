@@ -17,7 +17,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
             email={user.email}
             image={user.avatar_url}
             nav={SEARCH_NAV}
-            profile={{ lastName: user.last_name, firstName: user.first_name }}
+            profile={{ displayName: user.display_name }}
             logout={logoutAction}
           />
         ) : (

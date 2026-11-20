@@ -1,4 +1,4 @@
-"""求職者の API（app/auth.py）。ログインは Better Auth の仕事で、ここでは、JWT を受けて利用者の行に結ぶところと、お名前の変更を確かめる。"""
+"""求職者の API（app/auth.py）。ログインは Better Auth の仕事で、ここでは、JWT を受けて利用者の行に結ぶところと、表示名の変更を確かめる。"""
 
 import psycopg
 import pytest
@@ -31,11 +31,11 @@ def me(client, **overrides):
 
 
 def test_first_request_creates_the_profile_from_the_token(auth_env, client):
-    res = me(client, sub="ba_user_first00001", email="first.user@example.com", last_name="初", first_name="回")
+    res = me(client, sub="ba_user_first00001", email="first.user@example.com", name="はじめ")
     assert res.status_code == 200
     body = res.json()
     assert body["email"] == "first.user@example.com"
-    assert (body["last_name"], body["first_name"]) == ("初", "回")
+    assert body["display_name"] == "はじめ"
     assert body["avatar_url"] == "https://lh3.googleusercontent.com/a/test"
     assert "password" not in str(body)
     (row,) = db_rows("SELECT auth_user_id, password_hash FROM users WHERE id = %s", (body["id"],))
@@ -51,14 +51,14 @@ def test_second_request_uses_the_same_profile(auth_env, client):
 
 
 def test_existing_user_with_the_same_verified_email_is_linked_not_duplicated(auth_env, client):
-    # ダミーの求職者（seed）と同じメール。名前は、本人が決めたもの（空でないとき）を上書きしない
-    before = db_rows("SELECT id, last_name, first_name FROM users WHERE lower(email) = 'hoshiniwa-user@example.com'")
+    # ダミーの求職者（seed）と同じメール。表示名は、本人が決めたもの（空でないとき）を上書きしない
+    before = db_rows("SELECT id, display_name FROM users WHERE lower(email) = 'hoshiniwa-user@example.com'")
     assert len(before) == 1
-    uid, last, first = before[0]
-    res = me(client, sub="ba_user_linked0001", email="Hoshiniwa-User@Example.com", last_name="別の姓", first_name="別の名")
+    uid, shown = before[0]
+    res = me(client, sub="ba_user_linked0001", email="Hoshiniwa-User@Example.com", name="別の名前")
     assert res.status_code == 200
     assert res.json()["id"] == uid
-    assert (res.json()["last_name"], res.json()["first_name"]) == (last, first)
+    assert res.json()["display_name"] == shown
     assert db_rows("SELECT auth_user_id FROM users WHERE id = %s", (uid,)) == [("ba_user_linked0001",)]
     assert db_rows("SELECT count(*) FROM users WHERE lower(email) = 'hoshiniwa-user@example.com'") == [(1,)]
 
@@ -141,19 +141,19 @@ def test_update_name_changes_only_my_row(auth_env, client):
     res = client.patch(
         "/api/auth/me",
         headers=bearer(make_token(sub="ba_user_rename0001", email="rename.me@example.com")),
-        json={"last_name": "新姓", "first_name": "新名"},
+        json={"display_name": "  新しい名前  "},  # 前後の空白は除いて保存する
     )
     assert res.status_code == 200
-    assert (res.json()["last_name"], res.json()["first_name"]) == ("新姓", "新名")
-    rows = dict(db_rows("SELECT id, last_name FROM users WHERE id IN (%s, %s)", (mine["id"], other["id"])))
-    assert rows[mine["id"]] == "新姓"
-    assert rows[other["id"]] == other["last_name"]
-    # 名前は、本人が決めたものが、次のログインの Google の値より優先される
-    again = me(client, sub="ba_user_rename0001", email="rename.me@example.com", last_name="Google の姓").json()
-    assert again["last_name"] == "新姓"
+    assert res.json()["display_name"] == "新しい名前"
+    rows = dict(db_rows("SELECT id, display_name FROM users WHERE id IN (%s, %s)", (mine["id"], other["id"])))
+    assert rows[mine["id"]] == "新しい名前"
+    assert rows[other["id"]] == other["display_name"]
+    # 表示名は、本人が決めたものが、次のログインの Google の名前より優先される
+    again = me(client, sub="ba_user_rename0001", email="rename.me@example.com", name="Google の名前").json()
+    assert again["display_name"] == "新しい名前"
 
 
-@pytest.mark.parametrize("body", [{}, {"last_name": "", "first_name": "名"}, {"last_name": "姓", "first_name": "あ" * 51}, {"last_name": "姓"}])
+@pytest.mark.parametrize("body", [{}, {"display_name": ""}, {"display_name": "   "}, {"display_name": "あ" * 31}, {"display_name": "😀" * 31}, {"display_name": "a\nb"}, {"last_name": "姓", "first_name": "名"}])
 def test_update_name_validates_input(auth_env, client, body):
     ensure_auth_user("ba_user_validate01")
     res = client.patch("/api/auth/me", headers=bearer(make_token(sub="ba_user_validate01", email="validate.user@example.com")), json=body)
@@ -161,4 +161,4 @@ def test_update_name_validates_input(auth_env, client, body):
 
 
 def test_update_name_requires_login(auth_env, client):
-    assert client.patch("/api/auth/me", json={"last_name": "姓", "first_name": "名"}).status_code == 401
+    assert client.patch("/api/auth/me", json={"display_name": "名"}).status_code == 401

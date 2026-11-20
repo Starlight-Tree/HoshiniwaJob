@@ -19,12 +19,11 @@ def verify(token: str) -> jwt_auth.Identity:
 
 
 def test_valid_token_gives_identity(auth_env):
-    ident = verify(make_token(email="Hikari@Example.com", last_name=" 苔野 "))
+    ident = verify(make_token(email="Hikari@Example.com", name=" 苔野 ひかり "))
     assert ident == jwt_auth.Identity(
         sub="ba_user_0000000001",
         email="hikari@example.com",  # 小文字にそろえる
-        last_name="苔野",
-        first_name="ひかり",
+        name="苔野 ひかり",  # 前後の空白は除く
         picture="https://lh3.googleusercontent.com/a/test",
     )
 
@@ -166,3 +165,17 @@ def test_parse_keys_keeps_only_usable_keys():
     assert list(jwt_auth._parse_keys(document)) == [jwt_tokens.KID]
     assert jwt_auth._parse_keys({"keys": "x"}) == {}
     assert jwt_auth._parse_keys({}) == {}
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("あ" * 40, "あ" * 30),  # 表示名の上限（30 文字）で切る
+        ("😀" * 31, "😀" * 30),  # 文字数はコードポイント
+        ("a\nb\tc", "abc"),  # 制御文字は持たない
+        ("   ", None),
+        (123, None),
+    ],
+)
+def test_name_claim_becomes_a_display_name_within_the_limit(auth_env, raw, expected):
+    assert verify(make_token(name=raw)).name == expected

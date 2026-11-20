@@ -59,7 +59,7 @@ export type Facets = {
   employments: FacetCount[];
 };
 
-export type User = { id: number; email: string; last_name: string | null; first_name: string | null; avatar_url?: string | null };
+export type User = { id: number; email: string; display_name: string | null; avatar_url?: string | null };
 
 export type Garden = { id: number; email: string; corporate: string };
 export type GardenSession = { token: string; garden: Garden };

@@ -75,8 +75,8 @@ export const fetchRecruit = (id: number) => get<RecruitDetail>(`/api/recruits/${
 // 求職者の API。ログインは Better Auth（lib/auth.ts）。ここへ渡すトークンは、そこが出す JWT（session.ts の userToken）。
 export const fetchMe = (token: string) => get<User>('/api/auth/me', token);
 
-/** お名前（姓・名）の変更。変えられるのは、トークンの持ち主本人だけ。 */
-export async function updateNameRequest(token: string, input: { last_name: string; first_name: string }): Promise<User> {
+/** 表示名（ニックネーム）の変更。変えられるのは、トークンの持ち主本人だけ。 */
+export async function updateNameRequest(token: string, input: { display_name: string }): Promise<User> {
   return json<User>(await call('/api/auth/me', { method: 'PATCH', token, body: input }));
 }
 

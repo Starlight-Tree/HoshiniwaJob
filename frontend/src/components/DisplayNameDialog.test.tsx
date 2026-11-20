@@ -8,47 +8,51 @@ const action = vi.hoisted(() => vi.fn<(prev: FormState, data: FormData) => Promi
 vi.mock('../actions/auth', () => ({ updateNameAction: action }));
 
 const setup = (onClose = vi.fn()) => {
-  render(<DisplayNameDialog lastName="試験" firstName="花子" onClose={onClose} />);
+  render(<DisplayNameDialog displayName="ひかり" onClose={onClose} />);
   return { onClose, dialog: screen.getByRole('dialog', { name: '表示名を変更' }) };
 };
 
 beforeEach(() => action.mockReset());
 
 describe('DisplayNameDialog', () => {
-  it('いまの姓・名を入れて開き、先頭の欄にフォーカスする', () => {
+  it('いまの表示名を入れて開き、欄にフォーカスする。説明文・姓・名の欄は無い', () => {
     setup();
-    expect(screen.getByLabelText('姓')).toHaveValue('試験');
-    expect(screen.getByLabelText('名')).toHaveValue('花子');
-    expect(screen.getByLabelText('姓')).toHaveFocus();
+    expect(screen.getByLabelText('表示名')).toHaveValue('ひかり');
+    expect(screen.getByLabelText('表示名')).toHaveFocus();
+    expect(screen.queryByLabelText('姓')).not.toBeInTheDocument();
+    expect(screen.queryByText(/自分にだけ表示/)).not.toBeInTheDocument();
+  });
+
+  it('表示名が無い人は、空の欄で開く', () => {
+    render(<DisplayNameDialog displayName={null} onClose={vi.fn()} />);
+    expect(screen.getByLabelText('表示名')).toHaveValue('');
   });
 
   it('保存すると、入力した値を渡し、保存できたら閉じる', async () => {
-    action.mockResolvedValue({ saved: true, values: { last_name: '新姓', first_name: '新名' } });
+    action.mockResolvedValue({ saved: true, values: { display_name: '新しい名前' } });
     const { onClose } = setup();
-    await userEvent.clear(screen.getByLabelText('姓'));
-    await userEvent.type(screen.getByLabelText('姓'), '新姓');
-    await userEvent.clear(screen.getByLabelText('名'));
-    await userEvent.type(screen.getByLabelText('名'), '新名');
+    await userEvent.clear(screen.getByLabelText('表示名'));
+    await userEvent.type(screen.getByLabelText('表示名'), '新しい名前');
     await userEvent.click(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     const data = action.mock.calls[0]![1];
-    expect([data.get('last_name'), data.get('first_name')]).toEqual(['新姓', '新名']);
+    expect(data.get('display_name')).toBe('新しい名前');
   });
 
   it('失敗したら、閉じずに、固定の文と入力した値を残す', async () => {
-    action.mockResolvedValue({ error: 'ただいま利用できません。しばらくしてから、もう一度お試しください', values: { last_name: '新姓', first_name: '新名' } });
+    action.mockResolvedValue({ error: 'ただいま利用できません。しばらくしてから、もう一度お試しください', values: { display_name: '新しい名前' } });
     const { onClose } = setup();
     await userEvent.click(screen.getByRole('button', { name: '保存' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('ただいま利用できません');
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('姓')).toHaveValue('新姓');
+    expect(screen.getByLabelText('表示名')).toHaveValue('新しい名前');
   });
 
   it('入力の誤りは、欄の下に出して、閉じない', async () => {
-    action.mockResolvedValue({ fieldErrors: { last_name: '姓を入力してください' }, values: { last_name: '', first_name: '花子' } });
+    action.mockResolvedValue({ fieldErrors: { display_name: '表示名を入力してください' }, values: { display_name: '' } });
     const { onClose } = setup();
     await userEvent.click(screen.getByRole('button', { name: '保存' }));
-    expect(await screen.findByText('姓を入力してください')).toBeInTheDocument();
+    expect(await screen.findByText('表示名を入力してください')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
 

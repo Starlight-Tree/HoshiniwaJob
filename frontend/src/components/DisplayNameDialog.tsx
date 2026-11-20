@@ -5,13 +5,13 @@ import { updateNameAction } from '../actions/auth';
 import { initialFormState } from '../lib/form-state';
 import { Field } from './Field';
 
-type Props = { lastName: string | null; firstName: string | null; onClose: () => void };
+type Props = { displayName: string | null; onClose: () => void };
 
 /**
- * お名前（姓・名）の変更。DocuNavi の「表示名を変更」にあたる（星庭ジョブは、姓と名の 2 つ）。標準の <dialog>（showModal）で、
+ * 表示名（ニックネーム）の変更。DocuNavi の「表示名を変更」と同じ 1 欄。標準の <dialog>（showModal）で、
  * Esc で閉じ、フォーカスは中に閉じ込める。外側（背景）の押下では閉じない（標準の <dialog> も閉じない。入力の途中を失わないように）。キャンセルは、親が外す（閉じる）。保存できたら閉じる。
  */
-export function DisplayNameDialog({ lastName, firstName, onClose }: Props) {
+export function DisplayNameDialog({ displayName, onClose }: Props) {
   const [state, formAction, pending] = useActionState(updateNameAction, initialFormState);
   const ref = useRef<HTMLDialogElement>(null);
   const closed = useRef(false);
@@ -40,16 +40,12 @@ export function DisplayNameDialog({ lastName, firstName, onClose }: Props) {
     >
       <form action={formAction} noValidate>
         <h2 id="name-dialog-title">表示名を変更</h2>
-        <p className="name-dialog-note">この名前は、このサイトの中で自分にだけ表示されます。</p>
         {state.error ? (
           <p className="form-alert" role="alert">
             {state.error}
           </p>
         ) : null}
-        <div className="field-pair">
-          <Field name="last_name" label="姓" autoComplete="family-name" defaultValue={state.values?.last_name ?? lastName ?? ''} error={state.fieldErrors?.last_name} />
-          <Field name="first_name" label="名" autoComplete="given-name" defaultValue={state.values?.first_name ?? firstName ?? ''} error={state.fieldErrors?.first_name} />
-        </div>
+        <Field name="display_name" label="表示名" autoComplete="nickname" defaultValue={state.values?.display_name ?? displayName ?? ''} error={state.fieldErrors?.display_name} />
         <div className="name-dialog-actions">
           <button type="button" className="outline-button" onClick={onClose}>
             キャンセル

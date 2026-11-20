@@ -1,4 +1,4 @@
-"""求職者のログイン状態の確認と、プロフィール（お名前）。
+"""求職者のログイン状態の確認と、プロフィール（表示名）。
 
 ログイン（Google との通信・セッション・JWT の発行）は、画面のサーバー（Next.js）の中の Better Auth の仕事で、この API は扱わない（frontend/src/lib/auth.ts）。
 画面のサーバーは、ログイン中の人の JWT（15 分）を `Authorization: Bearer <JWT>` で送ってくる。ここでは、JWKS の公開鍵で検証し（jwt_auth.py）、
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/auth")
 
 # パスワードを持たない利用者（Google だけでログインする人）の password_hash。argon2 として読めない印なので、検証は必ず失敗する（パスワードでは入れない）。
 NO_PASSWORD = "!"
-USER_COLUMNS = "id, email, last_name, first_name, avatar_url"
+USER_COLUMNS = "id, email, display_name, avatar_url"
 
 CONFLICT = HTTPException(status_code=409, detail="このメールアドレスは、別の Google アカウントで使われています")
 NOT_CONFIGURED = HTTPException(status_code=503, detail="Google でのログインは、まだ設定されていません")
@@ -50,15 +50,15 @@ def _profile_for(conn, ident: jwt_auth.Identity) -> dict:
         raise CONFLICT
     if row is None:
         return conn.execute(
-            "INSERT INTO users (last_name, first_name, email, password_hash, auth_user_id, avatar_url, last_login_at) "
-            f"VALUES (%s, %s, %s, %s, %s, %s, now()) RETURNING {USER_COLUMNS}",
-            (ident.last_name, ident.first_name, ident.email, NO_PASSWORD, ident.sub, ident.picture),
+            "INSERT INTO users (display_name, email, password_hash, auth_user_id, avatar_url, last_login_at) "
+            f"VALUES (%s, %s, %s, %s, %s, now()) RETURNING {USER_COLUMNS}",
+            (ident.name, ident.email, NO_PASSWORD, ident.sub, ident.picture),
         ).fetchone()
-    # 既存の人: 結ぶ。名前は、まだ空のときだけ Google の値で埋める（本人が決めた名前を上書きしない）
+    # 既存の人: 結ぶ。表示名は、まだ空のときだけ Google の名前で埋める（本人が決めた名前を上書きしない）
     return conn.execute(
-        "UPDATE users SET auth_user_id = %s, avatar_url = %s, last_name = coalesce(last_name, %s), first_name = coalesce(first_name, %s), "
+        "UPDATE users SET auth_user_id = %s, avatar_url = %s, display_name = coalesce(display_name, %s), "
         f"last_login_at = now() WHERE id = %s RETURNING {USER_COLUMNS}",
-        (ident.sub, ident.picture, ident.last_name, ident.first_name, row["id"]),
+        (ident.sub, ident.picture, ident.name, row["id"]),
     ).fetchone()
 
 
@@ -93,10 +93,10 @@ def me(user: Annotated[User, Depends(current_user)]) -> User:
 
 @router.patch("/me", response_model=User)
 def update_name(body: UpdateNameRequest, user: Annotated[User, Depends(current_user)]) -> User:
-    """お名前（姓・名）の変更。変えられるのはログイン中の本人のものだけ（id は、JWT の持ち主から決まる）。"""
+    """表示名（ニックネーム）の変更。変えられるのはログイン中の本人のものだけ（id は、JWT の持ち主から決まる）。"""
     with connection() as conn:
         row = conn.execute(
-            f"UPDATE users SET last_name = %s, first_name = %s WHERE id = %s RETURNING {USER_COLUMNS}",
-            (body.last_name, body.first_name, user.id),
+            f"UPDATE users SET display_name = %s WHERE id = %s RETURNING {USER_COLUMNS}",
+            (body.display_name, user.id),
         ).fetchone()
     return User(**row)

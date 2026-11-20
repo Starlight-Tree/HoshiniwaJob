@@ -34,8 +34,6 @@ def claims(**overrides) -> dict:
         "email_verified": True,
         "name": "苔野 ひかり",
         "picture": "https://lh3.googleusercontent.com/a/test",
-        "last_name": "苔野",
-        "first_name": "ひかり",
     }
     base.update(overrides)
     return {k: v for k, v in base.items() if v is not None}

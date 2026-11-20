@@ -154,7 +154,7 @@ def main(reset: bool, extend: bool = False) -> None:
             corporate = row[1]
             _insert_recruit(conn, garden_ids[GARDEN_OF_CORPORATE[corporate]] if corporate in GARDEN_OF_CORPORATE else None, row, DEFAULT_SCHEDULE)
         conn.execute(
-            "INSERT INTO users (last_name, first_name, email, password_hash) VALUES ('苔野', 'ひかり', 'hoshiniwa-user@example.com', %s)",
+            "INSERT INTO users (display_name, email, password_hash) VALUES ('ひかり', 'hoshiniwa-user@example.com', %s)",
             (pw_hash,),
         )
         added = add_extra_recruits(conn) if extend else 0

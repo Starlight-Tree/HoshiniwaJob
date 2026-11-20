@@ -140,7 +140,7 @@ describe('AccountMenu（ログインしていない）', () => {
 
 describe('AccountMenu（DocuNavi と同じ項目）', () => {
   const nav = { href: '/', label: '求人を探す' };
-  const profile = { lastName: '試験', firstName: '花子' };
+  const profile = { displayName: '花子' };
   const logout = vi.fn(async () => {});
 
   it('ログイン中の項目と順は、メール → 画面への入口 → テーマ → 表示名を変更 → ログアウト', async () => {
@@ -167,14 +167,13 @@ describe('AccountMenu（DocuNavi と同じ項目）', () => {
     expect(screen.getByRole('menuitem', { name: 'ダッシュボード' })).toHaveAttribute('href', '/garden');
   });
 
-  it('表示名を変更を押すと、メニューを閉じて、いまの姓・名が入ったダイアログを開く', async () => {
+  it('表示名を変更を押すと、メニューを閉じて、いまの表示名が入ったダイアログを開く', async () => {
     render(<AccountMenu name="試験 花子" email="hanako@example.com" nav={nav} profile={profile} logout={logout} />);
     const button = screen.getByRole('button', { name: '試験 花子のアカウントメニュー' });
     await userEvent.click(button);
     await userEvent.click(screen.getByRole('menuitem', { name: '表示名を変更' }));
     expect(button).toHaveAttribute('aria-expanded', 'false');
     const dialog = screen.getByRole('dialog', { name: '表示名を変更' });
-    expect(within(dialog).getByLabelText('姓')).toHaveValue('試験');
-    expect(within(dialog).getByLabelText('名')).toHaveValue('花子');
+    expect(within(dialog).getByLabelText('表示名')).toHaveValue('花子');
   });
 });

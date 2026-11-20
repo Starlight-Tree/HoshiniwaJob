@@ -23,10 +23,6 @@ export function createAuth(env: AuthEnv, pool: pg.Pool) {
     secret: (env.BETTER_AUTH_SECRET ?? '').trim(),
     user: {
       modelName: 'auth_user',
-      additionalFields: {
-        lastName: { type: 'string', required: false },
-        firstName: { type: 'string', required: false },
-      },
     },
     // ログインは、最初のログインから 14 日で切れる（延長しない）。延長（updateAge）は、Server Component から呼ぶと DB の期限だけが延びて、Cookie の期限は延びない（Cookie を書き換えられない）ので、閉じる
     session: { modelName: 'auth_session', expiresIn: SESSION_SECONDS, disableSessionRefresh: true },
@@ -39,8 +35,6 @@ export function createAuth(env: AuthEnv, pool: pg.Pool) {
       google: {
         clientId: (env.GOOGLE_CLIENT_ID ?? '').trim(),
         clientSecret: (env.GOOGLE_CLIENT_SECRET ?? '').trim(),
-        // 姓・名は、プロフィールの初期値にだけ使う（API が、まだ名前が空のときだけ埋める）
-        mapProfileToUser: (profile) => ({ lastName: text(profile.family_name), firstName: text(profile.given_name) }),
       },
     },
     // メール + パスワードは使わない（既定で無効）。名前・画像の書き換えは API のプロフィールで行うので、この更新 API も閉じる
@@ -60,8 +54,6 @@ export function createAuth(env: AuthEnv, pool: pg.Pool) {
               email_verified: u.emailVerified === true,
               name: text(u.name),
               picture: text(u.image),
-              last_name: text(u.lastName),
-              first_name: text(u.firstName),
             };
           },
         },

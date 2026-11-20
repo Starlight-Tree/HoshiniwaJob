@@ -74,31 +74,30 @@ describe('googleLoginAction', () => {
 describe('updateNameAction', () => {
   const loggedIn = () => (token.value = 'jwt-123');
 
-  it('成功したら、JWT を付けて API に姓・名を送り、サイドパネルを更新する（保存できた印を返す）', async () => {
+  it('成功したら、JWT を付けて API に表示名を送り、サイドパネルを更新する（保存できた印を返す）', async () => {
     loggedIn();
-    const fetchMock = reply(200, { id: 1, email: 'a@example.com', last_name: '新姓', first_name: '新名' });
-    const state = await updateNameAction({}, form({ last_name: ' 新姓 ', first_name: '新名' }));
-    expect(state).toEqual({ saved: true, values: { last_name: '新姓', first_name: '新名' } });
+    const fetchMock = reply(200, { id: 1, email: 'a@example.com', display_name: '新しい名前' });
+    const state = await updateNameAction({}, form({ display_name: ' 新しい名前 ' }));
+    expect(state).toEqual({ saved: true, values: { display_name: '新しい名前' } });
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain('/api/auth/me');
     expect(init?.method).toBe('PATCH');
     expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer jwt-123');
-    expect(JSON.parse(String(init?.body))).toEqual({ last_name: '新姓', first_name: '新名' });
+    expect(JSON.parse(String(init?.body))).toEqual({ display_name: '新しい名前' });
     expect(revalidate).toHaveBeenCalledWith('/', 'layout');
   });
 
   it('空・長すぎる入力は、API を呼ばずに返す', async () => {
     loggedIn();
     const fetchMock = reply(200, {});
-    const state = await updateNameAction({}, form({ last_name: '', first_name: 'x'.repeat(51) }));
-    expect(state.fieldErrors?.last_name).toBeDefined();
-    expect(state.fieldErrors?.first_name).toBeDefined();
+    const state = await updateNameAction({}, form({ display_name: 'x'.repeat(31) }));
+    expect(state.fieldErrors?.display_name).toBeDefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('ログインしていなければ（JWT が取れない）、API を呼ばない', async () => {
     const fetchMock = reply(200, {});
-    const state = await updateNameAction({}, form({ last_name: '姓', first_name: '名' }));
+    const state = await updateNameAction({}, form({ display_name: '名前' }));
     expect(state.error).toContain('有効期限');
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -106,9 +105,9 @@ describe('updateNameAction', () => {
   it('API が 401（期限切れ）なら、そのことを伝える。ほかの失敗は固定の文で、例外の文字列を出さない', async () => {
     loggedIn();
     reply(401, { detail: 'ログインしてください' });
-    expect((await updateNameAction({}, form({ last_name: '姓', first_name: '名' }))).error).toContain('有効期限');
+    expect((await updateNameAction({}, form({ display_name: '名前' }))).error).toContain('有効期限');
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.5:8000'));
-    const state = await updateNameAction({}, form({ last_name: '姓', first_name: '名' }));
+    const state = await updateNameAction({}, form({ display_name: '名前' }));
     expect(state.error).toBe('ただいま利用できません。しばらくしてから、もう一度お試しください');
     expect(JSON.stringify(state)).not.toContain('ECONNREFUSED');
   });
