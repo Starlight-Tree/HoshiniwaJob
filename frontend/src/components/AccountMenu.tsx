@@ -20,7 +20,7 @@ type Props = {
 };
 
 /**
- * サイドパネル下部のアカウント（DocuNavi と同じ形）。アバターのボタンを押すと、メニューが開く。
+ * サイドパネル下部のアカウント（DocuNavi と同じ形）。アバターのボタンを押すと、メニューが開く（細い帯では右へ、開いたパネルでは上へ）。パネルを開いているときは、ボタンにアバターと名前が並ぶ。
  * ログイン中は、名前・メールアドレス・テーマ（ライト / ダーク / システム）・ログアウト。ログインしていなければ、テーマと、ログインの入口。
  * 開いたら先頭の項目にフォーカスを置く。↑↓ で移動、Esc で閉じてボタンへ戻る。メニューの外を押しても閉じる。
  * テーマを選ぶと localStorage に保存し、以後は OS より優先する（「システム」で OS に従う状態へ戻す）。保存値は、開いたときに読む（サーバーの出力とずれないよう、描画の最初には読まない）。
@@ -123,6 +123,13 @@ export function AccountMenu({ name, email, logout, honorific = 'さん', loginHr
       >
         <span className="account-avatar" aria-hidden="true">
           {signedIn ? <PersonIcon /> : '≡'}
+        </span>
+        {/* 名前と矢印は、サイドパネルを開いているときだけ CSS が見せる（閉じた帯では隠す） */}
+        <span className="account-label" aria-hidden="true">
+          {signedIn ? name : 'メニュー'}
+        </span>
+        <span className="account-caret" aria-hidden="true">
+          ▲
         </span>
       </button>
     </div>

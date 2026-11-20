@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AppSidebar } from './AppSidebar';
 
@@ -67,5 +68,48 @@ describe('AppSidebar', () => {
   it('副見出しは、ロゴの名前に足す', () => {
     setup('/garden', { brandSub: '園の管理' });
     expect(screen.getByRole('link', { name: 'HoshiniwaJob 園の管理' })).toHaveAttribute('href', '/');
+  });
+
+  describe('開閉', () => {
+    it('はじめは開いていて、閉じるボタンがある（開くボタンは無い）', () => {
+      setup('/');
+      expect(screen.getByRole('complementary')).toHaveAttribute('data-open', 'true');
+      expect(screen.getByRole('button', { name: 'サイドパネルを閉じる' })).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.queryByRole('button', { name: 'サイドパネルを開く' })).not.toBeInTheDocument();
+    });
+
+    it('閉じると、開くボタンに替わってフォーカスが移り、行き先と下部の中身は残る。開くと元に戻る', async () => {
+      setup('/');
+      await userEvent.click(screen.getByRole('button', { name: 'サイドパネルを閉じる' }));
+      expect(screen.getByRole('complementary')).toHaveAttribute('data-open', 'false');
+      const open = screen.getByRole('button', { name: 'サイドパネルを開く' });
+      expect(open).toHaveAttribute('aria-expanded', 'false');
+      expect(open).toHaveFocus();
+      expect(screen.queryByRole('button', { name: 'サイドパネルを閉じる' })).not.toBeInTheDocument();
+      // 閉じても、ロゴと行き先のリンクと、下部の中身は DOM に残る（細い帯が使う）
+      expect(screen.getByRole('link', { name: 'HoshiniwaJob' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: '求人を探す' })).toHaveAttribute('aria-current', 'page');
+      expect(screen.getByText('下部の中身')).toBeInTheDocument();
+
+      await userEvent.click(open);
+      expect(screen.getByRole('complementary')).toHaveAttribute('data-open', 'true');
+      expect(screen.getByRole('button', { name: 'サイドパネルを閉じる' })).toHaveFocus();
+      expect(screen.queryByRole('button', { name: 'サイドパネルを開く' })).not.toBeInTheDocument();
+    });
+
+    it('キーボード（Enter）でも開閉できる', async () => {
+      setup('/');
+      screen.getByRole('button', { name: 'サイドパネルを閉じる' }).focus();
+      await userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('button', { name: 'サイドパネルを開く' })).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('button', { name: 'サイドパネルを閉じる' })).toHaveFocus();
+    });
+
+    it('副見出しは、開閉のボタンの名前に影響せず、ロゴの名前に足される', () => {
+      setup('/garden', { brandSub: '園の管理' });
+      expect(screen.getByRole('link', { name: 'HoshiniwaJob 園の管理' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'サイドパネルを閉じる' })).toBeInTheDocument();
+    });
   });
 });

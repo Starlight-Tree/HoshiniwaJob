@@ -77,6 +77,16 @@ describe('AccountMenu（ログイン中）', () => {
   });
 });
 
+describe('AccountMenu（パネルを開いたときの名前と矢印）', () => {
+  it('ボタンに、名前と矢印を持つ（見せるかどうかは、サイドパネルの開閉を見る CSS が決める。読み上げの名前は変えない）', () => {
+    setup();
+    const button = openButton();
+    expect(within(button).getByText('試験 花子')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(button).getByText('▲')).toHaveAttribute('aria-hidden', 'true');
+    expect(button).toHaveAccessibleName('試験 花子のアカウントメニュー');
+  });
+});
+
 describe('AccountMenu（ログインしていない）', () => {
   it('テーマと、ログイン・会員登録の入口だけを出す（ログアウトは出さない）', async () => {
     render(<AccountMenu loginHref="/login" />);

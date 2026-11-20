@@ -18,7 +18,7 @@ export function BrandIcon() {
   // 白抜きのマスクの id は、ロゴを同時に 2 つ描いても重ならないよう、インスタンスごとに分ける
   const maskId = `brand-mask-${useId().replace(/:/g, '')}`;
   return (
-    <svg width="24" height="24" viewBox="1 0.5 30 30" aria-hidden="true">
+    <svg className="app-brand-icon" width="24" height="24" viewBox="1 0.5 30 30" aria-hidden="true">
       <g fill="currentColor">
         <path d="M16 0.5 L16.87 2.53 L18.9 3.4 L16.87 4.27 L16 6.3 L15.13 4.27 L13.1 3.4 L15.13 2.53Z" />
         <path d="M9 3.4 L9.6 4.8 L11 5.4 L9.6 6 L9 7.4 L8.4 6 L7 5.4 L8.4 4.8Z" />
@@ -46,6 +46,16 @@ export function BrandIcon() {
       </g>
       <path d="M7 29.4 Q16 26.6 25 29.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
+  );
+}
+
+/** サイドパネルを畳む・開くボタンの絵（DocuNavi と同じ。左に縦線のある四角）。 */
+export function SidebarIcon() {
+  return (
+    <Line size={18}>
+      <rect x="2.5" y="3.5" width="15" height="13" rx="2" />
+      <path d="M8 3.5v13" />
+    </Line>
   );
 }
 
