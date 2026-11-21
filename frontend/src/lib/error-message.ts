@@ -6,6 +6,7 @@ export function messageFor(e: unknown): string {
     if (e.status === 401) return 'メールアドレスまたはパスワードが違います';
     if (e.status === 409) return 'このメールアドレスは登録できません';
     if (e.status === 422) return '入力内容を確認してください';
+    if (e.status === 429) return 'ログインの試行が多すぎます。しばらくしてからもう一度お試しください';
   }
   return 'ただいま利用できません。しばらくしてから、もう一度お試しください';
 }
