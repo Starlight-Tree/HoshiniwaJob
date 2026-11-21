@@ -5,7 +5,7 @@
 #
 # 見るもの:
 #   Python  backend/Dockerfile の FROM python:<版>-slim、CI の python-version-file、CLAUDE.md の記述
-#   Node    docker-compose.yml の frontend の image node:<版>-slim、frontend/package.json の engines、CI の node-version-file、CLAUDE.md の記述
+#   Node    docker-compose.yml の frontend の image node:<版>-slim、e2e/web.Dockerfile の FROM node:<版>-slim、frontend/package.json の engines、CI の node-version-file、CLAUDE.md の記述
 # 見ないもの（意図して揃えていない。保留中）: jobs/image-gen（Python 3.11）、開発コンテナの Node（feature の既定）。
 # 終了コード: 0 = 揃っている、1 = 食い違いあり。
 set -euo pipefail
@@ -34,6 +34,7 @@ check "Python $py: CI が .python-version を読む" .github/workflows/ci.yml "p
 check "Python $py: CLAUDE.md" CLAUDE.md "Python ${py}"
 
 check "Node $node: docker-compose.yml の frontend" docker-compose.yml "image: node:${node}-slim"
+check "Node $node: e2e/web.Dockerfile" e2e/web.Dockerfile "FROM node:${node}-slim"
 check "Node $node: frontend/package.json の engines" frontend/package.json "^${node}.0.0"
 check "Node $node: CI が .node-version を読む" .github/workflows/ci.yml "node-version-file: .node-version"
 check "Node $node: CLAUDE.md" CLAUDE.md "Node ${node}"

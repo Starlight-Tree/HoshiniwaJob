@@ -175,7 +175,23 @@ services:
     networks:
       - frontend-net
       - backend-net
-    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --hostname 0.0.0.0 --port 3000"
+    # 依存は npm ci で入れる（package-lock.json のとおりに入れ、ロックは書き換えない。ホストの frontend/ を共有しているので、npm install だとホストのロックが変わりうる）。
+    # ただし毎回は入れ直さない（npm ci は node_modules の中身を空にして、入れ直す。再起動のたびに、ダウンロードと時間がかかる。restart: unless-stopped なので、落ち続けるとそれを繰り返す）。
+    # package.json と package-lock.json の組の sha256 を node_modules/.deps-sha256 に残し、前に入れたときと同じなら飛ばす。
+    # 変わったとき・初めて・前回が途中で止まったとき（印が無い）だけ入れる。依存を足したら、ホストで更新して `docker compose restart frontend`。
+    # package.json とロックが食い違うと、npm ci が止まって起動しない（ログに出る）。
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        stamp=node_modules/.deps-sha256
+        want="$$(cat package.json package-lock.json | sha256sum | cut -d' ' -f1)"
+        if [ "$$(cat "$$stamp" 2>/dev/null || true)" != "$$want" ]; then
+          npm ci --no-audit --no-fund
+          echo "$$want" > "$$stamp"
+        fi
+        npm run dev -- --hostname 0.0.0.0 --port 3000
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
       interval: 5s
@@ -184,7 +200,7 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-# frontend-net: frontend と api（frontend は npm install と Google への通信で外へ出る）。
+# frontend-net: frontend と api（frontend は npm ci と Google への通信で外へ出る）。
 # backend-net: db と、api・frontend・道具（migrate・seed・seed-images）。internal なので、db は外へ出られず、ホストからも届かない。
 #   frontend が backend-net にいるのは、ログイン（Better Auth の auth_ の表）のため。2026-11-20 に、Next.js の公式の構成（認証を画面のサーバーの中に置く）を選んで、DB へ届くようにした。
 networks:

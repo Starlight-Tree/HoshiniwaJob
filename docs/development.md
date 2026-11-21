@@ -12,8 +12,9 @@ README の Quick start の続き。ローカルでの開発・テスト・ダミ
 | `jobs/image-gen/` | 画像生成の Cloud Run Job（試作。[docs/image-gen-resources.md](image-gen-resources.md)） | Python 3.11 |
 | `.devcontainer/` | 開発コンテナと、Docker のソケットプロキシ | |
 
-版の基準は `.python-version` と `.node-version`。`scripts/check-versions.sh` が、Dockerfile・Compose・`engines`・CI と揃っているかを確かめる。
+版の基準は `.python-version` と `.node-version`。`scripts/check-versions.sh` が、Dockerfile（`backend/Dockerfile`・`e2e/web.Dockerfile`）・Compose・`engines`・CI と揃っているかを確かめる。
 ポートは画面 3200、API 8200（ほかのローカルのサービスと同時に動かすため、固定）。
+Compose の `frontend` は、起動のときに依存を `npm ci` で入れる（`package-lock.json` のとおりに入れ、ロックは書き換えない）。`package.json` と `package-lock.json` が前に入れたときと同じなら飛ばす（再起動のたびに入れ直さない）。依存を変えたら、ホストで `package-lock.json` まで更新してから `docker compose restart frontend`（食い違っていると、`npm ci` が止まってログに出る）。
 
 ## テスト
 
