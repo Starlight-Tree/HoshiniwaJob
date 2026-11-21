@@ -102,3 +102,30 @@ describe('RecruitCard の給与', () => {
     expect(container.querySelector('.pay-unit')).toBeNull();
   });
 });
+
+describe('RecruitCard の見出しのレベルとリンク', () => {
+  it('既定は h2（一覧・診断の結果）。リンクは題名の 1 つで、サムネのリンクは aria-hidden', () => {
+    const { container } = render(<RecruitCard job={job()} query="" />);
+    expect(container.querySelector('article.card h2 a')).not.toBeNull();
+    expect(container.querySelector('article.card h3, article.card h4')).toBeNull();
+  });
+
+  it.each([3, 4] as const)('headingLevel=%i なら、題名の見出しが h%i になる（h2 は出ない。リンクは同じ 1 つ）', (level) => {
+    const { container } = render(<RecruitCard job={job()} query="" headingLevel={level} />);
+    expect(screen.getByRole('heading', { level, name: '温室の見習い' })).toBeInTheDocument();
+    expect(container.querySelector('h2')).toBeNull();
+    expect(container.querySelectorAll(`article.card h${level} a`)).toHaveLength(1);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('plainLinks でも、題名とサムネのリンクの行き先・属性（aria-hidden・tabindex）は同じ（読み上げ・Tab の順は変わらない。変わるのは、押したときの移り方だけ）', () => {
+    const { container } = render(<RecruitCard job={job()} query="area=3" plainLinks />);
+    const thumb = container.querySelector('a.card-thumb');
+    const title = screen.getByRole('link', { name: '温室の見習い' });
+    expect(title).toHaveAttribute('href', '/recruits/7?area=3');
+    expect(thumb).toHaveAttribute('href', '/recruits/7?area=3');
+    expect(thumb).toHaveAttribute('aria-hidden', 'true');
+    expect(thumb).toHaveAttribute('tabindex', '-1');
+  });
+});
+

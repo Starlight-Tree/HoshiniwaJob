@@ -217,19 +217,19 @@ h1, h2 { line-height: 1.4; }
 .text-link { font-size: 14px; }
 
 .card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; }
-/* カード全体が押せる（題名のリンクの ::after をカード全体に広げる）。見た目の変化はホバーとキーボードのフォーカスで出す */
-.card h2 a::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius); }
+/* カード全体が押せる（題名のリンクの ::after をカード全体に広げる）。見た目の変化はホバーとキーボードのフォーカスで出す。題名の見出しは、一覧では h2、詳細の「関連する求人」・おすすめの帯では h3・h4（RecruitCard の headingLevel）。どれも同じ見た目 */
+.card :is(h2, h3, h4) a::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius); }
 .card:hover { border-color: var(--primary); }
-.card h2 a:focus-visible { outline: none; }
-.card h2 a:focus-visible::after { outline: 2px solid var(--primary); outline-offset: 2px; }
+.card :is(h2, h3, h4) a:focus-visible { outline: none; }
+.card :is(h2, h3, h4) a:focus-visible::after { outline: 2px solid var(--primary); outline-offset: 2px; }
 /* 左のサムネ（装飾。リンクは題名と同じ行き先）。画像の無い求人は、詳細と同じ共通の雰囲気画像（lib/fallback-image.ts）を出す */
 .card-thumb { flex: 0 0 160px; width: 160px; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: var(--surface-muted); }
 .card-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .card-main { flex: 1 1 320px; min-width: 0; }
 .card-corporate { margin: 0 0 4px; font-size: 13px; color: var(--muted); }
-.card h2 { margin: 0 0 10px; font-size: 16px; }
-.card h2 a { color: var(--text); text-decoration: none; }
-.card h2 a:hover { text-decoration: underline; }
+.card :is(h2, h3, h4) { margin: 0 0 10px; font-size: 16px; }
+.card :is(h2, h3, h4) a { color: var(--text); text-decoration: none; }
+.card :is(h2, h3, h4) a:hover { text-decoration: underline; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .tags li { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); }
 .card-summary { margin: 10px 0 0; font-size: 14px; color: var(--muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; } /* 一覧では 2 行まで。全文は詳細に出る */
@@ -242,6 +242,39 @@ h1, h2 { line-height: 1.4; }
 /* 詳細パネルが開いている求人のカード（SelectableCard が、包みの .card-slot に aria-current="true" を付ける）。枠の色・薄い背景・左の太線で示す（色だけに頼らない） */
 .card-slot { min-width: 0; }
 .card-slot[aria-current='true'] .card { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--surface)); box-shadow: inset 3px 0 0 var(--primary); }
+
+/* 詳細の末尾の「関連する求人」（RelatedRecruits。ページとパネルで同じ）。カードは一覧と同じ .card。
+   並びは、画面ではなく .related-list の幅で切り替える（上の .results と同じ考え方。ここは .results の外なので、枠を別に持つ）。
+   パネル（約 380〜520px）・狭い画面のシート（約 280〜）の幅（519px 以下）では、小さなサムネを左に置いた低いカードにする。給与と矢印は、本文の下の行（上の container query が下の行へ送る）。本文の抜粋は出さない */
+.related { margin-top: 40px; }
+.related h2, .related h3 { margin: 0 0 4px; font-size: 16.8px; }
+.related-note { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+.related-list { container-type: inline-size; display: flex; flex-direction: column; gap: 12px; }
+@container (max-width: 519px) {
+  .related-list .card { padding: 12px 14px; gap: 8px 14px; }
+  .related-list .card-thumb { flex: 0 0 88px; width: 88px; aspect-ratio: 1; }
+  .related-list .card-main { flex: 1 1 140px; }
+  .related-list .card-side { min-width: 0; }
+  .related-list .card-summary { display: none; }
+}
+
+/* 一覧（トップ）の上の「あなたへのおすすめ」の帯（RecommendedRecruits）。ログインした求職者で、履歴があるときだけ。一覧を邪魔しないよう、小さなタイル（法人名・題名・給与だけ）を、幅に合わせて並べる。
+   .recs が container。狭い（519px 以下）ときは、3 つまでにして、一覧が下がりすぎないようにする。タイルの中身（.card）は、一覧のカードの並び方（横の並び・基準の幅）を、縦積みに直して使う */
+.recs { container-type: inline-size; margin: 0 0 20px; padding: 14px 16px 16px; background: var(--surface-muted); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+.recs h2 { margin: 0 0 2px; font-size: 15px; }
+.recs-note { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+.recs-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.recs-list .card-slot { display: flex; }
+.recs-list .card { flex: 1 1 auto; min-width: 0; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px; padding: 12px 14px; }
+.recs-list .card-thumb, .recs-list .tags, .recs-list .card-summary { display: none; }
+.recs-list .card-main { flex: none; }
+.recs-list .card-main .card-corporate { margin-bottom: 2px; }
+.recs-list .card h3 { margin: 0; font-size: 14.72px; }
+.recs-list .card-side { flex: 0 0 auto; min-width: 0; justify-content: space-between; gap: 8px; text-align: left; }
+.recs-list .card-arrow { font-size: 22px; }
+@container (max-width: 519px) {
+  .recs-list > :nth-child(n+4) { display: none; }
+}
 .outline-button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border: 1.5px solid var(--primary); border-radius: 6px; color: var(--primary); font-size: 14px; font-weight: 700; text-decoration: none; }
 .outline-button:hover { background: var(--tag-bg); }
 

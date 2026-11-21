@@ -52,3 +52,21 @@ describe('SelectableCard の選択状態', () => {
     expect(screen.getByRole('link', { name: '温室の見習い' })).toHaveAttribute('href', '/recruits/7?area=3');
   });
 });
+
+describe('SelectableCard の見出しのレベルと、フォーカスを戻す目印', () => {
+  it('headingLevel を RecruitCard へ渡す（既定は h2）', () => {
+    const { container, rerender } = render(<SelectableCard job={job()} query="" />);
+    expect(container.querySelector('.card-slot h2 a')).not.toBeNull();
+    rerender(<SelectableCard job={job()} query="" headingLevel={3} />);
+    expect(container.querySelector('.card-slot h2')).toBeNull();
+    expect(container.querySelector('.card-slot h3 a')).not.toBeNull();
+  });
+
+  it('returnFocus={false}（おすすめの帯）なら、data-recruit-id を付けない。選択状態（aria-current）は、そのまま出る', () => {
+    nav.pathname = '/recruits/7';
+    const { container } = render(<SelectableCard job={job()} query="" returnFocus={false} />);
+    expect(container.querySelector('.card-slot')).not.toHaveAttribute('data-recruit-id');
+    expect(container.querySelector('.card-slot')).toHaveAttribute('aria-current', 'true');
+  });
+});
+

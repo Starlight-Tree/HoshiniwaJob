@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import { FALLBACK_IMAGE } from '../lib/fallback-image';
 import { payOf } from '../lib/format';
-import type { RecruitDetail } from '../lib/types';
+import type { RecruitDetail, RecruitSummary } from '../lib/types';
+import { RelatedRecruits } from './RelatedRecruits';
 
 type Props = {
   job: RecruitDetail;
@@ -12,6 +13,8 @@ type Props = {
   gallerySizes?: string;
   /** パネルが、開いたときに見出しへフォーカスを移せるようにする（tabIndex=-1 と、探すための印 data-panel-heading を付ける）。 */
   focusHeading?: boolean;
+  /** 末尾の「関連する求人」（API の /related）。無い・空なら、節ごと出さない。headingLevel が 2（パネル）のときは、パネルの中の並び・見出しの階層になる。 */
+  related?: RecruitSummary[];
 };
 
 /** 仕様表の行。値が無い項目（null・空文字）は、行ごと出さない。 */
@@ -33,7 +36,7 @@ export function specRows(job: RecruitDetail): [string, string][] {
 }
 
 /**
- * 求人の詳細の本体（法人名・題名・画像・仕様表・各ブロック）。詳細ページ（recruits/[id]/page.tsx）と、一覧に重ねるパネル（RecruitPanel の中）で同じものを出す。
+ * 求人の詳細の本体（法人名・題名・画像・仕様表・各ブロック・関連する求人）。詳細ページ（recruits/[id]/page.tsx）と、一覧に重ねるパネル（RecruitPanel の中）で同じものを出す。
  * 戻るリンクや枠（main・パネル）は、使う側が持つ。画像は API が返す（承認済みのものだけ）。ヒーローは API が決める。無ければ共通の画像。
  */
 export function RecruitDetailView({
@@ -42,6 +45,7 @@ export function RecruitDetailView({
   heroSizes = '(max-width: 808px) 100vw, 760px',
   gallerySizes = '(max-width: 808px) 50vw, 240px',
   focusHeading = false,
+  related = [],
 }: Props) {
   const Title = headingLevel === 1 ? 'h1' : 'h2';
   const BlockTitle = headingLevel === 1 ? 'h2' : 'h3';
@@ -90,6 +94,8 @@ export function RecruitDetailView({
           </section>
         ) : null,
       )}
+
+      <RelatedRecruits jobs={related} inPanel={headingLevel === 2} />
     </>
   );
 }

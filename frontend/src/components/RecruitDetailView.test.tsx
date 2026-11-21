@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { RecruitDetail } from '../lib/types';
+import type { RecruitDetail, RecruitSummary } from '../lib/types';
 import { RecruitDetailView, specRows } from './RecruitDetailView';
 
 const IMAGE = (id: string) => ({ id, url: `/media/images/${id}.jpg`, alt: `画像 ${id}`, width: 800, height: 600, mime_type: 'image/jpeg' });
@@ -99,3 +99,47 @@ describe('RecruitDetailView', () => {
     expect(screen.queryByRole('list', { name: 'ほかの画像' })).toBeNull();
   });
 });
+
+describe('RecruitDetailView の「関連する求人」', () => {
+  const related = (id: number): RecruitSummary => ({
+    id,
+    corporate: '星庭ワークス',
+    category: `関連の職種 ${id}`,
+    salary: 2,
+    pay_min: 180000,
+    pay_max: 240000,
+    comment1: null,
+    note1: null,
+    formfile: null,
+    areas: [],
+    stations: [],
+    occupations: [],
+    employments: [],
+    hero_image: null,
+  });
+
+  it('渡さない・空なら、節ごと出さない（既存の見出しも変わらない）', () => {
+    const { rerender } = render(<RecruitDetailView job={detail()} />);
+    expect(screen.queryByRole('region', { name: '関連する求人' })).toBeNull();
+    rerender(<RecruitDetailView job={detail()} related={[]} />);
+    expect(screen.queryByText('関連する求人')).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['業務内容']);
+  });
+
+  it('ページ: 本文のブロックの後ろ（末尾）に、h2「関連する求人」と、h3 の題名のカードが並ぶ', () => {
+    const { container } = render(<RecruitDetailView job={detail()} related={[related(8), related(9)]} />);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['業務内容', '関連する求人']);
+    const section = screen.getByRole('region', { name: '関連する求人' });
+    expect(section.previousElementSibling?.className).toBe('detail-block');
+    expect(container.lastElementChild).toBe(section);
+    expect(within(section).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['関連の職種 8', '関連の職種 9']);
+  });
+
+  it('パネル（headingLevel=2）: 見出しは h3、カードの題名は h4。パネルの題名（h2）は 1 つのまま', () => {
+    render(<RecruitDetailView job={detail()} headingLevel={2} focusHeading related={[related(8)]} />);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['温室の見習い']);
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['業務内容', '関連する求人']);
+    expect(screen.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)).toEqual(['関連の職種 8']);
+  });
+});
+

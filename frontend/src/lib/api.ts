@@ -8,6 +8,7 @@ import type {
   Master,
   RecruitDetail,
   RecruitPage,
+  RecruitSummary,
   User,
 } from './types';
 import { KINDS, type Selection } from './search';
@@ -73,8 +74,20 @@ export function fetchRecruits(sel: Selection, perPage = 10): Promise<RecruitPage
 
 export const fetchRecruit = (id: number) => get<RecruitDetail>(`/api/recruits/${id}`);
 
+/** 関連する求人（公開 API。docs/recommendation.md）。自分は含まれない。limit は API が 1〜12 に限る。存在しない・表示中でない求人は 404。 */
+export const fetchRelatedRecruits = (id: number, limit = 4) => get<RecruitSummary[]>(`/api/recruits/${id}/related?limit=${limit}`);
+
 // 求職者の API。ログインは Better Auth（lib/auth.ts）。ここへ渡すトークンは、そこが出す JWT（session.ts の userToken）。
 export const fetchMe = (token: string) => get<User>('/api/auth/me', token);
+
+/** 閲覧の記録（求職者の Bearer。成功は 204 で本文なし。同じ求人を 30 分以内にもう一度送っても 204 で、足されない）。無いトークンは 401、存在しない・表示中でない求人は 404。 */
+export async function recordRecruitView(token: string, id: number): Promise<void> {
+  const res = await call(`/api/recruits/${id}/view`, { method: 'POST', token });
+  if (!res.ok) throw new ApiError(res.status, `API がエラーを返しました（${res.status}）`);
+}
+
+/** あなたへのおすすめ（求職者の Bearer）。まだ見ていない求人から選ぶ。閲覧の履歴が無ければ []。limit は API が 1〜12 に限る。 */
+export const fetchRecommendations = (token: string, limit = 6) => get<RecruitSummary[]>(`/api/recommendations?limit=${limit}`, token);
 
 /** 表示名（ニックネーム）の変更。変えられるのは、トークンの持ち主本人だけ。 */
 export async function updateNameRequest(token: string, input: { display_name: string }): Promise<User> {

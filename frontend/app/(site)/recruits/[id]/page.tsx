@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { RecruitDetailView } from '../../../../src/components/RecruitDetailView';
+import { RecruitViewRecorder } from '../../../../src/components/RecruitViewRecorder';
 import { loadRecruit } from '../../../../src/lib/load-recruit';
+import { loadRelated } from '../../../../src/lib/load-related';
 import { hrefFor, parseSelection } from '../../../../src/lib/search';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +20,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // 直接開いた・再読み込みしたときの、これまでどおりの全ページ。一覧から押したときは、同じ URL が一覧の右のパネルで開く（@panel の (.)recruits/[id]）
 export default async function RecruitPage({ params, searchParams }: Props) {
-  const job = await loadRecruit((await params).id);
+  const { id } = await params;
+  // 関連する求人は、求人と同時に読む（付随なので、取れなければ空）
+  const [job, related] = await Promise.all([loadRecruit(id), loadRelated(id)]);
   // 一覧から来たときの条件を、「検索結果にもどる」へ引き継ぐ
   const back = hrefFor(parseSelection(await searchParams));
 
@@ -44,7 +48,9 @@ export default async function RecruitPage({ params, searchParams }: Props) {
           ← 検索結果にもどる
         </Link>
       </p>
-      <RecruitDetailView job={job} />
+      <RecruitDetailView job={job} related={related} />
+      {/* ログイン中の求職者のときだけ、開いたあとに、閲覧を 1 回記録する（クライアントの副作用。パネルと同じ） */}
+      <RecruitViewRecorder recruitId={job.id} />
     </main>
   );
 }
