@@ -10,11 +10,12 @@ from app.images_api import media_router
 from app.images_api import router as images_router
 from app.recruit_events import router as recruit_events_router
 from app.recruits import router as recruits_router
-from app.settings import cors_origins, storage_backend
+from app.settings import cors_origins, garden_login_limits, storage_backend
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    garden_login_limits()  # 園のログインの制限の設定ミス（整数でない・範囲外）は、リクエストの途中ではなく、起動で止める
     db.open_pool()
     try:
         yield
@@ -23,7 +24,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="JobNavi API", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["*"])
+# PATCH は、PATCH /api/auth/me（表示名の変更）のため。画面は API をサーバー側から呼ぶが、ブラウザーから直接呼ぶ場合の事前確認（preflight）にも通す
+app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["*"])
 app.include_router(recruits_router)
 app.include_router(recruit_events_router)
 app.include_router(auth_router)

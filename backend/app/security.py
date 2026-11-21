@@ -19,6 +19,8 @@ DUMMY_HASH = hasher.hash("dummy-password-for-timing")
 
 BAD_LOGIN = HTTPException(status_code=401, detail="メールアドレスまたはパスワードが違います")
 NOT_LOGGED_IN = HTTPException(status_code=401, detail="ログインしてください")
+# 試行の上限（メールごと）に達したとき。メールが登録済みかどうか・理由（何回目か、いつ戻るか）を分けない固定の文
+LOGIN_LOCKED = HTTPException(status_code=429, detail="ログインの試行が多すぎます。しばらくしてからもう一度お試しください")
 
 
 def digest(token: str) -> str:

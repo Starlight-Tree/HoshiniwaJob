@@ -61,6 +61,15 @@ docker compose run --rm migrate python -m app.migrate --dry-run   # 事前検査
 docker compose run --rm migrate                                   # 適用
 ```
 
+## 園のログインの試行制限と CORS
+
+- **試行制限**（`backend/app/garden.py`。表は `0007_garden_login_attempts.sql`）: メールアドレスごとに数える。IP では数えない（API を呼ぶのは画面のサーバーで、どの利用者も送信元が同じになるため）。窓（既定 15 分。そのメールの最初の試行から）の中で上限（既定 5 回）を超えた試行は、正しいパスワードでも 429（固定の文）。メールが登録済みかどうかで、応答も処理も分けない（登録が無いときも、パスワードの検証と同じ処理を通す）。成功すると、そのメールの数えを消す。窓の 2 倍より古い行は、ログインのついでに消す。
+- 表には、正規化（前後の空白を除き小文字）したメールの SHA-256 だけを置き、生のメールは置かない（形は CHECK で縛る）。ハッシュは秘密ではない（推測しやすい文字列は、辞書で元に戻せることがある）ので、表を読める人は絞る。
+- 設定（環境変数）: `GARDEN_LOGIN_MAX_FAILURES`（既定 5。1〜1000）、`GARDEN_LOGIN_WINDOW_MINUTES`（既定 15。1〜10080）。整数でない値・範囲外は、API の起動で止まる（別の値には切り替えない）。
+- 限界: そのメールを知っている人が、わざと失敗を重ねると、その園のログインを窓の間だけ止められる（正当な利用者も入れなくなる）。IP の制限・CAPTCHA は無い。
+- **CORS**（`backend/app/main.py`）: `CORS_ORIGINS`（既定 `http://localhost:3000`）の許可元に、GET・POST・PUT・PATCH・DELETE を許す。画面は API をサーバー側から呼ぶので、ふだんはブラウザーの CORS を通らない。
+- 確認（2026-11-21。ホストの使い捨ての Postgres 17 で `pytest -q -rs`）: 試行制限は `tests/test_garden.py`、CORS は `tests/test_main.py`、設定値は `tests/test_settings.py`、表の形は `tests/test_migrate.py`。本番の DB への適用と、実際のブラウザーでの確認は未実施。
+
 ## E2E（表示名の保存）
 
 「Google ログイン後の画面で、アカウントのメニューから表示名を変更して保存し、画面と API の DB に反映される」までを、Playwright で自動テストする（`e2e/`）。

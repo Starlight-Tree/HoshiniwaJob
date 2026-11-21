@@ -10,6 +10,9 @@ from tests.conftest import TEST_URL, load_initial_schema, new_database
 
 pytestmark = pytest.mark.skipif(not TEST_URL, reason="TEST_DATABASE_URL が未設定です")
 
+# 今ある番号。マイグレーションを足したら、ここだけ直す（0001 は baseline）
+ALL_VERSIONS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007"]
+
 
 def run(url: str, **kw) -> tuple[int, list[str]]:
     lines: list[str] = []
@@ -37,11 +40,29 @@ def test_new_database_gets_baseline_then_all_migrations_and_rerun_is_a_noop():
     assert code == 0
     with psycopg.connect(url) as conn:
         versions = [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY version")]
-    assert versions == ["0001", "0002", "0003", "0004", "0005", "0006"]
+    assert versions == ALL_VERSIONS
     assert table_exists(url, "images") and table_exists(url, "recruit_images") and table_exists(url, "garden_images")
     assert table_exists(url, "recruit_events") and table_exists(url, "recruit_embeddings")
+    assert table_exists(url, "garden_login_attempts")
     code, lines = run(url)
     assert code == 0 and any("未適用: なし" in line for line in lines)
+
+
+def test_garden_login_attempts_table_only_accepts_a_sha256_hash():
+    """園ログインの試行の表（0007）には、生のメールアドレスを入れられない（SHA-256 の 16 進 64 文字だけ）。"""
+    url = new_database("hj_mig_attempts")
+    load_initial_schema(url)
+    assert run(url)[0] == 0
+    good = hashlib.sha256(b"a@example.com").hexdigest()
+    with psycopg.connect(url, autocommit=True) as conn:
+        conn.execute("INSERT INTO garden_login_attempts (email_hash, failures) VALUES (%s, 1)", (good,))
+        for bad in ("a@example.com", good.upper(), good[:-1], ""):
+            with pytest.raises(psycopg.errors.CheckViolation):
+                conn.execute("INSERT INTO garden_login_attempts (email_hash, failures) VALUES (%s, 1)", (bad,))
+        with pytest.raises(psycopg.errors.CheckViolation):
+            conn.execute("UPDATE garden_login_attempts SET failures = 0 WHERE email_hash = %s", (good,))
+        columns = [r[0] for r in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'garden_login_attempts'")]
+    assert sorted(columns) == ["email_hash", "failures", "window_start"]  # メールを入れる列は無い
 
 
 def test_display_name_is_backfilled_from_the_old_name_columns():
@@ -137,14 +158,15 @@ def test_failed_migration_rolls_back_and_is_not_recorded(tmp_path, monkeypatch):
     load_initial_schema(url)
     work = tmp_path / "migrations"
     shutil.copytree(migrate.MIGRATIONS_DIR, work)
-    (work / "0007_broken.sql").write_text("CREATE TABLE half_done (id int);\nSELECT 1/0;\n", encoding="utf-8")
+    next_version = f"{len(migrate.migration_files()) + 2:04d}"  # 今ある最後の番号の次（本物のマイグレーションと番号が重ならない）
+    (work / f"{next_version}_broken.sql").write_text("CREATE TABLE half_done (id int);\nSELECT 1/0;\n", encoding="utf-8")
     monkeypatch.setattr(migrate, "MIGRATIONS_DIR", work)
     monkeypatch.setattr(migrate, "FINGERPRINT_FILE", work / "baseline_fingerprint.json")
     with pytest.raises(psycopg.errors.DivisionByZero):
         run(url)
     assert not table_exists(url, "half_done")  # 途中までの変更は残らない
     with psycopg.connect(url) as conn:
-        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ["0001", "0002", "0003", "0004", "0005", "0006"]
+        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ALL_VERSIONS
 
 
 def test_backup_and_restore_roundtrip(tmp_path):
@@ -166,5 +188,5 @@ def test_backup_and_restore_roundtrip(tmp_path):
     subprocess.run([f"{pg_bin}/pg_restore", "--no-owner", "-d", restored, str(dump)], check=True)
     with psycopg.connect(restored) as conn:
         assert conn.execute("SELECT category FROM recruits WHERE demo_key = 'restore-check'").fetchone()[0] == "復旧"
-        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ["0001", "0002", "0003", "0004", "0005", "0006"]
+        assert [r[0] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY 1")] == ALL_VERSIONS
     assert run(restored)[0] == 0

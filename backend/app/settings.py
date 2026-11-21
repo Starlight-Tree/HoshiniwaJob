@@ -69,6 +69,34 @@ def auth_jwt() -> tuple[str, str, str] | None:
     return issuer, jwks_url, os.environ.get("AUTH_AUDIENCE", "").strip() or DEFAULT_AUTH_AUDIENCE
 
 
+# ---- 園のログインの試行の制限（app/garden.py）。メールアドレスごとに数える（IP は使えない。API を呼ぶのは画面のサーバー）。 ----
+
+DEFAULT_GARDEN_LOGIN_MAX_FAILURES = 5
+DEFAULT_GARDEN_LOGIN_WINDOW_MINUTES = 15
+
+
+def _bounded_int_env(name: str, default: int, low: int, high: int) -> int:
+    """環境変数の整数。未設定・空は既定値。整数でない値・範囲外は、別の値に切り替えず設定ミスとして例外にする（値は出さない）。"""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        raise RuntimeError(f"{name} は整数にしてください") from None
+    if not low <= value <= high:
+        raise RuntimeError(f"{name} は {low} から {high} までの整数にしてください")
+    return value
+
+
+def garden_login_limits() -> tuple[int, int]:
+    """(窓の間に許す試行の上限, 窓の長さ（分）)。GARDEN_LOGIN_MAX_FAILURES（既定 5）と GARDEN_LOGIN_WINDOW_MINUTES（既定 15）。"""
+    return (
+        _bounded_int_env("GARDEN_LOGIN_MAX_FAILURES", DEFAULT_GARDEN_LOGIN_MAX_FAILURES, 1, 1000),
+        _bounded_int_env("GARDEN_LOGIN_WINDOW_MINUTES", DEFAULT_GARDEN_LOGIN_WINDOW_MINUTES, 1, 10080),
+    )
+
+
 def required_env(name: str) -> str:
     value = os.environ.get(name, "")
     if not value:
